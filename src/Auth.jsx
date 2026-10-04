@@ -13,6 +13,12 @@ export default function Auth() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  useEffect(() => {
+    if (!emailCooldown) return;
+    const timer = window.setTimeout(() => setEmailCooldown(value => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [emailCooldown]);
   const passwordHint = useId();
   const heading = useRef(null);
   const previousMode = useRef(mode);
@@ -31,11 +37,17 @@ export default function Auth() {
   async function submit(event) {
     event.preventDefault();
     if (!AuthProvider.configured || busy) return;
+    if ((mode === 'reset' || mode === 'confirm') && emailCooldown) return;
     setBusy(true);
     setNotice(null);
     try {
-      if (mode === "reset") {
+      if (mode === "confirm") {
+        await AuthProvider.resendConfirmation(email.trim(), window.location.origin);
+        setEmailCooldown(60);
+        setNotice({text: "Request accepted. If this account still needs confirmation, check your inbox and spam folder. Already confirmed? Sign in instead, or reset your password.", success: true});
+      } else if (mode === "reset") {
         await AuthProvider.requestPasswordReset(email.trim(), window.location.origin);
+        setEmailCooldown(60);
         setNotice({
           text: "If an account exists for this email, you’ll receive a password reset link shortly.",
           success: true,
@@ -45,7 +57,7 @@ export default function Auth() {
         await AuthProvider.signUp(email.trim(), password, name.trim(), window.location.origin);
         setPassword("");
         setNotice({
-          text: "Check your inbox for a confirmation link, then return here to sign in.",
+          text: "Request accepted. If your account needs confirmation, check your inbox and spam folder. If you already have an account, sign in or reset your password; another signup may not send an email.",
           success: true,
         });
       } else {
@@ -113,6 +125,8 @@ export default function Auth() {
               ? "Make room for what matters."
               : mode === "reset"
                 ? "Let’s get you back in."
+                : mode === "confirm"
+                  ? "Confirm your email."
                 : <><span className="auth-welcome">Welcome to</span><Brand/></>}
           </h2>
           <p className="muted">
@@ -120,6 +134,8 @@ export default function Auth() {
               ? "Create your account to start organizing your legacy."
               : mode === "reset"
                 ? "We’ll email you a link to reset your account password."
+                : mode === "confirm"
+                  ? "Request a new link for an unconfirmed account."
                 : "Your legacy is a story worth protecting."}
           </p>
           {!supabaseConfig.configured && (
@@ -155,7 +171,7 @@ export default function Auth() {
                 placeholder="you@example.com"
               />
             </label>
-            {mode !== "reset" && (
+            {(mode === "login" || mode === "signup") && (
               <label>
                 Password
                 <div className="password-field">
@@ -207,7 +223,7 @@ export default function Auth() {
               </div>
             )}
             <button
-              disabled={busy || !supabaseConfig.configured}
+              disabled={busy || !supabaseConfig.configured || ((mode === 'reset' || mode === 'confirm') && emailCooldown > 0)}
               className="primary"
             >
               {busy
@@ -215,11 +231,14 @@ export default function Auth() {
                 : mode === "signup"
                   ? "Create account"
                   : mode === "reset"
-                    ? "Send reset link"
+                    ? (emailCooldown ? `Try again in ${emailCooldown}s` : "Send reset link")
+                    : mode === "confirm"
+                      ? (emailCooldown ? `Try again in ${emailCooldown}s` : "Resend confirmation")
                     : "Sign in"}
               <Icon name="arrow" />
             </button>
           </form>
+          {(mode === 'login' || mode === 'signup') && <button className="text-button" disabled={busy} onClick={() => changeMode('confirm')}>Need a confirmation email?</button>}
           {mode === "login" && <><p className="auth-divider">OR</p><button className="secondary passkey-button" disabled><Icon name="fingerprint" size={32}/><span>Use Passkey / Biometric<small>Not connected yet · use your password</small></span><Icon name="arrow"/></button></>}
           <p className="auth-switch">
             {mode === "login" ? "New to LEQVOR?" : "Already have an account?"}{" "}

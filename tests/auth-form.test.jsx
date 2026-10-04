@@ -1,6 +1,6 @@
 import {afterEach,it,expect,vi} from 'vitest';
 import {cleanup,render,screen,fireEvent,waitFor} from '@testing-library/react';
-const auth=vi.hoisted(()=>({configured:true,signIn:vi.fn(),signUp:vi.fn(),requestPasswordReset:vi.fn()}));
+const auth=vi.hoisted(()=>({configured:true,signIn:vi.fn(),signUp:vi.fn(),requestPasswordReset:vi.fn(),resendConfirmation:vi.fn()}));
 vi.mock('../src/lib/providers',()=>({AuthProvider:auth}));
 vi.mock('../src/supabase',()=>({supabaseConfig:{configured:true}}));
 import Auth from '../src/Auth';
@@ -42,5 +42,37 @@ it('uses a generic recovery response that does not disclose account existence',a
  await screen.findByRole('status');
  expect(screen.getByRole('status').textContent).toContain('If an account exists');
  expect(auth.requestPasswordReset).toHaveBeenCalledWith('owner@example.invalid',window.location.origin);
+});
+it('requests confirmation without a password and prevents repeated requests during cooldown',async()=>{
+ auth.resendConfirmation.mockResolvedValue({});render(<Auth/>);
+ fireEvent.click(screen.getByRole('button',{name:'Need a confirmation email?'}));
+ expect(screen.queryByLabelText('Password')).toBeNull();
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'owner@example.invalid'}});
+ fireEvent.submit(screen.getByLabelText('Email address').closest('form'));
+ await screen.findByRole('status');
+ expect(auth.resendConfirmation).toHaveBeenCalledWith('owner@example.invalid',window.location.origin);
+ expect(screen.getByRole('status').textContent).toContain('If this account still needs confirmation');
+ expect(screen.getByRole('button',{name:/Try again in/}).disabled).toBe(true);
+ fireEvent.submit(screen.getByLabelText('Email address').closest('form'));
+ expect(auth.resendConfirmation).toHaveBeenCalledTimes(1);
+});
+it('keeps confirmation failures retryable and does not claim delivery',async()=>{
+ auth.resendConfirmation.mockRejectedValue(new Error('Email service unavailable'));render(<Auth/>);
+ fireEvent.click(screen.getByRole('button',{name:'Need a confirmation email?'}));
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'owner@example.invalid'}});
+ fireEvent.submit(screen.getByLabelText('Email address').closest('form'));
+ await screen.findByRole('alert');
+ expect(screen.queryByRole('status')).toBeNull();
+ expect(screen.getByRole('button',{name:'Resend confirmation',exact:true}).disabled).toBe(false);
+});
+it('explains that existing accounts may not receive a new signup email',async()=>{
+ auth.signUp.mockResolvedValue({});render(<Auth/>);
+ fireEvent.click(screen.getByRole('button',{name:'Create an account',exact:true}));
+ fireEvent.change(screen.getByLabelText('Your name'),{target:{value:'Test'}});
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'owner@example.invalid'}});
+ fireEvent.change(screen.getByLabelText('Password'),{target:{value:'a-long-test-password'}});
+ fireEvent.submit(screen.getByLabelText('Email address').closest('form'));
+ await screen.findByRole('status');
+ expect(screen.getByRole('status').textContent).toContain('another signup may not send an email');
 });
 

@@ -15,6 +15,7 @@ export const AuthProvider = {
   signIn: (email,password) => result(requireClient().auth.signInWithPassword({email,password})),
   signUp: async (email,password,name,redirectTo) => { validateNewPassword(password); return result(requireClient().auth.signUp({email,password,options:{emailRedirectTo:redirectTo,data:{name}}})); },
   requestPasswordReset: (email,redirectTo) => result(requireClient().auth.resetPasswordForEmail(email,{redirectTo})),
+  resendConfirmation: (email,redirectTo) => result(requireClient().auth.resend({type:'signup',email,options:{emailRedirectTo:redirectTo}})),
   assurance: () => result(requireClient().auth.mfa.getAuthenticatorAssuranceLevel()),
   factors: () => result(requireClient().auth.mfa.listFactors()),
   verifyMfa: (factorId,code) => result(requireClient().auth.mfa.challengeAndVerify({factorId,code})),
