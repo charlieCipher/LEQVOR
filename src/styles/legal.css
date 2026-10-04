@@ -1,0 +1,9 @@
+.auth-legal { color: #c9ccdb; font-size: 12px; line-height: 1.6; margin: 14px 0; }
+.auth-legal a, .legal-links a, .trust-page .panel a { color: #d0b0ff; text-decoration: underline; text-underline-offset: 3px; }
+.legal-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; padding: 8px 16px; }
+.legal-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
+.trust-page .category-tabs { flex-wrap: wrap; }
+.trust-page .category-tabs a[aria-current="page"] { color: #eee3ff; text-decoration: underline; }
+.trust-page .panel p { line-height: 1.75; overflow-wrap: anywhere; }
+.trust-page .panel li { margin-block: 12px; }
+@media (max-width: 600px) { .trust-page { padding: 24px 16px; } .trust-page .panel { padding: 20px; } }

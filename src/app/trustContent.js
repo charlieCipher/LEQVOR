@@ -1,3 +1,4 @@
+import { legalPages } from './legalContent';
 export const pages = {
   "/trust": [
     "Trust Center",
@@ -39,24 +40,7 @@ export const pages = {
       ],
     ],
   ],
-  "/privacy": [
-    "Privacy",
-    "Private continuity, without advertising",
-    [
-      [
-        "No private-content AI",
-        "No assistant, summaries, or AI analysis of vault contents.",
-      ],
-      [
-        "No advertising",
-        "The vault contains no advertising scripts, tracking pixels, or chat widgets.",
-      ],
-      [
-        "Data handling",
-        "Supabase authenticates accounts and stores encrypted objects. A complete legal privacy policy and retention schedule must be approved before launch.",
-      ],
-    ],
-  ],
+  ...legalPages,
   "/status": [
     "Service status",
     "Development status",

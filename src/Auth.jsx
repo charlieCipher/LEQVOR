@@ -238,6 +238,7 @@ export default function Auth() {
               <Icon name="arrow" />
             </button>
           </form>
+          <p className="auth-legal">Limited beta · Read our <a href="/privacy">Interim Privacy Notice</a> and <a href="/terms">Terms of Use</a> before creating an account. Use sample or non-sensitive data.</p>
           {(mode === 'login' || mode === 'signup') && <button className="text-button" disabled={busy} onClick={() => changeMode('confirm')}>Need a confirmation email?</button>}
           {mode === "login" && <><p className="auth-divider">OR</p><button className="secondary passkey-button" disabled><Icon name="fingerprint" size={32}/><span>Use Passkey / Biometric<small>Not connected yet · use your password</small></span><Icon name="arrow"/></button></>}
           <p className="auth-switch">
