@@ -1,10 +1,10 @@
 // @vitest-environment node
 import {it,expect,vi} from 'vitest';
 import {scheduledCleanup} from '../scripts/scheduled-cleanup.mjs';
-const env={CRON_SECRET:'synthetic-scheduler-secret-for-tests-only',SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic-server-key'};
+const env={CLEANUP_ENABLED:'true',CRON_SECRET:'synthetic-scheduler-secret-for-tests-only',SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic-server-key'};
 it('rejects unauthenticated or misconfigured invocations without backend access',async()=>{
  const run=vi.fn();
- for(const request of [{method:'POST'},{authorization:''},{authorization:'Bearer wrong'},{env:{...env,CRON_SECRET:''}},{env:{...env,SUPABASE_URL:'https://other.invalid'}}]) {
+ for(const request of [{method:'POST'},{env:{...env,CLEANUP_ENABLED:undefined}},{authorization:''},{authorization:'Bearer wrong'},{env:{...env,CRON_SECRET:''}},{env:{...env,SUPABASE_URL:'https://other.invalid'}}]) {
   const result=await scheduledCleanup({method:'GET',authorization:`Bearer ${env.CRON_SECRET}`,env,run,...request});
   expect(result.status).toBeGreaterThanOrEqual(400);
  }

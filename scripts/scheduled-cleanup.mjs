@@ -4,6 +4,7 @@ import { cleanupBatch } from './ciphertext-cleanup.mjs';
 // Fail closed before constructing a backend client or sending credentials.
 export async function scheduledCleanup({method, authorization, env, run=cleanupBatch}) {
   if (method !== 'GET') return {status:405, body:{error:'Method not allowed'}};
+  if (env.CLEANUP_ENABLED !== 'true') return {status:503,body:{error:'Cleanup disabled'}};
   const secret=env.CRON_SECRET;
   if (typeof secret !== 'string' || secret.length < 32) return {status:503,body:{error:'Cleanup not configured'}};
   const expected=Buffer.from(`Bearer ${secret}`);
