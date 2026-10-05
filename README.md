@@ -1,8 +1,12 @@
-# LEQVOR by LENVOR — Aureva Continuity Vault
+# LEQVOR
 
 A private workspace for important records, trusted people, personal wishes, and the instructions that connect them.
 
-**Progress snapshot: 12 September 2026.** The project began as Aureva. The current visual identity is **LEQVOR by LENVOR**, while the Aureva V5 specification defines the product architecture.
+**LEQVOR by LENVOR — Assets | Records | Forever**
+
+Website: [leqvor.vercel.app](https://leqvor.vercel.app) · Repository: [charlieCipher/LEQVOR](https://github.com/charlieCipher/LEQVOR)
+
+**Branding updated: 5 October 2026.** LEQVOR is the product name. The LEQVOR master specification defines the current architecture. The implementation notes below are a historical progress snapshot from 12 September 2026, not a current deployment-status report.
 
 This README records what we planned, what we completed, what we verified, and what remains. **Implemented locally does not mean deployed, independently audited, or ready for production.**
 
@@ -40,7 +44,7 @@ The product should be useful during travel, illness, emergencies, incapacity, fa
 - Provide encrypted export and move toward recovery that does not depend on the hosted service.
 - Do not use AI to analyze private vault contents.
 
-The current architecture and phased plan are in [the LEQVOR master architecture](docs/LEQVOR-MASTER-ARCHITECTURE.md). The earlier Aureva V5 specification is retained as historical reference.
+The current architecture and phased plan are in the LEQVOR master specification. The earlier V5 specification is retained as historical reference.
 
 ## 2. What we completed
 
@@ -72,7 +76,7 @@ The initial review found:
 
 ### Phase B — Supabase changes applied to the live project
 
-On **10 September 2026**, we signed in to the Aureva Supabase dashboard, inspected schema and policies, and successfully applied the compatible V4 repair.
+On **10 September 2026**, we inspected the existing Supabase project's schema and policies and successfully applied the compatible V4 repair.
 
 The applied changes:
 
