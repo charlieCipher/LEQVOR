@@ -1,13 +1,15 @@
 import Trust from "./app/Trust";
 import { publicTrustPaths } from "./app/trustContent";
 import MfaGate from "./features/auth/MfaGate";
-import { lazy, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider } from "./lib/providers";
 import Auth from "./Auth";
 import Icon from "./components/Icon";
 import ScreenBoundary from './components/ui/ScreenBoundary';
-const Workspace = lazy(() => import('./app/Workspace'));
-const VaultGate = lazy(() => import('./features/vault/VaultGate'));
+// Load the secure-entry and workspace code before users start recovery setup.
+// A late chunk request after a deployment must not interrupt a saved vault.
+import Workspace from './app/Workspace';
+import VaultGate from './features/vault/VaultGate';
 import { errorMessage } from "./shared/utils/errors";
 import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from './lib/passwordPolicy';
 export default function App() {
