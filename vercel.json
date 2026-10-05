@@ -3,6 +3,8 @@
   "framework": "vite",
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build:release",
+  "functions": { "api/ciphertext-cleanup.mjs": { "maxDuration": 60 } },
+  "crons": [{ "path": "/api/ciphertext-cleanup", "schedule": "0 0 * * *" }],
   "headers": [
     {
       "headers": [
@@ -41,7 +43,7 @@
   "rewrites": [
     {
       "destination": "/index.html",
-      "source": "/(.*)"
+      "source": "/((?!api/).*)"
     }
   ]
 }
