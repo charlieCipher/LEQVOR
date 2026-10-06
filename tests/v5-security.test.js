@@ -13,6 +13,7 @@ import {
 } from "../src/modules/security/v5Crypto.js";
 import { VaultSession } from "../src/modules/security/VaultSession.js";
 import { sanitizeEvent } from "../src/modules/security/safeEvents.js";
+import { recipientKeyFingerprint } from '../src/modules/security/recipientKeys.js';
 import {
   createSharingIdentity,
   createRecordGrant,
@@ -213,8 +214,12 @@ describe("sharing and history primitives (not server authorization)", () => {
       record,
       "recipient",
       identity.public_key,
+      await recipientKeyFingerprint(identity.public_key),
     );
     expect(JSON.stringify(grant)).not.toContain(CANARY);
+    for (const mutation of [{owner_id:'other-owner'}, {vault_id:'other-vault'}, {permissions:'edit'}, {grant_version:2}]) {
+      await expect(decryptGrantedRecord(recipientKey, identity, {...grant,...mutation}, record)).rejects.toThrow('Grant identity mismatch');
+    }
     const recoveredDevice = await unlockVault(
       JSON.parse(JSON.stringify(recipientVault)),
       password,
@@ -257,20 +262,31 @@ describe("sharing and history primitives (not server authorization)", () => {
         pair.publicKey,
         [first, second],
         second.version_hash,
+        record.id,
       ),
     ).toBe(true);
     expect(
-      await verifyVersionChain(pair.publicKey, [first], second.version_hash),
+      await verifyVersionChain(pair.publicKey, [first], second.version_hash, record.id),
     ).toBe(false);
     expect(
       await verifyVersionChain(
         pair.publicKey,
         [{ ...first, created_at: "changed" }, second],
         second.version_hash,
+        record.id,
       ),
     ).toBe(false);
     expect(await verifyVersionChain(pair.publicKey, [first, second])).toBe(
       false,
     );
+    expect(await verifyVersionChain(pair.publicKey, [first, second], second.version_hash, 'other-record')).toBe(false);
+    const spliced = await signVersion(pair.privateKey, {
+      record_id:'other-record', version:2, previous_hash:first.version_hash,
+      ciphertext:record, created_at:'2026-09-11T00:01:00Z', crypto_version:'leqvor-v5',
+    });
+    expect(await verifyVersionChain(pair.publicKey, [first, spliced], spliced.version_hash, record.id)).toBe(false);
+    for (const malformed of [null, {}, [null], [{...first,signature:'!'.repeat(88)}]]) {
+      expect(await verifyVersionChain(pair.publicKey, malformed, first.version_hash, record.id)).toBe(false);
+    }
   });
 });

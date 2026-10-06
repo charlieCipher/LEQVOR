@@ -6,6 +6,7 @@ import {
 } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { validateNewPassword } from '../../lib/passwordPolicy.js';
+import { verifyRecipientKey } from './recipientKeys.js';
 
 export const CRYPTO_VERSION = "leqvor-v5";
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -408,7 +409,10 @@ export async function createRecordGrant(
   record,
   recipientId,
   verifiedPublicKey,
+  expectedFingerprint,
 ) {
+  if (!recipientId || recipientId === record.owner_id) throw new Error('Invalid recipient.');
+  await verifyRecipientKey(verifiedPublicKey, expectedFingerprint);
   const ephemeral = await crypto.subtle.generateKey(
       { name: "ECDH", namedCurve: "P-256" },
       true,
@@ -450,7 +454,10 @@ export async function decryptGrantedRecord(
   grant,
   record,
 ) {
-  if (grant.recipient_id !== identity.owner_id || grant.record_id !== record.id)
+  if (grant.recipient_id !== identity.owner_id || grant.record_id !== record.id ||
+      grant.owner_id !== record.owner_id || grant.vault_id !== record.vault_id ||
+      grant.permissions !== 'view' || grant.grant_version !== 1 ||
+      grant.crypto_version !== CRYPTO_VERSION || identity.crypto_version !== CRYPTO_VERSION)
     throw new Error("Grant identity mismatch.");
   const privateKey = await sharingPrivate(recipientVMK, identity),
     kek = await sharedKey(privateKey, grant.sender_public_material, grant.salt),
