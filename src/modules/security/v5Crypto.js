@@ -358,6 +358,8 @@ async function sharingPrivate(vmk, identity) {
     "sharing-private",
   );
   try {
+    if (['kty','crv','x','y'].some(field=>jwk[field]!==identity.public_key?.[field]))
+      throw new Error('Sharing key does not match its encrypted private key.');
     return await crypto.subtle.importKey(
       "jwk",
       jwk,
@@ -368,6 +370,9 @@ async function sharingPrivate(vmk, identity) {
   } finally {
     jwk.d = "";
   }
+}
+export async function verifySharingIdentity(vmk, identity) {
+  await sharingPrivate(vmk, identity);
 }
 async function sharedKey(privateKey, publicJwk, salt) {
   const publicKey = await crypto.subtle.importKey(

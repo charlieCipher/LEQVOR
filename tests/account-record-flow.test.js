@@ -36,6 +36,20 @@ async function setup(){
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
 const file=()=>new File(['PRIVATE_FILE_CANARY'],'private-canary.txt',{type:'text/plain'});
+it('registers an encrypted sharing identity once and rejects public-key substitution',async()=>{
+ const t=await setup(); let identity=null;
+ t.db.sharingIdentity=async()=>identity;
+ t.db.registerSharingIdentity=vi.fn(async(vaultId,data)=>identity={...data,vault_id:vaultId});
+ expect(await t.service.sharingIdentity()).toBeNull();
+ const registered=await t.service.sharingIdentity(true);
+ expect(registered.fingerprint).toHaveLength(43);
+ expect(registered).not.toHaveProperty('encrypted_private_key');
+ expect(identity).not.toHaveProperty('private_key');
+ expect(await t.service.sharingIdentity(true)).toEqual(registered);
+ expect(t.db.registerSharingIdentity).toHaveBeenCalledTimes(1);
+ identity={...identity,public_key:{...identity.public_key,x:'A'.repeat(43)}};
+ await expect(t.service.sharingIdentity()).rejects.toThrow('does not match');
+});
 it('keeps review dates encrypted and preserves review history on edits',async()=>{
  const t=await setup();
  const reviewed_at='2026-01-07T01:02:03.000Z';

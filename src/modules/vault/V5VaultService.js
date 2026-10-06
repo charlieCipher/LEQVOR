@@ -2,6 +2,7 @@ import { insuranceIndex } from '../insurance/continuity';
 import { DatabaseProvider, ObjectStorageProvider } from "../../lib/providers";
 import {completeness} from '../continuity/readiness';
 import { AurevaError } from '../security/safeEvents';
+import { recipientKeyFingerprint } from '../security/recipientKeys';
 import {
   encryptRecord,
   decryptRecordMetadata,
@@ -10,6 +11,8 @@ import {
   decryptDocument,
   newId,
   MAX_DOCUMENT_BYTES,
+  createSharingIdentity,
+  verifySharingIdentity,
 } from "../security/v5Crypto";
 export class V5VaultService {
   constructor(
@@ -174,6 +177,26 @@ export class V5VaultService {
           };
         }),
       );
+    });
+  }
+  async sharingIdentity(register=false) {
+    return this.session.run(async(key,assertActive)=>{
+      let identity=await this.db.sharingIdentity();
+      assertActive();
+      if (!identity && register) {
+        const generated=await createSharingIdentity(key,this.vault.owner_id);
+        assertActive();
+        identity=await this.db.registerSharingIdentity(this.vault.id,generated);
+        assertActive();
+      }
+      if (!identity) return null;
+      if (identity.owner_id!==this.vault.owner_id || identity.vault_id!==this.vault.id || identity.crypto_version!=='leqvor-v5')
+        throw new Error('Sharing identity does not belong to this vault.');
+      await verifySharingIdentity(key,identity);
+      const fingerprint=await recipientKeyFingerprint(identity.public_key);
+      assertActive();
+      // Return public presentation data only, never the encrypted private wrapper.
+      return {owner_id:identity.owner_id,fingerprint};
     });
   }
   assertFileIdentity(row) {

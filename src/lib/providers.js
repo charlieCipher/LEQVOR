@@ -58,6 +58,11 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  sharingIdentity: () => result(requireClient().from('user_sharing_keys').select('*').maybeSingle()),
+  registerSharingIdentity: (vaultId, identity) => result(requireClient().rpc('register_v5_sharing_identity', {
+    target_vault:vaultId,
+    key_data:{public_key:identity.public_key, encrypted_private_key:ciphertextEnvelope(identity.encrypted_private_key), crypto_version:'leqvor-v5'},
+  })),
   vault: (owner) =>
     result(
       requireClient()

@@ -1,5 +1,6 @@
 import { policiesForPerson } from '../modules/insurance/continuity';
 import TrustedPersonForm from "../components/people/TrustedPersonForm";
+import SharingIdentity from '../components/people/SharingIdentity';
 import { useVault } from "../features/vault/VaultContext";
 import { useState } from "react";
 import Icon from "../components/Icon";
@@ -79,6 +80,7 @@ export default function People({
           )}
         </Card>
         <div>
+          {!demo && <SharingIdentity/>}
           <Card className="trust-map">
             
             <h2>Family Trust Map</h2>
