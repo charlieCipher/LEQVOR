@@ -7,6 +7,7 @@ import { Button, Card } from "../ui/Primitives";
 import Icon from "../Icon";
 import Modal from "../Modal";
 import SecureAction from "../security/SecureAction";
+import { reviewDate } from '../../modules/continuity/readiness';
 export default function V5RecordDetail({ record, onChanged, onDeleted, records=[], people=[] }) {
   const vault = useVault(),
     [payload, setPayload] = useState(null),
@@ -102,6 +103,11 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
       setError('Enter a title between 1 and 160 characters.');
       return;
     }
+    const nextReviewDate = String(f.get('next_review_date') || '');
+    if (nextReviewDate && !reviewDate(nextReviewDate)) {
+      setError('Enter a valid next review date.');
+      return;
+    }
     const version = epoch.current;
     saving.current = true;
     setBusy(true);
@@ -124,7 +130,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
         {
           title,
           category: record.category,
-          reviewed_at: new Date().toISOString(),
+          next_review_date: nextReviewDate || null,
           file_count: files.length,
         },
         next,
@@ -165,6 +171,11 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
             Title
             <input name="title" required maxLength={160} defaultValue={record.title} />
           </label>
+          <label>
+            Next review date (optional)
+            <input type="date" name="next_review_date" defaultValue={reviewDate(record.next_review_date) ? record.next_review_date : ''} aria-describedby="review-date-help" />
+          </label>
+          <p id="review-date-help" className="field-hint">Leave empty for an annual review. This date is encrypted with your record and appears in Continuity; no email is sent. Saving changes does not confirm a review.</p>
           {[
             ["description", "Why it matters"],
             ["institution", "Institution"],
@@ -227,6 +238,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
                     title: record.title,
                     category: record.category,
                     reviewed_at: new Date().toISOString(),
+                    next_review_date: null,
                     file_count: files.length,
                   },
                   payload,
@@ -239,6 +251,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
             </Button>
             <Button onClick={() => setDeleting(true)}>Delete record</Button>
           </div>
+          <p className="field-hint">Confirming starts a new annual review period and clears any custom review date.</p>
           {files.map((file, i) => (
             <Button
               key={file.id}

@@ -36,6 +36,18 @@ async function setup(){
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
 const file=()=>new File(['PRIVATE_FILE_CANARY'],'private-canary.txt',{type:'text/plain'});
+it('keeps review dates encrypted and preserves review history on edits',async()=>{
+ const t=await setup();
+ const reviewed_at='2026-01-07T01:02:03.000Z';
+ const record=await t.service.create({title:'Review record',reviewed_at},{description:'Private'});
+ await t.service.update(record,{next_review_date:'2027-03-17'},{description:'Edited'});
+ const [listed]=await t.service.list();
+ expect(listed).toMatchObject({reviewed_at,next_review_date:'2027-03-17'});
+ const wire=JSON.stringify([...t.rows.values()]);
+ expect(wire).not.toContain('2027-03-17');
+ expect(wire).not.toContain(reviewed_at);
+ expect(wire).not.toContain('next_review_date');
+});
 it('clears file bytes and avoids upload when locking during a file read', async () => {
  const t = await setup();
  const bytes = new TextEncoder().encode('PRIVATE_FILE_CANARY');

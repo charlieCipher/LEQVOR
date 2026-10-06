@@ -44,6 +44,26 @@ async function editRecord(onChanged=vi.fn()) {
  fireEvent.click(screen.getByRole('button',{name:'Edit record'}));
  return {view,form:screen.getByRole('button',{name:'Save encrypted changes'}).closest('form')};
 }
+it('saves a custom review date without claiming the record was reviewed',async()=>{
+ service.update.mockResolvedValue({});
+ const {form}=await editRecord();
+ fireEvent.change(screen.getByLabelText('Next review date (optional)'),{target:{value:'2027-02-15'}});
+ fireEvent.submit(form);
+ await waitFor(()=>expect(service.update).toHaveBeenCalledTimes(1));
+ const metadata=service.update.mock.calls[0][1];
+ expect(metadata.next_review_date).toBe('2027-02-15');
+ expect(metadata).not.toHaveProperty('reviewed_at');
+});
+it('resets the custom date only when the user explicitly confirms a review',async()=>{
+ service.reveal.mockResolvedValue({description:'Current information'});
+ service.files.mockResolvedValue([]);service.update.mockResolvedValue({});
+ render(<V5RecordDetail record={{id:'r',revision:1,title:'Property',category:'Property',next_review_date:'2026-10-06'}}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Reveal securely'}));
+ await screen.findByText('Current information');
+ fireEvent.click(screen.getByRole('button',{name:'Confirm still current'}));
+ await waitFor(()=>expect(service.update).toHaveBeenCalledTimes(1));
+ expect(service.update.mock.calls[0][1]).toMatchObject({next_review_date:null,reviewed_at:expect.any(String)});
+});
 it('cancels edits without saving draft values',async()=>{
  await editRecord();
  fireEvent.change(screen.getByLabelText('Why it matters'),{target:{value:'Unsaved draft'}});

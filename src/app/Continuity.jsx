@@ -43,6 +43,7 @@ export default function Continuity({
   const [step, setStep] = useState(3),
     [editing, setEditing] = useState(null),
     [letter, setLetter] = useState(null),
+    [showReviews, setShowReviews] = useState(false),
     [sampleDone, setDone] = useState(demo ? [0, 2, 3, 4, 5] : []);
   const done = demo ? sampleDone : recordedSections(letters, sections.map(([name])=>name));
   const progress = Math.round((done.length / 6) * 100);
@@ -239,8 +240,9 @@ export default function Continuity({
                 </small>
               </p>
             </div> : <>
-              <p className="field-hint">Suggested annual reviews based on the last recorded review. No email reminder is scheduled.</p>
+              <p className="field-hint">{reviews.filter(review=>review.due).length} due for review. Custom dates take priority; otherwise reviews are annual. No email reminder is scheduled.</p>
               {reviews.length ? reviews.slice(0,3).map(review=><button key={review.id} className="document-row" onClick={()=>go('/app/vault/'+review.id)}><span>{review.title}<small>{review.due ? 'Review due' : 'Next review'}{review.date ? ` · ${new Date(review.date).toLocaleDateString()}` : ' · Review date not recorded'}</small></span><Icon name="chevron"/></button>) : <p className="muted">Save a record or statement to start your review schedule.</p>}
+              {reviews.length > 3 && <Button onClick={()=>setShowReviews(true)}>View all {reviews.length} reviews</Button>}
             </>}
             <Button
               variant="primary"
@@ -255,6 +257,12 @@ export default function Continuity({
           </Card>
         </aside>
       </div>
+      {showReviews && (
+        <Modal title="Record reviews" onClose={()=>setShowReviews(false)}>
+          <p className="field-hint">Open a record, reveal it and confirm its information is still current. You can choose a custom next review date when editing.</p>
+          {reviews.map(review=><button key={review.id} className="document-row" onClick={()=>{setShowReviews(false);go('/app/vault/'+review.id);}}><span>{review.title}<small>{review.due ? 'Review due' : 'Next review'}{review.date ? ` · ${new Date(review.date).toLocaleDateString()}` : ' · Review date not recorded'}</small></span><Icon name="chevron"/></button>)}
+        </Modal>
+      )}
       {editing && (
         <Modal title={editing} onClose={() => setEditing(null)}>
           {demo ? (
