@@ -5,6 +5,7 @@ import {V5VaultService} from '../src/modules/vault/V5VaultService.js';
 import {VaultSession} from '../src/modules/security/VaultSession.js';
 import {createVaultEnvelope,generateRecoverySecret,unlockVault} from '../src/modules/security/v5Crypto.js';
 import {encryptedWrite,ciphertextEnvelope} from '../src/lib/ciphertextBoundary.js';
+import {recipientKeyFingerprint} from '../src/modules/security/recipientKeys';
 let vault,phrase;
 const sessions=[];
 beforeAll(async()=>{
@@ -36,6 +37,20 @@ async function setup(){
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
 const file=()=>new File(['PRIVATE_FILE_CANARY'],'private-canary.txt',{type:'text/plain'});
+it('persists recipient pins only inside encrypted people and rejects substitutions before writing',async()=>{
+ const t=await setup();let saved;
+ t.db.savePerson=vi.fn(async row=>saved=encryptedWrite('person',row));
+ t.db.people=async()=>[saved];
+ const keys=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+ const public_key=await crypto.subtle.exportKey('jwk',keys.publicKey),fingerprint=await recipientKeyFingerprint(public_key);
+ const card=JSON.stringify({version:'leqvor-recipient-v1',owner_id:'22222222-2222-4222-8222-222222222222',public_key});
+ await t.service.addPerson({display_name:'PRIVATE_PERSON'}, {card,fingerprint});
+ const wire=JSON.stringify(saved);
+ for(const secret of ['PRIVATE_PERSON',fingerprint,public_key.x])expect(wire).not.toContain(secret);
+ expect((await t.service.people())[0].recipient_binding.fingerprint).toBe(fingerprint);
+ await expect(t.service.addPerson({display_name:'Person'},{card,fingerprint:'A'.repeat(43)})).rejects.toThrow();
+ expect(t.db.savePerson).toHaveBeenCalledTimes(1);
+});
 it('registers an encrypted sharing identity once and rejects public-key substitution',async()=>{
  const t=await setup(); let identity=null;
  t.db.sharingIdentity=async()=>identity;

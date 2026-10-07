@@ -22,6 +22,8 @@ export default function SharingIdentity() {
       <p role="status">Sharing key registered</p>
       <label>Account identifier<input readOnly value={identity.owner_id}/></label>
       <label>Public-key fingerprint<input readOnly value={identity.fingerprint}/></label>
+      <label>Public sharing card<textarea readOnly rows={4} value={identity.card || ''}/></label>
+      <p className="field-hint">Give your card to the person preparing access. Confirm your account identifier and full fingerprint with them separately, in person or on a trusted call.</p>
       <p className="field-hint">Compare the full fingerprint through a trusted channel. It is not a password or recovery phrase. Invitations and record grants are not active yet.</p>
     </> : enrolling ? <SecureAction title="Register your sharing key" onVerified={async()=>{
       const value=await vault.service.sharingIdentity(true);

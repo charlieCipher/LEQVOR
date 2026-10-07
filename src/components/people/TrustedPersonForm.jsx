@@ -32,12 +32,18 @@ export default function TrustedPersonForm({ onSaved }) {
         setBusy(true);
         setError("");
         try {
+          const card=String(form.get('recipient_card') || '').trim();
+          const fingerprint=String(form.get('fingerprint') || '').trim();
+          if ((card || fingerprint) && form.get('confirmed') !== 'on') {
+            setError('Confirm the account identifier and fingerprint with this person through a separate trusted channel.');
+            return;
+          }
           const saved = await v.service.addPerson({
               display_name: name,
               relationship,
               professional: form.get("professional") === "on",
               reviewed_at: new Date().toISOString(),
-            });
+            }, card || fingerprint ? {card,fingerprint} : undefined);
           if (active.current) {
             element.reset();
             onSaved(saved);
@@ -68,6 +74,12 @@ export default function TrustedPersonForm({ onSaved }) {
         Names and relationships are encrypted. Adding a person does not send an
         invitation or grant access.
       </p>
+      <details><summary>Verify a recipient key (optional)</summary>
+        <p className="field-hint">Ask this person for their public sharing card from People. Confirm their account identifier and fingerprint separately, in person or on a trusted call. Saving a verified key does not send an invitation or grant access.</p>
+        <label>Recipient public sharing card<textarea name="recipient_card" rows={4} maxLength={2048}/></label>
+        <label>Independently confirmed fingerprint<input name="fingerprint" maxLength={43} autoComplete="off" spellCheck={false}/></label>
+        <label className="checkbox-label"><input type="checkbox" name="confirmed"/>I independently confirmed this person's account identifier and fingerprint.</label>
+      </details>
       {error && (
         <p className="notice" role="alert">
           {error}

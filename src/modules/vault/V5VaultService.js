@@ -3,6 +3,7 @@ import { DatabaseProvider, ObjectStorageProvider } from "../../lib/providers";
 import {completeness} from '../continuity/readiness';
 import { AurevaError } from '../security/safeEvents';
 import { recipientKeyFingerprint } from '../security/recipientKeys';
+import { verifyRecipientCard } from '../security/recipientCard';
 import {
   encryptRecord,
   decryptRecordMetadata,
@@ -149,17 +150,20 @@ export class V5VaultService {
       await this.db.deleteRecord(record.id, this.requireRevision(record));
     });
   }
-  async addPerson(metadata) {
+  async addPerson(metadata, verification) {
     return this.session.run(async (key, assertActive) => {
+      const {recipient_binding: _ignoredBinding, ...details} = metadata;
+      const recipient_binding = verification ? await verifyRecipientCard(verification.card, verification.fingerprint, this.vault.owner_id) : null;
+      assertActive();
       const row = await encryptRecord(key, {
         owner_id: this.vault.owner_id,
         vault_id: this.vault.id,
-        metadata,
+        metadata: {...details, ...(recipient_binding ? {recipient_binding} : {})},
         payload: {},
       });
       assertActive();
       const saved = await this.db.savePerson({ ...row, status: "unverified" });
-      return { ...metadata, ...saved, v5: true };
+      return { ...details, ...(recipient_binding ? {recipient_binding} : {}), ...saved, v5: true };
     });
   }
   async people() {
@@ -196,7 +200,8 @@ export class V5VaultService {
       const fingerprint=await recipientKeyFingerprint(identity.public_key);
       assertActive();
       // Return public presentation data only, never the encrypted private wrapper.
-      return {owner_id:identity.owner_id,fingerprint};
+      const {kty,crv,x,y}=identity.public_key;
+      return {owner_id:identity.owner_id,fingerprint,card:JSON.stringify({version:'leqvor-recipient-v1',owner_id:identity.owner_id,public_key:{kty,crv,x,y}})};
     });
   }
   assertFileIdentity(row) {
