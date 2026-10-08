@@ -4,7 +4,7 @@ The user-supplied `LEQVOR-VNEXT-SPECIFICATION.txt` is the target specification a
 
 ## First increment: relational continuity graph
 
-Prepared migration: `supabase/migrations/20261008_continuity_graph.sql`. This migration has not been applied to production.
+Prepared migration: `supabase/migrations/20261008_continuity_graph.sql`. Applied to production on 8 October 2026, together with the asset-workflow migration.
 
 - `continuity_entities` indexes existing records and trusted people; it does not copy their plaintext or create a second person directory. Source IDs are stable node IDs. Type is explicit: PERSON, ASSET, DOCUMENT, POLICY, INSTRUCTION, OTHER.
 - `continuity_edges` stores individually encrypted relationships with independent DEKs wrapped by the VMK. Composite foreign keys ensure both endpoints belong to the same vault and owner. Deleted source records remove their graph index and incident edges, not the other source records.
@@ -19,7 +19,7 @@ The server can observe owner/vault IDs, source IDs, entity types, edge endpoints
 
 ## Deployment and compatibility
 
-Both migrations are additive: `20261008_continuity_graph.sql`, then `20261008_asset_workflow.sql`. Production catalog checks on 8 October returned no graph tables or asset RPC. Apply both before deploying this frontend. Existing records are not automatically converted; saving an explicitly typed asset synchronizes its graph. No backfill guesses categories or legal status.
+Both migrations are additive: `20261008_continuity_graph.sql`, then `20261008_asset_workflow.sql`. Both were applied to production on 8 October after explicit approval. Rollback-only production tests passed creation, evidence metadata, invalid-link rollback, graph replacement, stale revision rejection and foreign-owner rejection. Existing records are not automatically converted; saving an explicitly typed asset synchronizes its graph. No backfill guesses categories or legal status.
 
 ## Asset workflow implemented locally
 
@@ -29,7 +29,7 @@ Both migrations are additive: `20261008_continuity_graph.sql`, then `20261008_as
 - Evidence attachments can be uploaded on asset creation and edit, then downloaded and decrypted locally. Object upload precedes the database transaction; uncertain upload/save outcomes retain ciphertext for later reconciliation rather than risking data loss.
 - Reveal includes Overview, Property, Documents, Insurance, People, Continuity and History tabs. Linked records use client navigation. History shows the current revision, explicitly not a signed historical-version browser.
 - Full client suite: 201 tests passed. After the navigation refinement, 10 affected tests passed again. Production build, lint, local database isolation/atomicity suites and encrypted restore checks passed. Build reports a non-blocking bundle-size warning.
-- Deployment and signed-in hosted acceptance remain pending. Local tests do not establish physical-device acceptance or an independent security audit.
+- Production migrations are applied; matching frontend deployment is underway. Signed-in hosted acceptance remains pending. Local tests do not establish physical-device acceptance or an independent security audit.
 
 ## Still required by the specification
 
