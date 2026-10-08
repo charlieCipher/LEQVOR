@@ -4,6 +4,7 @@ import {completeness} from '../continuity/readiness';
 import { AurevaError } from '../security/safeEvents';
 import { recipientKeyFingerprint } from '../security/recipientKeys';
 import { verifyRecipientCard } from '../security/recipientCard';
+import { ContinuityGraphService } from '../continuity/ContinuityGraphService';
 import {
   encryptRecord,
   decryptRecordMetadata,
@@ -26,6 +27,7 @@ export class V5VaultService {
     this.vault = vault;
     this.db = db;
     this.storage = storage;
+    this.graph = new ContinuityGraphService(session, vault, db);
   }
   async list() {
     return this.session.run(async (key, assertActive) => {

@@ -1,0 +1,788 @@
+LEQVOR vNext Architecture
+                          LEQVOR
+
+                     CONTINUITY GRAPH
+                           │
+       ┌───────────────────┼───────────────────┐
+       │                   │                   │
+     PEOPLE              ASSETS            DOCUMENTS
+       │                   │                   │
+       │                   │                   │
+       ├───────┐       ┌───┴────┐        ┌─────┴─────┐
+       │       │       │        │        │           │
+    ROLES   TRUST    OWNERSHIP INSURANCE STATUS   LOCATION
+       │       │       │        │        │           │
+       │       │       │        │        │           │
+       └───────┼───────┼────────┼────────┼───────────┘
+               │       │        │
+          NOMINEES  BENEFICIARIES
+               │       │
+               └───┬───┘
+                   │
+             ACCESS POLICIES
+                   │
+       ┌───────────┼────────────┐
+       │           │            │
+      WHO         WHEN       AUTHORITY
+       │           │            │
+       └─────┬─────┴─────┬──────┘
+             │           │
+        VERIFICATION  REVOCATION
+             │
+             ▼
+          TRIGGERS
+             │
+             ▼
+        INSTRUCTIONS
+             │
+             ▼
+      FAMILY CONTINUITY
+
+The database should still be PostgreSQL, not a graph database. “Continuity Graph” is the domain model, not an excuse to add Neo4j because architecture diagrams apparently become more respectable when another database is involved.
+1. New core domain model
+Your current conceptual objects like records, people, record_grants, continuity_items, etc. should evolve into this model.
+Entity	Purpose
+people	Family, nominee, beneficiary, executor, lawyer, CA, adviser, other trusted person
+assets	Financial, property, business, insurance-linked assets, digital assets, other
+documents	Legal, financial, property, insurance, identity, medical, other records
+document_versions	Immutable encrypted versions of documents
+document_status	Whether document exists, copy exists, execution status, verification status
+document_locations	Where original physical/legal document is held
+asset_ownership	Who owns or controls an asset
+asset_nominations	Nomination status and nominee relationships
+beneficiary_designations	Beneficiary relationships and allocation
+insurance_policies	Insurance continuity data
+continuity_instructions	What trusted people should know/do
+access_grants	Who may access what
+trigger_rules	When access becomes eligible
+verification_policies	What evidence is required
+jurisdiction_context	Country/state/legal context
+professional_relationships	Lawyer, CA, CS, adviser, wealth manager, etc.
+security_events	Authentication/access/security history
+audit_checkpoints	Tamper-evident history checkpoints
+
+
+Do not store all of this as one giant JSON blob called continuity_data. That would work magnificently until approximately the first serious feature expansion.
+2. Continuity Graph
+The graph should represent relationships, not merely objects.
+Conceptually:
+PERSON ──owns──────────────► ASSET
+
+PERSON ──beneficiary_of────► POLICY
+
+PERSON ──nominee_for───────► ASSET
+
+PERSON ──executor_for──────► DOCUMENT
+
+ASSET ───insured_by────────► POLICY
+
+ASSET ───supported_by──────► DOCUMENT
+
+DOCUMENT ─original_held_by─► LAWYER
+
+DOCUMENT ─applies_to───────► ASSET
+
+PERSON ──trusted_for───────► RECORD
+
+ACCESS_GRANT ─protects─────► RESOURCE
+
+TRIGGER ─activates─────────► ACCESS_GRANT
+
+INSTRUCTION ─relates_to────► ASSET / DOCUMENT / PERSON
+
+The market-watch specifically supports moving from isolated encrypted records toward relationships between people, assets, policies, nominees, beneficiaries and documents.    Pasted markdown
+Important technical decision
+Do not introduce a graph database.
+Use normal relational tables with explicit foreign keys and relationship tables.
+For example:
+continuity_edges
+----------------
+id
+vault_id
+from_entity_id
+from_entity_type
+to_entity_id
+to_entity_type
+relation_type
+encrypted_metadata
+created_at
+updated_at
+
+Eventually you may replace generic edges with strongly typed tables where appropriate.
+3. Asset architecture
+Upgrade the existing asset model from:
+Asset
+├── Name
+├── Category
+├── Value
+└── Documents
+
+to:
+ASSET
+│
+├── Identity
+│   ├── Asset ID
+│   ├── Category
+│   ├── Institution
+│   └── Description
+│
+├── Ownership
+│   ├── Owner
+│   ├── Joint owners
+│   └── Ownership type
+│
+├── Nomination
+│   ├── Status
+│   ├── Nominees
+│   ├── Allocation %
+│   ├── Verification date
+│   └── Evidence
+│
+├── Documents
+│
+├── Insurance
+│
+├── Trusted people
+│
+├── Continuity instructions
+│
+├── Jurisdiction
+│
+└── Last verified
+
+For nomination status, use:
+REGISTERED
+OPTED_OUT
+UNKNOWN
+NEEDS_VERIFICATION
+NOT_APPLICABLE
+
+This directly follows the stronger nomination model in the market-watch instead of merely storing something like Nominee: Rahul.    Pasted markdown
+For allocation, store basis points, not floating percentages:
+10000 = 100%
+5000  = 50%
+2500  = 25%
+
+Much less entertaining than floating-point inheritance errors.
+4. Document architecture
+This is one of the biggest upgrades.
+Right now a document tends to mean:
+"Here is a file."
+
+That becomes:
+DOCUMENT
+│
+├── Existence
+│      EXISTS / UNKNOWN
+│
+├── Original
+│      ├── Physical original exists?
+│      ├── Location
+│      └── Custodian
+│
+├── Digital Copy
+│      ├── Encrypted file
+│      └── Integrity hash
+│
+├── Status
+│      ├── Draft
+│      ├── Executed
+│      ├── Superseded
+│      ├── Revoked
+│      ├── Expired
+│      └── Unknown
+│
+├── Professionals
+│      Lawyer / CA / CS / Adviser
+│
+├── Jurisdiction
+│
+├── Related Assets
+│
+├── Related People
+│
+├── Access Conditions
+│
+├── Verification
+│
+├── Instructions
+│
+└── Version History
+
+This is particularly important for wills. The useful chain is:
+Will exists
+     ↓
+Original location known
+     ↓
+Digital copy preserved
+     ↓
+Relevant people recorded
+     ↓
+Access conditions recorded
+     ↓
+Trigger defined
+     ↓
+Instructions available
+
+That separation is explicitly supported by the digital-will repository development in the report.    Pasted markdown
+LEQVOR must never convert executed=true into “this will is legally valid.”
+Those are different claims.
+5. Access architecture
+Replace simple permissions like:
+family_member.can_access = true
+
+with:
+ACCESS GRANT
+│
+├── WHO
+│     Trusted person / nominee / beneficiary / executor
+│
+├── WHAT
+│     Asset / document / policy / instruction
+│
+├── WHEN
+│     Immediate
+│     Owner approval
+│     Emergency
+│     Incapacity
+│     Death
+│     Specified date
+│     Verified event
+│
+├── AUTHORITY
+│     Discover
+│     View
+│     Download
+│     Coordinate
+│
+├── VERIFICATION
+│     Required evidence
+│
+├── EXPIRY
+│
+└── REVOCATION
+
+This is probably the most important architectural change after the Continuity Graph. The market-watch explicitly recommends separating WHO, WHAT, WHEN, AUTHORITY, VERIFICATION and REVOCATION rather than reducing trusted-family access to one boolean.    Pasted markdown
+Database
+access_grants
+-------------
+id
+vault_id
+grantor_user_id
+recipient_person_id
+resource_type
+resource_id
+authority
+activation_rule_id
+wrapped_dek
+status
+created_at
+expires_at
+revoked_at
+
+Possible authority values:
+DISCOVER
+VIEW
+DOWNLOAD
+COORDINATE
+
+I would not implement TRANSFER, CLAIM, or OWN as LEQVOR authorities.
+Those imply legal/financial authority LEQVOR should not manufacture.
+6. Trigger architecture
+Create:
+trigger_rules
+-------------
+id
+vault_id
+trigger_type
+verification_policy_id
+status
+created_at
+updated_at
+
+Supported triggers initially:
+IMMEDIATE
+OWNER_APPROVAL
+SPECIFIED_DATE
+EMERGENCY
+
+Later:
+INCAPACITY
+DEATH
+LEGAL_EVENT
+
+But incapacity/death triggers should not automatically unlock information merely because somebody clicked a button.
+They require a proper verification workflow.
+7. Verification architecture
+Create:
+Verification Policy
+│
+├── Trigger type
+├── Required evidence
+├── Required reviewers
+├── Minimum approvals
+├── Evidence expiration
+├── Manual review
+└── Decision history
+
+Example:
+Trigger:
+Death of vault owner
+
+Evidence:
+Death certificate
+
+Verifier:
+Authorized professional / approved process
+
+Result:
+Verified / rejected / needs review
+
+LEQVOR should orchestrate this eventually.
+It should not pretend to independently determine that somebody is dead, incapacitated, divorced, legally entitled, or magically transformed into an executor.
+8. Recipient key architecture remains
+Do not weaken the cryptography while building the graph.
+Sharing remains:
+Vault Master Key
+        │
+        ├── NEVER shared
+        │
+Record DEK
+        │
+        ├── Owner wrapper
+        │
+        ├── Recipient A wrapper
+        │
+        └── Recipient B wrapper
+
+The Continuity Graph determines:
+WHO should eventually receive access
+
+The cryptographic sharing layer determines:
+HOW that access is securely delivered
+
+Keep those separate.
+9. Jurisdiction layer
+Every relevant legal/continuity object should support:
+jurisdiction
+------------
+country
+state_or_region
+document_type
+legal_context_version
+last_verified_at
+source_reference
+
+For India, for example:
+country = IN
+state = MH
+
+or:
+country = IN
+state = GJ
+
+because LEQVOR cannot assume succession rules and document requirements are globally identical. The recent Gujarat development in your report reinforces this requirement.    Pasted markdown
+Critical rule
+Jurisdiction metadata may inform the interface.
+It should not automatically calculate legally binding inheritance rights.
+10. Professional relationships
+Upgrade People to support:
+PERSON
+│
+├── Family
+│
+├── Beneficiary
+│
+├── Nominee
+│
+├── Executor
+│
+├── Lawyer
+│
+├── Chartered Accountant
+│
+├── Company Secretary
+│
+├── Financial Adviser
+│
+├── Wealth Manager
+└── Other Professional
+
+One person can have multiple roles.
+For example:
+Neha Kapoor
+
+Relationship:
+Family friend
+
+Professional role:
+Chartered Accountant
+
+Access:
+Selected financial records
+
+Trigger:
+Owner approval
+
+Do not maintain separate copies of the same lawyer under Insurance, Property and Will.
+One person entity, many relationships.
+11. Professional referral architecture
+Don't build a marketplace yet.
+Just prepare:
+professional_relationships
+--------------------------
+id
+vault_id
+person_id
+professional_type
+organization_name
+jurisdiction
+verification_status
+relationship_status
+created_at
+
+Later:
+Advisor referral
+       ↓
+LEQVOR invitation
+       ↓
+Client creates vault
+       ↓
+Explicit client authorization
+       ↓
+Professional receives scoped access
+
+WillJini's reported distribution relationships are a good reason to preserve this path in the architecture.    Pasted markdown
+12. Insurance becomes part of the graph
+Your previous Insurance Hub direction survives, but now it connects properly.
+Insurance Policy
+│
+├── Policy owner
+├── Insured person
+├── Insured asset
+├── Beneficiaries
+├── Insurer
+├── Adviser
+├── Policy documents
+├── Claim contact
+├── Renewal
+├── Claim instructions
+└── Continuity instructions
+
+Then:
+Primary Residence
+       │
+       └──── insured_by ───► Home Insurance
+
+Life Insurance
+       │
+       └──── beneficiary ──► Daughter
+
+Policy
+       │
+       └──── adviser ──────► Financial Adviser
+
+This is much more valuable than another folder named Insurance.
+13. New Continuity Readiness engine
+Stop calculating readiness from arbitrary UI completion.
+Calculate meaningful coverage.
+Example:
+CONTINUITY READINESS
+
+Assets identified                18/20
+Nomination status verified       14/18
+Important documents located      11/12
+Digital copies preserved         10/12
+Trusted people configured         4/5
+Recovery tested                   ✓
+Critical instructions recorded    7/9
+Insurance beneficiaries known     5/6
+Documents recently reviewed       8/12
+
+Then calculate the score client-side.
+Do not tell users:
+"Your estate is 92% protected."
+
+That crosses from product metric into quasi-financial/legal claim.
+Use:
+Continuity information 92% complete
+
+Much cleaner.
+14. Updated application architecture
+Your UI should evolve to:
+LEQVOR
+│
+├── Overview
+│
+├── Vault
+│     ├── Assets
+│     ├── Documents
+│     ├── Insurance
+│     └── Other Records
+│
+├── People
+│     ├── Family
+│     ├── Beneficiaries
+│     ├── Nominees
+│     ├── Executors
+│     └── Professionals
+│
+├── Continuity
+│     ├── Readiness
+│     ├── Instructions
+│     ├── Access Conditions
+│     ├── Important Contacts
+│     ├── Reviews
+│     └── Gaps
+│
+├── Security
+│     ├── Authentication
+│     ├── Recovery
+│     ├── Devices
+│     ├── Sessions
+│     ├── Shield
+│     ├── Cold Lock
+│     ├── Security Timeline
+│     └── Emergency Lockdown
+│
+└── Account
+
+I would finally remove the ambiguous Tasks primary navigation.
+Tasks are a supporting feature.
+Continuity is the product.
+15. Asset Detail becomes much stronger
+Clicking an asset should open:
+Primary Residence
+
+OVERVIEW
+PROPERTY
+DOCUMENTS
+INSURANCE
+PEOPLE
+CONTINUITY
+HISTORY
+
+Inside People:
+Owner
+Spouse
+Nominee
+Executor
+Lawyer
+
+Inside Continuity:
+Original deed location
+Insurance
+Mortgage
+Trusted access
+Property instructions
+Emergency contact
+Last verified
+
+That is the Continuity Graph becoming visible to the user.
+16. Person Detail
+Clicking a trusted person:
+PRIYA MEHTA
+
+Relationship
+Spouse
+
+Roles
+Beneficiary
+Trusted person
+
+Access
+3 Financial Assets
+Primary Residence
+Insurance Policy
+
+Conditions
+Immediate: 1
+Owner approval: 2
+Emergency: 1
+
+Documents
+2 linked
+
+Instructions
+3 linked
+
+Now People is useful rather than an address book with expensive typography.
+17. Document Detail
+LAST WILL & TESTAMENT
+
+STATUS
+Executed
+
+Original
+Lawyer's office
+
+Digital Copy
+Preserved
+
+Jurisdiction
+India / Maharashtra
+
+Last Verified
+14 Sep 2026
+
+Professional
+Adv. ______
+
+Related People
+Executor
+Beneficiaries
+
+Related Assets
+Property
+Investment Account
+
+Access Condition
+Verified event
+
+Versions
+v1
+v2
+v3
+
+Again:
+Executed ≠ LEQVOR-certified legally valid
+
+LEQVOR records evidence.
+It does not adjudicate law.
+18. Backend service boundaries
+Move toward:
+frontend/
+    ui
+    crypto
+    local-vault
+    continuity-graph-client
+
+services/
+    auth/
+    vault/
+    sharing/
+    continuity/
+    access/
+    trigger/
+    verification/
+    notification/
+    billing/
+
+adapters/
+    supabase/
+    storage/
+    email/
+    billing/
+
+Do not write:
+supabase.from(...)
+
+inside fifty React components.
+Use:
+assetService.getAsset()
+continuityService.getGraph()
+accessService.createGrant()
+documentService.updateStatus()
+
+Then Supabase remains infrastructure, not your product's spinal cord.
+19. Privacy architecture
+The server should continue seeing as little meaningful plaintext as practical.
+Conceptually:
+CLIENT
+
+Plaintext
+↓
+Encryption
+↓
+Ciphertext
+
+──────── TRUST BOUNDARY ────────
+
+SERVER
+
+Opaque IDs
+Ciphertext
+Wrapped keys
+Minimal auth metadata
+Grant relationships
+Operational metadata
+Security events
+
+Where possible:
+Asset title               encrypted
+Document title            encrypted
+Instructions              encrypted
+Beneficiary notes         encrypted
+Policy numbers            encrypted
+Account numbers           encrypted
+Document contents         encrypted
+
+Some relationship metadata may necessarily exist server-side for access enforcement.
+Document that honestly rather than calling everything “zero knowledge” before proving it.
+20. Revised build order
+This is the order I would actually execute:
+1. Do not break existing P0 security foundation.
+2. Add Continuity Graph schema.
+3. Add improved Asset model.
+4. Add document-status model.
+5. Add nomination/beneficiary relationships.
+6. Add People roles.
+7. Add access-grant schema.
+8. Add trigger-rule schema.
+9. Add verification-policy schema.
+10. Add jurisdiction metadata.
+11. Connect Insurance.
+12. Update Continuity Readiness.
+13. Update Overview.
+14. Update Vault asset details.
+15. Update People details.
+16. Update Continuity UI.
+17. Add professional relationships.
+18. Build trigger activation only after sharing/recovery are proven.
+19. Add professional referral flows later.
+20. External integrations much later.
+Do not jump directly to death-trigger automation.
+Things explicitly NOT to build now
+Don't build	Reason
+AI estate assistant	Different privacy boundary and not needed
+Automatic asset transfer	Custody/regulatory nightmare
+Automatic inheritance calculator	Jurisdiction/legal liability
+Will generator	Different business
+Probate engine	Different business
+Insurance recommendations	Regulated/advisory expansion
+Live insurer integration	Premature
+Lawyer marketplace	Premature
+Crypto custody	Absolutely not
+Automatic death detection	Needs serious verification architecture
+
+
+The report reaches essentially the same strategic conclusion: LEQVOR should know what exists, where it exists, who has authority, what evidence is required, and what happens next, while regulated institutions perform the actual transfer or legal process.    Pasted markdown
+The resulting product
+Old architecture:
+ENCRYPT
+   ↓
+STORE
+   ↓
+SHARE
+
+Current LEQVOR direction:
+IDENTIFY
+   ↓
+STRUCTURE
+   ↓
+CONNECT
+   ↓
+ENCRYPT
+   ↓
+PRESERVE
+   ↓
+CONTROL ACCESS
+   ↓
+VERIFY CONDITIONS
+   ↓
+GUIDE THE RIGHT PEOPLE
+   ↓
+CONTINUITY
+
+That is the architecture I would execute.
+Vault remains the security foundation. Continuity Graph becomes the intelligence of the product. People, assets, documents, insurance and instructions become interconnected rather than independent folders. LEQVOR coordinates what happens next without pretending to become the lawyer, bank, insurer or court.

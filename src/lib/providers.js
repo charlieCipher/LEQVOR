@@ -58,6 +58,10 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  graphEntities:()=>result(requireClient().from('continuity_entities').select('*')),
+  graphEdges:()=>result(requireClient().from('continuity_edges').select('*')),
+  registerGraphEntity:({id,owner_id,vault_id,entity_type,record_id,person_id})=>result(requireClient().from('continuity_entities').insert({id,owner_id,vault_id,entity_type,record_id,person_id}).select().single()),
+  saveGraphEdge:row=>result(requireClient().from('continuity_edges').insert(encryptedWrite('edge',row)).select().single()),
   sharingIdentity: () => result(requireClient().from('user_sharing_keys').select('*').maybeSingle()),
   registerSharingIdentity: (vaultId, identity) => result(requireClient().rpc('register_v5_sharing_identity', {
     target_vault:vaultId,
