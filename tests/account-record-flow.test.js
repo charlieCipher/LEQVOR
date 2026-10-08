@@ -38,6 +38,7 @@ async function setup(){
   if(file)files.set(file.id,encryptedWrite('file',file));
   db.lastGraph=graph;return saved;
  });
+ db.saveDocumentBundle=db.saveAssetBundle;
  const storage={upload:async(path,e)=>objects.set(path,ciphertextEnvelope(e)),download:async(path)=>objects.get(path),remove:vi.fn(async(paths)=>paths.forEach(p=>objects.delete(p)))};
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }

@@ -1,3 +1,4 @@
+import DocumentFields from './DocumentFields';
 import {useState} from 'react';
 import AssetPeopleFields,{AssetPeopleView} from './AssetPeopleFields';
 import {NOMINATION_STATUSES,DOCUMENT_STATUSES} from '../../modules/continuity/recordDetails';
@@ -9,6 +10,7 @@ export default function ContinuityDetails({value={},people=[],records=[]}){
   {kind==='ASSET'&&<label>Nomination status<select name="nomination_status" defaultValue={value.asset?.nomination_status||'UNKNOWN'}>{NOMINATION_STATUSES.map(v=><option key={v} value={v}>{label(v)}</option>)}</select></label>}
   {kind==='ASSET'&&<AssetPeopleFields value={value.asset} people={people} records={records}/>}
   {kind==='DOCUMENT'&&<>
+   <DocumentFields value={value.document} people={people} records={records}/>
    <label>Document existence<select name="document_existence" defaultValue={value.document?.existence||'UNKNOWN'}><option value="UNKNOWN">Unknown</option><option value="EXISTS">Exists</option></select></label>
    <label>Physical original exists<select name="physical_original" defaultValue={value.document?.physical_original||'UNKNOWN'}><option value="UNKNOWN">Unknown</option><option value="YES">Yes</option><option value="NO">No</option></select></label>
    <label>Document execution status<select name="execution_status" defaultValue={value.document?.execution_status||'UNKNOWN'}>{DOCUMENT_STATUSES.map(v=><option key={v} value={v}>{label(v)}</option>)}</select></label>

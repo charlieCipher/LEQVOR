@@ -27,6 +27,16 @@ export async function validateRecoveryPackage(pkg) {
   for (const object of c.objects) {
     if (!paths.delete(object.path) || !object.envelope) fail();
   }
+  if(c.versions!==undefined){
+    if(!Array.isArray(c.versions)||c.versions.length>10000)fail();
+    const seen=new Set();
+    for(const version of c.versions){
+      const identity=`${version.record_id}:${version.revision}`;
+      if(seen.has(identity)||!records.has(version.record_id)||version.owner_id!==c.vault.owner_id||version.vault_id!==c.vault.id||!Number.isSafeInteger(version.revision)||version.revision<1||version.snapshot?.id!==version.record_id||version.snapshot?.revision!==version.revision||version.snapshot?.owner_id!==c.vault.owner_id||version.snapshot?.vault_id!==c.vault.id||!Array.isArray(version.files))fail();
+      seen.add(identity);
+      for(const file of version.files){const current=c.files.find(item=>item.id===file.id&&item.record_id===version.record_id);if(!current||await digest(current)!==await digest(file))fail();}
+    }
+  }
   return c;
 }
 
@@ -38,6 +48,10 @@ export async function verifyRecoveryPackage(pkg, phrase) {
     for (const row of [...c.records, ...c.people]) {
       await decryptRecordMetadata(key, row);
       await decryptRecordPayload(key, row);
+    }
+    for(const version of c.versions||[]){
+      await decryptRecordMetadata(key,version.snapshot);
+      await decryptRecordPayload(key,version.snapshot);
     }
     const objects = new Map(c.objects.map(object => [object.path, object.envelope]));
     for (const file of c.files) {

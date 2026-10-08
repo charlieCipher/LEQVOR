@@ -7,7 +7,7 @@ it('records unknown document state without treating a file as executed',()=>{
  render(<form><ContinuityDetails/></form>);
  fireEvent.change(screen.getByLabelText('Continuity type'),{target:{value:'DOCUMENT'}});
  const result=readRecordDetails(new FormData(screen.getByLabelText('Continuity type').closest('form')));
- expect(result.document).toEqual({existence:'UNKNOWN',execution_status:'UNKNOWN',physical_original:'UNKNOWN'});
+ expect(result.document).toEqual({existence:'UNKNOWN',execution_status:'UNKNOWN',physical_original:'UNKNOWN',custodians:[],professionals:[],people:[],assets:[]});
 });
 it('preserves document status and jurisdiction on edit',()=>{
  render(<form><ContinuityDetails value={{kind:'DOCUMENT',document:{existence:'EXISTS',execution_status:'EXECUTED',physical_original:'YES'},jurisdiction:{country:'IN',state_or_region:'MH'},last_verified_date:'2026-09-14'}}/></form>);

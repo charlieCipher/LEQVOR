@@ -18,6 +18,11 @@ async function restoreRows(db, content, owner) {
       const table = tables[index];
       await db.query(`insert into public.${table} select * from jsonb_populate_recordset(null::public.${table},$1::jsonb)`, [JSON.stringify(rows)]);
     }
+    if(content.versions){
+      await db.exec('set constraints all immediate');
+      await db.query('delete from public.record_revision_history where owner_id=$1',[owner]);
+      await db.query('insert into public.record_revision_history select * from jsonb_populate_recordset(null::public.record_revision_history,$1::jsonb)',[JSON.stringify(content.versions)]);
+    }
     await db.exec('commit');
   } catch (error) { await db.exec('rollback'); throw error; }
 }
@@ -38,7 +43,8 @@ try {
     assert.ok(columns.every(column=>/^[a-z_]+$/.test(column)));
     await source.query(`insert into public.${table} (${columns.join(',')}) values (${columns.map((_,i)=>'$'+(i+1)).join(',')})`,Object.values(row));
   }
-  const content = {format:'leqvor-recovery-package-v5',vault:(await source.query('select * from public.vaults')).rows[0],records:(await source.query('select * from public.records')).rows,people:(await source.query('select * from public.trusted_people')).rows,files:(await source.query('select * from public.record_files')).rows,objects:[{path:file.row.storage_path,envelope:file.envelope}]};
+  const versions=(await source.query('select * from public.record_revision_history')).rows;
+  const content = {versions,format:'leqvor-recovery-package-v5',vault:(await source.query('select * from public.vaults')).rows[0],records:(await source.query('select * from public.records')).rows,people:(await source.query('select * from public.trusted_people')).rows,files:(await source.query('select * from public.record_files')).rows,objects:[{path:file.row.storage_path,envelope:file.envelope}]};
   // PostgreSQL drivers may return Date objects; the package format contains JSON strings.
   const jsonContent = JSON.parse(JSON.stringify(content));
   const serialized = JSON.stringify({content:jsonContent,manifest:await digest(jsonContent)});
@@ -60,6 +66,7 @@ try {
   assert.equal((await restored.query('select id from auth.users')).rows.length,0);
   console.log('PASS invalid attachment restore rolls back all rows and fixture identity');
   await restoreRows(restored,backup.content,owner);
+  assert.deepEqual(JSON.parse(JSON.stringify((await restored.query('select * from public.record_revision_history')).rows)),backup.content.versions);
   const recovered = {...backup.content,vault:(await restored.query('select * from public.vaults')).rows[0],records:(await restored.query('select * from public.records')).rows,people:(await restored.query('select * from public.trusted_people')).rows,files:(await restored.query('select * from public.record_files')).rows};
   const jsonRecovered = JSON.parse(JSON.stringify(recovered));
   assert.equal(await digest(jsonRecovered),backup.manifest);

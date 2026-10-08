@@ -1,6 +1,7 @@
 // Domain relationships describe information; none confer legal or app authority.
 export const ENTITY_TYPES=Object.freeze(['PERSON','ASSET','DOCUMENT','POLICY','INSTRUCTION','OTHER']);
 const relationships={
+ SUBJECT_PERSON:[['DOCUMENT'],['PERSON']],
  OWNS:[['PERSON'],['ASSET']],
  NOMINEE_FOR:[['PERSON'],['ASSET']],
  BENEFICIARY_OF:[['PERSON'],['ASSET','POLICY']],

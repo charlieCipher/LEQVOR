@@ -204,7 +204,8 @@ export default function Workspace({ session, demo = false }) {
   async function downloadPackage() {
     const records = await DatabaseProvider.listRecords(),
       files = await DatabaseProvider.allFiles(),
-      people = await DatabaseProvider.people();
+      people = await DatabaseProvider.people(),
+      versions = await DatabaseProvider.allRecordVersions();
     const objects = [];
     for (const file of files)
       objects.push({
@@ -217,6 +218,7 @@ export default function Workspace({ session, demo = false }) {
       records,
       files,
       people,
+      versions,
       objects,
       instructions:
         "Use the V5 recovery implementation with your 24-word secret. Account credentials are not a vault secret.",

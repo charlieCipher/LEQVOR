@@ -5,6 +5,7 @@ import { AurevaError } from '../security/safeEvents';
 import { recipientKeyFingerprint } from '../security/recipientKeys';
 import { verifyRecipientCard } from '../security/recipientCard';
 import { ContinuityGraphService } from '../continuity/ContinuityGraphService';
+import {documentGraph} from '../continuity/documentGraph';
 import {assetGraph} from '../continuity/assetGraph';
 import {
   encryptRecord,
@@ -54,7 +55,7 @@ export class V5VaultService {
       metadata = { ...metadata, continuity_kind:payload.continuity_details?.kind||'OTHER', file_count: file?.size ? 1 : 0 };
       if(metadata.category === "Insurance") metadata={...metadata, insurance_index:insuranceIndex(payload, file?.size ? 1 : 0)};
       const row = await encryptRecord(key, { ...identity, metadata, payload });
-      const graph=metadata.continuity_kind==='ASSET'?await assetGraph(key,row,payload.continuity_details.asset):null;
+      const graph=metadata.continuity_kind==='ASSET'?await assetGraph(key,row,payload.continuity_details.asset):metadata.continuity_kind==='DOCUMENT'?await documentGraph(key,row,payload.continuity_details.document):null;
       assertActive();
       let doc = null,
         uploaded = false,
@@ -82,7 +83,7 @@ export class V5VaultService {
         }
         assertActive();
         commitAttempted = true;
-        const record = graph ? await this.db.saveAssetBundle(row,null,doc?.row,graph) : await this.db.saveRecordBundle(row,doc?.row);
+        const record = graph ? await (metadata.continuity_kind==='DOCUMENT'?this.db.saveDocumentBundle:this.db.saveAssetBundle)(row,null,doc?.row,graph) : await this.db.saveRecordBundle(row,doc?.row);
         saved = true;
         return { ...metadata, ...record, v5: true, files: doc ? 1 : 0 };
       } catch (error) {
@@ -110,9 +111,9 @@ export class V5VaultService {
     if(file && (!Number.isFinite(file.size)||file.size<0||file.size>MAX_DOCUMENT_BYTES))throw new AurevaError('FILE_TOO_LARGE','Choose a file no larger than 10 MB.');
     return this.session.run(async (key, assertActive) => {
       metadata={...await decryptRecordMetadata(key,record),...metadata,completeness:completeness(payload)};
-      if(metadata.continuity_kind==='ASSET'&&payload.continuity_details?.kind!=='ASSET')throw new AurevaError('ASSET_TYPE_CHANGE','Keep the asset type when editing its relationships.');
+      if(['ASSET','DOCUMENT'].includes(metadata.continuity_kind)&&payload.continuity_details?.kind!==metadata.continuity_kind)throw new AurevaError('RECORD_TYPE_CHANGE','Keep the record type when editing its relationships.');
       metadata.continuity_kind=payload.continuity_details?.kind||'OTHER';
-      if(file?.size&&metadata.continuity_kind!=='ASSET')throw new Error('Attachment updates require an asset.');
+      if(file?.size&&!['ASSET','DOCUMENT'].includes(metadata.continuity_kind))throw new Error('Attachment updates require an asset or document.');
       if(file?.size)metadata.file_count=(await this.db.files(record.id)).length+1;
       assertActive();
       if(metadata.category === "Insurance") metadata.insurance_index=insuranceIndex(payload,metadata.file_count||0);
@@ -124,8 +125,9 @@ export class V5VaultService {
         payload,
       });
       assertActive();
-      if(metadata.continuity_kind==='ASSET'){
-        const graph=await assetGraph(key,record,payload.continuity_details.asset);
+      if(['ASSET','DOCUMENT'].includes(metadata.continuity_kind)){
+        const isDocument=metadata.continuity_kind==='DOCUMENT';
+        const graph=isDocument?await documentGraph(key,record,payload.continuity_details.document):await assetGraph(key,record,payload.continuity_details.asset);
         let doc=null;
         if(file?.size){
           const bytes=new Uint8Array(await file.arrayBuffer());
@@ -134,7 +136,7 @@ export class V5VaultService {
         }
         // Preserve uploaded ciphertext if the transaction outcome is uncertain.
         assertActive();
-        const row=await this.db.saveAssetBundle(encrypted,this.requireRevision(record),doc?.row,graph);
+        const row=await (isDocument?this.db.saveDocumentBundle:this.db.saveAssetBundle)(encrypted,this.requireRevision(record),doc?.row,graph);
         assertActive();return {...metadata,...row,v5:true};
       }
       const row = await this.db.updateRecord(record.id, {
@@ -142,6 +144,14 @@ export class V5VaultService {
         updated_at: new Date().toISOString(),
       }, this.requireRevision(record));
       return { ...metadata, ...row, v5: true };
+    });
+  }
+  async versions(record) {
+    this.assertIdentity(record);
+    return this.session.run(async (_key,assertActive)=>{
+      const rows=await this.db.recordVersions(record.id);assertActive();
+      for(const row of rows){if(row.record_id!==record.id||row.owner_id!==this.vault.owner_id||row.vault_id!==this.vault.id||row.snapshot?.id!==record.id||row.snapshot?.revision!==row.revision)throw new Error('Invalid historical identity');this.assertIdentity(row.snapshot);for(const file of row.files||[]){this.assertFileIdentity(file);if(file.record_id!==record.id)throw new Error('Invalid historical file');}}
+      return rows;
     });
   }
   async files(record) {

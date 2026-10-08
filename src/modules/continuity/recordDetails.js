@@ -1,5 +1,6 @@
 import {AurevaError} from '../security/safeEvents';
 import {reviewDate} from './readiness';
+import {readDocumentLinks} from './documentDetails';
 import {readAssetDetails} from './assetDetails';
 export const NOMINATION_STATUSES=['UNKNOWN','REGISTERED','OPTED_OUT','NEEDS_VERIFICATION','NOT_APPLICABLE'];
 export const DOCUMENT_STATUSES=['UNKNOWN','DRAFT','EXECUTED','SUPERSEDED','REVOKED','EXPIRED'];
@@ -20,7 +21,7 @@ export function readRecordDetails(form,people=[],records=[]){
  if(kind==='DOCUMENT'){
   const execution_status=value('execution_status')||'UNKNOWN',existence=value('document_existence')||'UNKNOWN',original=value('physical_original')||'UNKNOWN';
   if(!DOCUMENT_STATUSES.includes(execution_status)||!['EXISTS','UNKNOWN'].includes(existence)||!['YES','NO','UNKNOWN'].includes(original))fail();
-  details.document={execution_status,existence,physical_original:original};
+  details.document={execution_status,existence,physical_original:original,...readDocumentLinks(form,people,records)};
  }
  return details;
 }

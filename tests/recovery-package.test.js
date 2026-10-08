@@ -75,6 +75,12 @@ describe('independent recovery verification', () => {
     const next = await changed(c=>{const e=c.objects[0].envelope;e.ciphertext=(e.ciphertext[0]==='A'?'B':'A')+e.ciphertext.slice(1)});
     await expect(verifyRecoveryPackage(next,phrase)).rejects.toThrow('Recovery verification failed');
   });
+  it('verifies encrypted historical snapshots and rejects substituted history ownership',async()=>{
+    const next=await changed(c=>{const snapshot={...c.records[0],revision:1};c.versions=[{record_id:snapshot.id,owner_id:snapshot.owner_id,vault_id:snapshot.vault_id,revision:1,snapshot,files:c.files}];});
+    await expect(verifyRecoveryPackage(next,phrase)).resolves.toEqual({records:1,people:0,files:1});
+    next.content.versions[0].snapshot.owner_id='other';next.manifest=await digest(next.content);
+    await expect(validateRecoveryPackage(next)).rejects.toThrow();
+  });
   it('rejects the wrong recovery secret', async () => {
     await expect(verifyRecoveryPackage(pkg,generateRecoverySecret())).rejects.toThrow('Recovery verification failed');
   });

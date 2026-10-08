@@ -58,6 +58,9 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  allRecordVersions:()=>result(requireClient().from('record_revision_history').select('*')),
+  recordVersions:id=>result(requireClient().from('record_revision_history').select('*').eq('record_id',id).order('revision',{ascending:false})),
+  saveDocumentBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_document',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
   saveAssetBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_asset',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
   graphEntities:()=>result(requireClient().from('continuity_entities').select('*')),
   graphEdges:()=>result(requireClient().from('continuity_edges').select('*')),
