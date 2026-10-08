@@ -3,6 +3,7 @@ import SecurityDetails from '../components/security/SecurityDetails';
 import { securityDetailNames } from '../components/security/securityDetailCatalog';
 import { detailPreferences, saveDetailPreferences } from '../components/security/previewPreferences';
 import AccessPlanner from '../components/people/AccessPlanner';
+import SharePermissions from '../components/people/SharePermissions';
 import LegacyImport from "../components/security/LegacyImport";
 import MfaSetup from "../components/security/MfaSetup";
 import Pricing from "../Pricing";
@@ -482,8 +483,9 @@ export default function Workspace({ session, demo = false }) {
           ) : securityDetailNames.has(modal) ? (
             <SecurityDetails key={modal} name={modal} demo={demo} records={records} preferences={detailPreferences(modal, previewPreferences)} onSave={value => setPreviewPreferences(p => saveDetailPreferences(p, modal, value))}/>
           ) : modal === 'Share Record' || modal === 'Emergency Access' ? (
-            <AccessPlanner key={modal} demo={demo} people={people} records={records} emergency={modal === 'Emergency Access'} onSave={plan => setAccessPlans(p => [...p, plan])}/>
+            <AccessPlanner key={modal} demo={demo} people={people} records={records} emergency={modal === 'Emergency Access'} onSave={plan => setAccessPlans(p => [...p, plan])} onInvite={!demo&&vaultContext?.service.sharing?(record,person)=>vaultContext.service.sharing.invite(record,person):undefined}/>
           ) : modal === 'Review Permissions' ? (
+            !demo&&vaultContext?.service.sharing?<SharePermissions service={vaultContext.service.sharing}/>:
             <div className="stack-form"><p className="muted">Relationships never grant permissions automatically.</p>{accessPlans.length ? accessPlans.map((plan,i) => <div className="setting-row" key={i}><span><strong>{people.find(p => p.id===plan.person)?.display_name}</strong><small>{plan.records.length} records · {plan.permission} · {plan.condition}</small></span><Button onClick={() => setAccessPlans(p => p.filter((_,index) => index!==i))}>Remove sample plan</Button></div>) : <Empty title="No access plans" text="Use Share Record to review selected access. No real permissions have been granted."/>}</div>
           ) : modal === "Plan" ? (
             <Pricing onClose={() => setModal(null)} />
