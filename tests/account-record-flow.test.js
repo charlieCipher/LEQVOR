@@ -37,6 +37,15 @@ async function setup(){
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
 const file=()=>new File(['PRIVATE_FILE_CANARY'],'private-canary.txt',{type:'text/plain'});
+it('keeps structured document and jurisdiction details encrypted through edit and reveal',async()=>{
+ const t=await setup();
+ const continuity_details={version:1,kind:'DOCUMENT',document:{execution_status:'EXECUTED',physical_original:'YES',existence:'EXISTS'},jurisdiction:{country:'IN',state_or_region:'PRIVATE_REGION'}};
+ const record=await t.service.create({title:'Document'},{continuity_details});
+ const updated=await t.service.update(record,{title:'Edited document'},{continuity_details});
+ expect((await t.service.reveal(updated)).continuity_details).toEqual(continuity_details);
+ const wire=JSON.stringify([...t.rows.values()]);
+ for(const secret of ['EXECUTED','PRIVATE_REGION','continuity_details'])expect(wire).not.toContain(secret);
+});
 it('persists recipient pins only inside encrypted people and rejects substitutions before writing',async()=>{
  const t=await setup();let saved;
  t.db.savePerson=vi.fn(async row=>saved=encryptedWrite('person',row));

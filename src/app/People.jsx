@@ -27,7 +27,7 @@ export default function People({
   const [selected, setSelected] = useState(null),
     [adding, setAdding] = useState(false);
   const [query,setQuery]=useState(''),[role,setRole]=useState('All Roles');
-  const shown=people.filter(p=>p.display_name.toLowerCase().includes(query.toLowerCase())&&(role==='All Roles'||p.relationship===role));
+  const shown=people.filter(p=>p.display_name.toLowerCase().includes(query.toLowerCase())&&(role==='All Roles'||p.relationship===role||p.roles?.includes(role)));
   const portrait=(p)=>p.demo && ['priya','arjun','kiara','rajesh','sunita','daniel','neha'].includes(p.id)?<span className={'person-avatar portrait portrait-'+p.id}/>:<span className="person-avatar">{p.display_name[0]}</span>;
   return (
     <>
@@ -63,7 +63,7 @@ export default function People({
               
               <h2>Your Family Circle</h2>
             </div>
-            <div className="people-filters"><label className="search-field"><Icon name="search" size={16}/><input aria-label="Search family members" placeholder="Search family members…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filter by relationship" value={role} onChange={e=>setRole(e.target.value)}>{['All Roles',...new Set(people.map(p=>p.relationship))].map(r=><option key={r}>{r}</option>)}</select></div>
+            <div className="people-filters"><label className="search-field"><Icon name="search" size={16}/><input aria-label="Search family members" placeholder="Search family members…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filter by relationship" value={role} onChange={e=>setRole(e.target.value)}>{['All Roles',...new Set(people.flatMap(p=>[p.relationship,...(p.roles||[])]))].map(r=><option key={r}>{r}</option>)}</select></div>
           </div>
           <p className="muted">
             Every relationship is personal. Every permission is explicit.
@@ -177,6 +177,8 @@ export default function People({
             <h2>{selected.display_name}</h2>
             <section className="linked-policies"><h3>Connected policies</h3>{policiesForPerson(records,selected.id).length ? policiesForPerson(records,selected.id).map(({record,roles})=><button className="document-row" key={record.id} onClick={()=>{setSelected(null);go("/app/vault/"+record.id)}}><Icon name="shield"/><span>{record.title}<small>{roles.join(" · ")}</small></span><Icon name="chevron"/></button>):<p className="muted">No policy roles recorded for this person.</p>}</section>
             <p className="muted">{selected.relationship}</p>
+            <div className="setting-row"><span>Recorded roles</span><strong>{selected.roles?.join(' · ') || 'Not recorded'}</strong></div>
+            <p className="field-hint">Recorded roles describe this person. They do not establish legal authority or grant access.</p>
             {[
               ["Verification", selected.verification || "Unverified"],
               ["Permission", selected.permission || "No access"],

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useVault } from "../../features/vault/VaultContext";
 import { Button } from "../ui/Primitives";
 import { safeFailure } from "../../modules/security/safeEvents";
+import {PERSON_ROLES} from '../../modules/continuity/recordDetails';
 export default function TrustedPersonForm({ onSaved }) {
   const v = useVault(),
     [busy, setBusy] = useState(false),
@@ -42,6 +43,7 @@ export default function TrustedPersonForm({ onSaved }) {
               display_name: name,
               relationship,
               professional: form.get("professional") === "on",
+              roles:form.getAll('roles').filter(role=>PERSON_ROLES.includes(role)),
               reviewed_at: new Date().toISOString(),
             }, card || fingerprint ? {card,fingerprint} : undefined);
           if (active.current) {
@@ -70,6 +72,7 @@ export default function TrustedPersonForm({ onSaved }) {
         <input type="checkbox" name="professional" />
         Professional contact
       </label>
+      <fieldset><legend>Roles (choose any that apply)</legend>{PERSON_ROLES.map(role=><label className="checkbox-label" key={role}><input type="checkbox" name="roles" value={role}/>{role}</label>)}</fieldset>
       <p className="muted">
         Names and relationships are encrypted. Adding a person does not send an
         invitation or grant access.

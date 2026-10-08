@@ -32,12 +32,14 @@ it('retains rejected input for retry and saves trimmed contact data without perm
  service.addPerson.mockRejectedValueOnce(new Error('PRIVATE_FAILURE')).mockResolvedValueOnce({id:'p'});
  const saved=vi.fn(),{name,role,form}=setup(saved);
  fireEvent.click(screen.getByLabelText('Professional contact'));
+ fireEvent.click(screen.getByLabelText('Chartered Accountant'));
+ fireEvent.click(screen.getByLabelText('Executor'));
  fireEvent.submit(form);await screen.findByRole('alert');
  expect(name.value).toBe('  Test person  ');
  expect(screen.queryByText('PRIVATE_FAILURE')).toBeNull();
  await act(async()=>fireEvent.submit(form));
  expect(saved).toHaveBeenCalledWith({id:'p'});
  const sent=service.addPerson.mock.calls[1][0];
- expect(sent).toEqual({display_name:'Test person',relationship:'Advisor',professional:true,reviewed_at:expect.any(String)});
+ expect(sent).toEqual({display_name:'Test person',relationship:'Advisor',professional:true,roles:['Executor','Chartered Accountant'],reviewed_at:expect.any(String)});
  expect(name.value).toBe('');expect(role.value).toBe('');
 });

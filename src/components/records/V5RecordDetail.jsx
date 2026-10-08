@@ -1,4 +1,6 @@
 import InsuranceFields from './InsuranceFields';
+import ContinuityDetails, {ContinuityDetailsView} from './ContinuityDetails';
+import {readRecordDetails} from '../../modules/continuity/recordDetails';
 import { readInsuranceForm } from '../../modules/insurance/continuity';
 import { useState, useEffect, useRef } from "react";
 import { useVault } from "../../features/vault/VaultContext";
@@ -114,6 +116,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
     setError("");
     try {
       const next = { ...payload };
+      next.continuity_details=readRecordDetails(f);
       for (const field of [
         "description",
         "institution",
@@ -190,6 +193,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
               <textarea name={key} defaultValue={payload[key] || ""} />
             </label>
           ))}
+          <ContinuityDetails value={payload.continuity_details}/>
           <Button variant="primary" disabled={busy}>
             {busy ? 'Saving encrypted changes…' : 'Save encrypted changes'}
           </Button>
@@ -224,6 +228,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
             </div>
           ))}
           {record.category === "Insurance" && <div className="insurance-private-details"><h2>Policy details</h2>{[["Policy type",payload.insurance?.policy_type],["Recorded status",payload.insurance?.policy_status],["Renewal date",payload.insurance?.renewal_date],["Claim instructions",payload.insurance?.claim_instructions]].map(([label,value])=><div className="private-field" key={label}><h3>{label}</h3><p>{value||"Not recorded"}</p></div>)}</div>}
+          <ContinuityDetailsView value={payload.continuity_details}/>
           <div className="form-actions">
             <Button disabled={busy} onClick={() => setEditing(true)}>
               Edit record

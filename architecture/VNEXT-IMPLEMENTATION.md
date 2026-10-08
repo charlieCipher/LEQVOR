@@ -23,6 +23,8 @@ The migration is additive, with no conversion, renaming or deletion of legacy as
 
 ## Still required by the specification
 
+Second increment: record create/edit/reveal now supports an explicit continuity type, asset nomination status, document existence/execution/physical-original status, jurisdiction and last verification date. People creation supports multiple encrypted roles, displayed in person details. These are per-record attributes in existing encrypted payloads, not a vault-wide JSON aggregate. Existing records default to unknown; no inferred execution or nomination status is backfilled. Typed ownership, nominee allocations and linked custodians still need their graph workflows. This increment does not require the graph migration to be installed and does not automatically register graph entities.
+
 1. Improved asset/ownership/nomination model and encrypted evidence, with aggregate allocation validation.
 2. Document execution/existence/original location/version models; execution status must not imply legal validity.
 3. People with multiple roles and shared professional relationships.
