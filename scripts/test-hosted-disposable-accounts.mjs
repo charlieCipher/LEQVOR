@@ -48,7 +48,7 @@ if (!process.argv.includes('--run-hosted-test') || url!==target || !adminKey || 
       if(signed.error || signed.data.user?.id!==created.data.user.id) throw new Error('Authentication failed');
     }
     stage='ordinary-user hosted workflow';
-    success=await (process.argv.includes('--sharing')?runHostedSharing:process.argv.includes('--documents')?runHostedDocuments:runHostedWorkflow)(clients[0],clients[1],report);
+    success=await (process.argv.includes('--sharing')?runHostedSharing:process.argv.includes('--documents')?runHostedDocuments:runHostedWorkflow)(clients[0],clients[1],report,{hostedHttp:process.argv.includes('--sharing-http')});
   } catch {
     report(`FAIL ${stage}; credentials and sensitive responses suppressed`);
   } finally {

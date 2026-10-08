@@ -6,7 +6,7 @@ import {recipientKeyFingerprint} from '../src/modules/security/recipientKeys.js'
 import {encryptedWrite} from '../src/lib/ciphertextBoundary.js';
 const value=async request=>{const response=await request;if(response.error)throw new Error('Backend request failed');return response.data;};
 const check=condition=>{if(!condition)throw new Error('Acceptance check failed');};
-export async function runHostedSharing(a,b,report=()=>{}){
+export async function runHostedSharing(a,b,report=()=>{},options={}){
  let stage='identity',success=false,record,filePath;const vaults=[];
  try{
   const users=await Promise.all([a,b].map(async client=>(await value(client.auth.getUser())).user));check(users[0].id!==users[1].id);
@@ -43,14 +43,20 @@ export async function runHostedSharing(a,b,report=()=>{}){
   const bundle=await value(b.rpc('read_v5_shared_file',{target:grant.id,selected_file:document.row.id}));check(!('wrapped_file_dek' in bundle.file));
   const signed=await value(b.auth.getSession());
   const input={method:'POST',authorization:`Bearer ${signed.session.access_token}`,body:{grant_id:grant.id,file_id:document.row.id},env:{...process.env,VITE_SUPABASE_ANON_KEY:process.env.LEQVOR_TEST_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY}};
-  const downloaded=await sharedFileDownload(input);check(downloaded.status===200);
+  const download=async()=>{
+   if(!options.hostedHttp)return sharedFileDownload(input);
+   const response=await fetch('https://leqvor.vercel.app/api/shared-file',{method:'POST',headers:{Authorization:input.authorization,'Content-Type':'application/json'},body:JSON.stringify(input.body),redirect:'error',signal:AbortSignal.timeout(30000)});
+   check(response.headers.get('cache-control')?.includes('no-store'));
+   return {status:response.status,body:await response.json()};
+  };
+  const downloaded=await download();check(downloaded.status===200);
   const decoded=await decryptGrantedDocument(keys[1],identities[1],bundle.grant,bundle.file,bundle.file_grant,downloaded.body);
   check(new TextDecoder().decode(decoded.bytes)===sample);decoded.bytes.fill(0);
-  report('PASS hosted selected encrypted attachment authorization and client decryption; direct storage denied');
+  report(options.hostedHttp?'PASS deployed HTTP attachment endpoint and local decryption; direct storage denied':'PASS hosted selected encrypted attachment authorization and client decryption; direct storage denied');
   stage='revocation';await value(a.rpc('revoke_v5_share',{target:grant.id}));
   check(!!(await b.rpc('read_v5_share',{target:grant.id})).error);
   check(!!(await b.rpc('accept_v5_share',{target:grant.id})).error);
-  check((await sharedFileDownload(input)).status===404);
+  check((await download()).status===404);
   report('PASS revoked share cannot be retrieved or accepted again');success=true;
  }catch{report(`FAIL sharing workflow: ${stage}; sensitive details suppressed`);}
  finally{
