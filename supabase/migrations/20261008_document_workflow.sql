@@ -1,4 +1,7 @@
 begin;
+-- Abort rather than blocking live traffic indefinitely during rollout.
+set local lock_timeout = '5s';
+set local statement_timeout = '30s';
 create table public.record_revision_history (
  record_id uuid not null, owner_id uuid not null, vault_id uuid not null,
  revision bigint not null check(revision>0), captured_at timestamptz not null default now(),
