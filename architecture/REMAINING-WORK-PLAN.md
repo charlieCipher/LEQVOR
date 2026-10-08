@@ -3,7 +3,7 @@
 User instruction: work through these nine items in order. Future “continue” requests resume this plan. Record implementation separately from deployed and independently verified acceptance.
 
 1. People: graph-linked person details, multiple roles and encrypted professional context. Connections view and professional fields are implemented and deployed as `15581fc` to `leqvor.vercel.app`; Vercel Production Ready and current domain verified. Unverified profiles can be edited with an encrypted-metadata nonce comparison to reject concurrent changes; recipient bindings and payload are preserved. Professional relationships have recorded Active/Former/Unknown state, never implied qualification verification. Full browser acceptance remains pending. Active access conditions depend on item 2/3.
-2. Access and sharing: verified recipient identities, invitations, scoped grants, revocation and real two-account acceptance.
+2. Access and sharing: selected encrypted-record revision invitations, recipient acceptance, server-enforced recent authentication/MFA and owner revocation implemented locally. Migration `20261009_selected_sharing.sql` needs production approval/application, then hosted two-account acceptance and deployment. Attachment wrappers and the complete structured recipient view remain open; no automatic linked-record access. See `SELECTED-SHARING-IMPLEMENTATION.md`.
 3. Triggers and verification: evidence, reviewers, expiry, decision history and approved activation; no automatic death/incapacity decisions.
 4. Insurance: graph integration, distinct owner/insured/beneficiary roles, renewals, contacts and factual claim-readiness checks.
 5. Continuity: meaningful completeness, gaps and reviews calculated from decrypted information.
@@ -18,4 +18,4 @@ No new production permissions or migrations have been applied for item 1 in this
 
 People validation: hosted ordinary-user API tests passed encrypted professional edits, stale-write rejection and cross-account edit isolation; disposable test accounts were removed. Focused component/service tests passed explicit reveal, focus-loss cleanup, late-response suppression, recipient-binding preservation, encrypted payload preservation and ownership/Cold Lock enforcement. All 210 regression tests across 49 files passed; lint and build passed with the existing bundle-size warning. Deployment `3fcCxMktfGs7dZ7ecrzFn3vAUK2r` is Ready and assigned to the production domain. Local evidence: `docs/people-deployment-ready.png`. No beneficiary role is inferred from a family relationship.
 
-Next: item 2, Access and sharing. Do not mark items 2–9 complete from the People deployment.
+Current: item 2, Access and sharing. Do not mark items 2–9 complete from the People deployment or local sharing tests.

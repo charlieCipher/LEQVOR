@@ -6,6 +6,7 @@ import { recipientKeyFingerprint } from '../security/recipientKeys';
 import { verifyRecipientCard } from '../security/recipientCard';
 import { ContinuityGraphService } from '../continuity/ContinuityGraphService';
 import {documentGraph} from '../continuity/documentGraph';
+import {SharingService} from '../continuity/SharingService';
 import {assetGraph} from '../continuity/assetGraph';
 import {
   encryptRecord,
@@ -30,6 +31,7 @@ export class V5VaultService {
     this.db = db;
     this.storage = storage;
     this.graph = new ContinuityGraphService(session, vault, db);
+    this.sharing = new SharingService(session, vault, db);
   }
   async list() {
     return this.session.run(async (key, assertActive) => {

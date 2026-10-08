@@ -58,6 +58,14 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  listShares:()=>result(requireClient().rpc('list_v5_shares')),
+  acceptShare:id=>result(requireClient().rpc('accept_v5_share',{target:id})),
+  revokeShare:id=>result(requireClient().rpc('revoke_v5_share',{target:id})),
+  readShare:id=>result(requireClient().rpc('read_v5_share',{target:id})),
+  inviteShare:(grant,revision,publicKey)=>result(requireClient().rpc('invite_v5_record',{
+    grant_data:{id:grant.id,record_id:grant.record_id,owner_id:grant.owner_id,vault_id:grant.vault_id,recipient_id:grant.recipient_id,permissions:grant.permissions,grant_version:grant.grant_version,crypto_version:grant.crypto_version,salt:grant.salt,sender_public_material:grant.sender_public_material,encrypted_record_key:ciphertextEnvelope(grant.encrypted_record_key)},
+    expected_revision:revision,recipient_key:publicKey,
+  })),
   allRecordVersions:()=>result(requireClient().from('record_revision_history').select('*')),
   recordVersions:id=>result(requireClient().from('record_revision_history').select('*').eq('record_id',id).order('revision',{ascending:false})),
   saveDocumentBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_document',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
