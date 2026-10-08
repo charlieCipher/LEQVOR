@@ -11,6 +11,7 @@ const result = async (request) => {
   if (error) throw error;
   return data;
 };
+const grantTransport=grant=>({id:grant.id,record_id:grant.record_id,owner_id:grant.owner_id,vault_id:grant.vault_id,recipient_id:grant.recipient_id,permissions:grant.permissions,grant_version:grant.grant_version,crypto_version:grant.crypto_version,salt:grant.salt,sender_public_material:grant.sender_public_material,encrypted_record_key:ciphertextEnvelope(grant.encrypted_record_key)});
 export const AuthProvider = {
   signIn: (email,password) => result(requireClient().auth.signInWithPassword({email,password})),
   signUp: async (email,password,name,redirectTo) => { validateNewPassword(password); return result(requireClient().auth.signUp({email,password,options:{emailRedirectTo:redirectTo,data:{name}}})); },
@@ -58,12 +59,22 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  sharedFiles:id=>result(requireClient().rpc('list_v5_shared_files',{target:id})),
+  readSharedFile:(id,fileId)=>result(requireClient().rpc('read_v5_shared_file',{target:id,selected_file:fileId})),
+  inviteShareWithFiles:(grant,revision,publicKey,files)=>result(requireClient().rpc('invite_v5_record_with_files',{grant_data:grantTransport(grant),expected_revision:revision,recipient_key:publicKey,file_keys:files.map(file=>({grant_id:file.grant_id,file_id:file.file_id,record_id:file.record_id,owner_id:file.owner_id,vault_id:file.vault_id,recipient_id:file.recipient_id,crypto_version:file.crypto_version,salt:file.salt,sender_public_material:file.sender_public_material,encrypted_file_key:ciphertextEnvelope(file.encrypted_file_key)}))})),
+  downloadSharedFile:async(id,fileId)=>{
+    const session=await result(requireClient().auth.getSession());
+    if(!session?.session?.access_token)throw new Error('Sign in again to download.');
+    const response=await fetch('/api/shared-file',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.session.access_token}`},body:JSON.stringify({grant_id:id,file_id:fileId}),signal:AbortSignal.timeout(30000),cache:'no-store'});
+    if(!response.ok)throw new Error('Shared file unavailable.');
+    return ciphertextEnvelope(await response.json());
+  },
   listShares:()=>result(requireClient().rpc('list_v5_shares')),
   acceptShare:id=>result(requireClient().rpc('accept_v5_share',{target:id})),
   revokeShare:id=>result(requireClient().rpc('revoke_v5_share',{target:id})),
   readShare:id=>result(requireClient().rpc('read_v5_share',{target:id})),
   inviteShare:(grant,revision,publicKey)=>result(requireClient().rpc('invite_v5_record',{
-    grant_data:{id:grant.id,record_id:grant.record_id,owner_id:grant.owner_id,vault_id:grant.vault_id,recipient_id:grant.recipient_id,permissions:grant.permissions,grant_version:grant.grant_version,crypto_version:grant.crypto_version,salt:grant.salt,sender_public_material:grant.sender_public_material,encrypted_record_key:ciphertextEnvelope(grant.encrypted_record_key)},
+    grant_data:grantTransport(grant),
     expected_revision:revision,recipient_key:publicKey,
   })),
   allRecordVersions:()=>result(requireClient().from('record_revision_history').select('*')),
