@@ -58,6 +58,7 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  saveAssetBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_asset',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
   graphEntities:()=>result(requireClient().from('continuity_entities').select('*')),
   graphEdges:()=>result(requireClient().from('continuity_edges').select('*')),
   registerGraphEntity:({id,owner_id,vault_id,entity_type,record_id,person_id})=>result(requireClient().from('continuity_entities').insert({id,owner_id,vault_id,entity_type,record_id,person_id}).select().single()),

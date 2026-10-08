@@ -1,5 +1,6 @@
 import InsuranceFields from './InsuranceFields';
 import ContinuityDetails, {ContinuityDetailsView} from './ContinuityDetails';
+import AssetDetailTabs from './AssetDetailTabs';
 import {readRecordDetails} from '../../modules/continuity/recordDetails';
 import { readInsuranceForm } from '../../modules/insurance/continuity';
 import { useState, useEffect, useRef } from "react";
@@ -10,7 +11,7 @@ import Icon from "../Icon";
 import Modal from "../Modal";
 import SecureAction from "../security/SecureAction";
 import { reviewDate } from '../../modules/continuity/readiness';
-export default function V5RecordDetail({ record, onChanged, onDeleted, records=[], people=[] }) {
+export default function V5RecordDetail({ record, onChanged, onDeleted, records=[], people=[], onOpenRecord }) {
   const vault = useVault(),
     [payload, setPayload] = useState(null),
     [files, setFiles] = useState([]),
@@ -116,7 +117,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
     setError("");
     try {
       const next = { ...payload };
-      next.continuity_details=readRecordDetails(f,people);
+      next.continuity_details=readRecordDetails(f,people,records.filter(r=>r.id!==record.id));
       for (const field of [
         "description",
         "institution",
@@ -137,6 +138,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
           file_count: files.length,
         },
         next,
+        f.get('asset_evidence'),
       );
       if (!active.current || version !== epoch.current) return;
       setPayload(null);
@@ -193,7 +195,8 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
               <textarea name={key} defaultValue={payload[key] || ""} />
             </label>
           ))}
-          <ContinuityDetails value={payload.continuity_details} people={people}/>
+          <ContinuityDetails value={payload.continuity_details} people={people} records={records.filter(r=>r.id!==record.id)}/>
+          {payload.continuity_details?.kind==='ASSET'&&<label>Add encrypted evidence (up to 10 MB)<input name="asset_evidence" type="file"/></label>}
           <Button variant="primary" disabled={busy}>
             {busy ? 'Saving encrypted changes…' : 'Save encrypted changes'}
           </Button>
@@ -229,6 +232,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
           ))}
           {record.category === "Insurance" && <div className="insurance-private-details"><h2>Policy details</h2>{[["Policy type",payload.insurance?.policy_type],["Recorded status",payload.insurance?.policy_status],["Renewal date",payload.insurance?.renewal_date],["Claim instructions",payload.insurance?.claim_instructions]].map(([label,value])=><div className="private-field" key={label}><h3>{label}</h3><p>{value||"Not recorded"}</p></div>)}</div>}
           <ContinuityDetailsView value={payload.continuity_details} people={people}/>
+          {payload.continuity_details?.kind==='ASSET'&&<AssetDetailTabs record={record} payload={payload} records={records} people={people} files={files} busy={busy} onDownload={download} onOpenRecord={onOpenRecord}/>}
           <div className="form-actions">
             <Button disabled={busy} onClick={() => setEditing(true)}>
               Edit record

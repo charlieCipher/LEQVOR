@@ -33,6 +33,11 @@ async function setup(){
    rows.delete(id);
   },
  };
+ db.saveAssetBundle=vi.fn(async(row,revision,file,graph)=>{
+  const saved=revision===null?await db.saveRecordBundle(row,file):await db.updateRecord(row.id,row,revision);
+  if(file)files.set(file.id,encryptedWrite('file',file));
+  db.lastGraph=graph;return saved;
+ });
  const storage={upload:async(path,e)=>objects.set(path,ciphertextEnvelope(e)),download:async(path)=>objects.get(path),remove:vi.fn(async(paths)=>paths.forEach(p=>objects.delete(p)))};
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
@@ -42,6 +47,10 @@ it('round trips encrypted asset people links and exact allocations',async()=>{
  const asset={ownership_type:'JOINT',owners:[{person_id:'PRIVATE_PERSON_ID',allocation_bps:3333},{person_id:'SECOND_PRIVATE_PERSON',allocation_bps:6667}],nominees:[],beneficiaries:[],nomination_status:'UNKNOWN'};
  const record=await t.service.create({title:'Private asset'},{continuity_details:{kind:'ASSET',asset}});
  const updated=await t.service.update(record,{title:'Private asset'},{continuity_details:{kind:'ASSET',asset:{...asset,nomination_status:'NEEDS_VERIFICATION'}}});
+ expect(t.db.lastGraph.edges).toHaveLength(2);
+ const withEvidence=await t.service.update(updated,{title:'Private asset'},{continuity_details:{kind:'ASSET',asset}},file());
+ const [evidence]=await t.service.files(withEvidence);
+ expect(new TextDecoder().decode((await t.service.download(evidence)).bytes)).toBe('PRIVATE_FILE_CANARY');
  expect((await t.service.reveal(updated)).continuity_details.asset.owners).toEqual(asset.owners);
  const wire=JSON.stringify([...t.rows.values()]);
  for(const plaintext of ['PRIVATE_PERSON_ID','SECOND_PRIVATE_PERSON','NEEDS_VERIFICATION'])expect(wire).not.toContain(plaintext);

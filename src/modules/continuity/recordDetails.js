@@ -4,7 +4,7 @@ import {readAssetDetails} from './assetDetails';
 export const NOMINATION_STATUSES=['UNKNOWN','REGISTERED','OPTED_OUT','NEEDS_VERIFICATION','NOT_APPLICABLE'];
 export const DOCUMENT_STATUSES=['UNKNOWN','DRAFT','EXECUTED','SUPERSEDED','REVOKED','EXPIRED'];
 export const PERSON_ROLES=['Family','Beneficiary','Nominee','Executor','Lawyer','Chartered Accountant','Company Secretary','Financial Adviser','Wealth Manager','Other Professional'];
-export function readRecordDetails(form,people=[]){
+export function readRecordDetails(form,people=[],records=[]){
  const value=name=>String(form.get(name)||'').trim();
  const kind=value('continuity_kind')||'OTHER';
  const fail=()=>{throw new AurevaError('INVALID_CONTINUITY_DETAILS','Check the continuity type, status, jurisdiction and verification date.');};
@@ -15,7 +15,7 @@ export function readRecordDetails(form,people=[]){
  if(kind==='ASSET'){
   const nomination_status=value('nomination_status')||'UNKNOWN';
   if(!NOMINATION_STATUSES.includes(nomination_status))fail();
-  details.asset={nomination_status,...readAssetDetails(form,people)};
+  details.asset={nomination_status,...readAssetDetails(form,people,records)};
  }
  if(kind==='DOCUMENT'){
   const execution_status=value('execution_status')||'UNKNOWN',existence=value('document_existence')||'UNKNOWN',original=value('physical_original')||'UNKNOWN';

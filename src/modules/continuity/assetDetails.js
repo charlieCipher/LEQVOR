@@ -1,7 +1,7 @@
 import {AurevaError} from '../security/safeEvents';
 export const OWNERSHIP_TYPES=['UNKNOWN','SOLE','JOINT','OTHER'];
 export const ASSET_GROUPS=['owners','nominees','beneficiaries'];
-export function readAssetDetails(form,people=[]){
+export function readAssetDetails(form,people=[],records=[]){
  const fail=message=>{throw new AurevaError('INVALID_ASSET_DETAILS',message);};
  const ownership_type=String(form.get('ownership_type')||'UNKNOWN');
  if(!OWNERSHIP_TYPES.includes(ownership_type))fail('Choose an ownership type.');
@@ -31,5 +31,12 @@ export function readAssetDetails(form,people=[]){
  const evidence=String(form.get('nomination_evidence')||'').trim();
  if(evidence.length>2000)fail('Keep nomination evidence notes within 2,000 characters.');
  result.nomination_evidence=evidence;
+ const linked=new Set();
+ for(const group of ['documents','policies','instructions']){
+  const ids=form.getAll(`asset_${group}`);
+  if(ids.length>30||new Set(ids).size!==ids.length||ids.some(id=>!records.some(r=>r.id===id)))fail('Choose linked records from your vault.');
+  result[group]=ids;
+  for(const id of ids){if(linked.has(id))fail('Link each record as only one of document, policy or instruction.');linked.add(id);}
+ }
  return result;
 }

@@ -90,7 +90,7 @@ it('preserves a failed edit for retry and trims a valid title',async()=>{
  expect(screen.queryByText('PRIVATE_SERVER_DETAIL')).toBeNull();
  fireEvent.submit(form);
  await waitFor(()=>expect(changed).toHaveBeenCalledTimes(1));
- expect(service.update).toHaveBeenLastCalledWith(expect.anything(),expect.objectContaining({title:'Updated title'}),expect.objectContaining({description:'Retained draft'}));
+ expect(service.update).toHaveBeenLastCalledWith(expect.anything(),expect.objectContaining({title:'Updated title'}),expect.objectContaining({description:'Retained draft'}),null);
  expect(screen.queryByText('Retained draft')).toBeNull();
 });
 it('blocks duplicate edit submissions and ignores completion after leaving',async()=>{

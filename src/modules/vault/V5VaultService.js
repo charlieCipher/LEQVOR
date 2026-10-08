@@ -5,6 +5,7 @@ import { AurevaError } from '../security/safeEvents';
 import { recipientKeyFingerprint } from '../security/recipientKeys';
 import { verifyRecipientCard } from '../security/recipientCard';
 import { ContinuityGraphService } from '../continuity/ContinuityGraphService';
+import {assetGraph} from '../continuity/assetGraph';
 import {
   encryptRecord,
   decryptRecordMetadata,
@@ -50,9 +51,10 @@ export class V5VaultService {
     const id = newId(),
       identity = { id, owner_id: this.vault.owner_id, vault_id: this.vault.id };
     return this.session.run(async (key, assertActive) => {
-      metadata = { ...metadata, file_count: file?.size ? 1 : 0 };
+      metadata = { ...metadata, continuity_kind:payload.continuity_details?.kind||'OTHER', file_count: file?.size ? 1 : 0 };
       if(metadata.category === "Insurance") metadata={...metadata, insurance_index:insuranceIndex(payload, file?.size ? 1 : 0)};
       const row = await encryptRecord(key, { ...identity, metadata, payload });
+      const graph=metadata.continuity_kind==='ASSET'?await assetGraph(key,row,payload.continuity_details.asset):null;
       assertActive();
       let doc = null,
         uploaded = false,
@@ -80,7 +82,7 @@ export class V5VaultService {
         }
         assertActive();
         commitAttempted = true;
-        const record = await this.db.saveRecordBundle(row,doc?.row);
+        const record = graph ? await this.db.saveAssetBundle(row,null,doc?.row,graph) : await this.db.saveRecordBundle(row,doc?.row);
         saved = true;
         return { ...metadata, ...record, v5: true, files: doc ? 1 : 0 };
       } catch (error) {
@@ -103,10 +105,15 @@ export class V5VaultService {
     this.assertIdentity(record);
     return this.session.run((key) => decryptRecordPayload(key, record));
   }
-  async update(record, metadata, payload) {
+  async update(record, metadata, payload, file) {
     this.assertIdentity(record);
+    if(file && (!Number.isFinite(file.size)||file.size<0||file.size>MAX_DOCUMENT_BYTES))throw new AurevaError('FILE_TOO_LARGE','Choose a file no larger than 10 MB.');
     return this.session.run(async (key, assertActive) => {
       metadata={...await decryptRecordMetadata(key,record),...metadata,completeness:completeness(payload)};
+      if(metadata.continuity_kind==='ASSET'&&payload.continuity_details?.kind!=='ASSET')throw new AurevaError('ASSET_TYPE_CHANGE','Keep the asset type when editing its relationships.');
+      metadata.continuity_kind=payload.continuity_details?.kind||'OTHER';
+      if(file?.size&&metadata.continuity_kind!=='ASSET')throw new Error('Attachment updates require an asset.');
+      if(file?.size)metadata.file_count=(await this.db.files(record.id)).length+1;
       assertActive();
       if(metadata.category === "Insurance") metadata.insurance_index=insuranceIndex(payload,metadata.file_count||0);
       const encrypted = await encryptRecord(key, {
@@ -117,6 +124,19 @@ export class V5VaultService {
         payload,
       });
       assertActive();
+      if(metadata.continuity_kind==='ASSET'){
+        const graph=await assetGraph(key,record,payload.continuity_details.asset);
+        let doc=null;
+        if(file?.size){
+          const bytes=new Uint8Array(await file.arrayBuffer());
+          try{assertActive();doc=await encryptDocument(key,{record_id:record.id,owner_id:record.owner_id,vault_id:record.vault_id,name:file.name,type:file.type,bytes});}finally{bytes.fill(0);}
+          assertActive();await this.storage.upload(doc.row.storage_path,doc.envelope);
+        }
+        // Preserve uploaded ciphertext if the transaction outcome is uncertain.
+        assertActive();
+        const row=await this.db.saveAssetBundle(encrypted,this.requireRevision(record),doc?.row,graph);
+        assertActive();return {...metadata,...row,v5:true};
+      }
       const row = await this.db.updateRecord(record.id, {
         ...encrypted,
         updated_at: new Date().toISOString(),

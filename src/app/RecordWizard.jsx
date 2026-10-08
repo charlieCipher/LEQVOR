@@ -91,7 +91,7 @@ export default function RecordWizard({ demo, onCancel, onSaved, records=[], peop
         instructions: f.get("instructions"),
         related_records: [],
         archived: false,
-        continuity_details: readRecordDetails(f,people),
+        continuity_details: readRecordDetails(f,people,records),
       };
       if(category === "Insurance") { payload.insurance=readInsuranceForm(f,records,people); metadata.insurance_index=insuranceIndex(payload,demo?0:metadata.file_count); }
       metadata.completeness = completeness(payload);
@@ -210,7 +210,7 @@ export default function RecordWizard({ demo, onCancel, onSaved, records=[], peop
       </fieldset>
       <fieldset data-step="2" hidden={step !== 2}>
         <h2 tabIndex={-1}>Keep the evidence together.</h2>
-        <ContinuityDetails people={people}/>
+        <ContinuityDetails people={people} records={records}/>
         <label>
           Supporting document
           <input name="attachment" type="file" />

@@ -2,12 +2,12 @@ import {useState} from 'react';
 import AssetPeopleFields,{AssetPeopleView} from './AssetPeopleFields';
 import {NOMINATION_STATUSES,DOCUMENT_STATUSES} from '../../modules/continuity/recordDetails';
 const label=value=>value.replaceAll('_',' ').toLowerCase();
-export default function ContinuityDetails({value={},people=[]}){
+export default function ContinuityDetails({value={},people=[],records=[]}){
  const [kind,setKind]=useState(value.kind||'OTHER');
  return <fieldset><legend>Structured continuity details</legend>
   <label>Continuity type<select name="continuity_kind" value={kind} onChange={e=>setKind(e.target.value)}>{['OTHER','ASSET','DOCUMENT','POLICY','INSTRUCTION'].map(v=><option key={v} value={v}>{label(v)}</option>)}</select></label>
   {kind==='ASSET'&&<label>Nomination status<select name="nomination_status" defaultValue={value.asset?.nomination_status||'UNKNOWN'}>{NOMINATION_STATUSES.map(v=><option key={v} value={v}>{label(v)}</option>)}</select></label>}
-  {kind==='ASSET'&&<AssetPeopleFields value={value.asset} people={people}/>}
+  {kind==='ASSET'&&<AssetPeopleFields value={value.asset} people={people} records={records}/>}
   {kind==='DOCUMENT'&&<>
    <label>Document existence<select name="document_existence" defaultValue={value.document?.existence||'UNKNOWN'}><option value="UNKNOWN">Unknown</option><option value="EXISTS">Exists</option></select></label>
    <label>Physical original exists<select name="physical_original" defaultValue={value.document?.physical_original||'UNKNOWN'}><option value="UNKNOWN">Unknown</option><option value="YES">Yes</option><option value="NO">No</option></select></label>

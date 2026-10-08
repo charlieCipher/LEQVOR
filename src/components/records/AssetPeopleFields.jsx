@@ -15,11 +15,12 @@ function AllocationGroup({group,initial=[],people}){
   <button type="button" disabled={!people.length||rows.length>=50} onClick={()=>setRows(old=>[...old,{key:crypto.randomUUID(),person_id:'',allocation_bps:null}])}>Add {group} person</button>
  </fieldset>;
 }
-export default function AssetPeopleFields({value={},people=[]}){
+export default function AssetPeopleFields({value={},people=[],records=[]}){
  return <><label>Ownership type<select name="ownership_type" defaultValue={value.ownership_type||'UNKNOWN'}>{OWNERSHIP_TYPES.map(type=><option key={type} value={type}>{type.toLowerCase()}</option>)}</select></label>
  {!people.length&&<p className="field-hint">Add a person in People to record an owner, nominee or beneficiary.</p>}
  {ASSET_GROUPS.map(group=><AllocationGroup key={group} group={group} initial={value[group]} people={people}/>)}
  <label>Nomination evidence or reference<textarea name="nomination_evidence" maxLength={2000} defaultValue={value.nomination_evidence||''}/></label>
+ {['documents','policies','instructions'].map(group=><fieldset key={group}><legend>Linked {group}</legend>{records.map(r=><label className="checkbox-label" key={r.id}><input type="checkbox" name={`asset_${group}`} value={r.id} defaultChecked={value[group]?.includes(r.id)||false}/>{r.title}</label>)}{(value[group]||[]).filter(id=>!records.some(r=>r.id===id)).map(id=><label className="checkbox-label" key={id}><input type="checkbox" name={`asset_${group}`} value={id} defaultChecked/>Unavailable record — uncheck to remove this link</label>)}{!records.length&&<p>No other records available.</p>}</fieldset>)}
  <p className="field-hint">Leave unknown allocations blank. Each group may total up to 100%; a partial total is incomplete information. Nominees and beneficiaries are recorded separately. These entries grant no access or legal entitlement.</p></>;
 }
 export function AssetPeopleView({value,people=[]}){

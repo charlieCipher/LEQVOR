@@ -1,6 +1,6 @@
 // Transport schemas deliberately exclude decrypted UI models.
 const schemas = {
-  edge: ['id','owner_id','vault_id','from_entity_id','to_entity_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek'],
+  edge: ['id','owner_id','vault_id','from_entity_id','to_entity_id','managed_record_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek'],
   record: ['id','owner_id','vault_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek','updated_at'],
   person: ['id','owner_id','vault_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek','status'],
   file: ['id','owner_id','vault_id','record_id','crypto_version','encrypted_filename','wrapped_file_dek','storage_path'],

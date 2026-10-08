@@ -10,7 +10,7 @@ Prepared migration: `supabase/migrations/20261008_continuity_graph.sql`. This mi
 - `continuity_edges` stores individually encrypted relationships with independent DEKs wrapped by the VMK. Composite foreign keys ensure both endpoints belong to the same vault and owner. Deleted source records remove their graph index and incident edges, not the other source records.
 - Owner-only restrictive RLS applies to both new tables. Authenticated clients can read, insert and delete their own graph entries. In-place updates are disabled. No recipient read policy or record grant is added.
 - The existing V5 vault service exposes a separate `graph` service. It registers source entities, creates validated relationships and decrypts the graph on the active client. React does not call Supabase directly.
-- Client validation restricts relationship directions and uses integer basis points for an individual allocation. Aggregate allocation totals, nomination evidence/status and structured document state are subsequent increments.
+- Client validation restricts relationship directions and uses integer basis points for an individual allocation. Aggregate allocations, nomination evidence/status and structured document state are validated by the asset workflow described below.
 - Relationship meaning, notes and allocation are encrypted. Both endpoint IDs are duplicated inside authenticated ciphertext, so changing the visible topology without changing ciphertext fails client verification.
 
 ## Privacy boundary
@@ -19,15 +19,23 @@ The server can observe owner/vault IDs, source IDs, entity types, edge endpoints
 
 ## Deployment and compatibility
 
-The migration is additive, with no conversion, renaming or deletion of legacy assets or existing encrypted records. No UI automatically loads the graph yet; this avoids breaking hosted users before the migration is reviewed and deployed. Existing encryption formats and CRUD remain unchanged. No automatic backfill guesses categories or legal status.
+Both migrations are additive: `20261008_continuity_graph.sql`, then `20261008_asset_workflow.sql`. Production catalog checks on 8 October returned no graph tables or asset RPC. Apply both before deploying this frontend. Existing records are not automatically converted; saving an explicitly typed asset synchronizes its graph. No backfill guesses categories or legal status.
+
+## Asset workflow implemented locally
+
+- Create/edit/reveal supports ownership type, owners, nominees and beneficiaries, separate exact basis-point allocations, nomination status and encrypted evidence notes. Duplicate people, unknown IDs, totals over 100%, multiple sole owners and nominees under OPTED_OUT/NOT_APPLICABLE are rejected. Blank allocations remain unknown; partial allocations are not represented as complete.
+- Assets link existing documents, policies and instructions. Each relationship has its own encrypted DEK and authenticated endpoints. These relationships do not grant access or establish legal rights.
+- `save_vnext_asset` saves ciphertext, optional encrypted attachment metadata, graph entities and asset-managed relationships in one owner-authorized database transaction. Edits use expected revision checks. Invalid graph writes roll back the record update; edits replace only that asset's managed edges.
+- Evidence attachments can be uploaded on asset creation and edit, then downloaded and decrypted locally. Object upload precedes the database transaction; uncertain upload/save outcomes retain ciphertext for later reconciliation rather than risking data loss.
+- Reveal includes Overview, Property, Documents, Insurance, People, Continuity and History tabs. Linked records use client navigation. History shows the current revision, explicitly not a signed historical-version browser.
+- Full client suite: 201 tests passed. After the navigation refinement, 10 affected tests passed again. Production build, lint, local database isolation/atomicity suites and encrypted restore checks passed. Build reports a non-blocking bundle-size warning.
+- Deployment and signed-in hosted acceptance remain pending. Local tests do not establish physical-device acceptance or an independent security audit.
 
 ## Still required by the specification
 
-Asset increment: create/edit/reveal supports ownership type, selected owner/nominee/beneficiary person IDs, separate allocations per group and nomination evidence notes. Percentage input is parsed into exact integer basis points. Blank means unknown; partial totals are permitted but not represented as complete. Duplicate people, non-People IDs, total allocations above 100%, multiple sole owners and nominees under OPTED_OUT/NOT_APPLICABLE are rejected. Existing People are referenced without copying contact profiles. These links are encrypted within each asset record and are not yet synchronized to continuity_edges; no grants or legal authority are created. Nomination evidence attachments and dedicated related asset tabs remain future increments.
+Record forms also support explicit continuity type, document existence/execution/physical-original status, jurisdiction and last verification date. People support multiple encrypted roles. Existing records default to unknown; no inferred execution or nomination status is backfilled.
 
-Second increment: record create/edit/reveal now supports an explicit continuity type, asset nomination status, document existence/execution/physical-original status, jurisdiction and last verification date. People creation supports multiple encrypted roles, displayed in person details. These are per-record attributes in existing encrypted payloads, not a vault-wide JSON aggregate. Existing records default to unknown; no inferred execution or nomination status is backfilled. Typed ownership, nominee allocations and linked custodians still need their graph workflows. This increment does not require the graph migration to be installed and does not automatically register graph entities.
-
-1. Improved asset/ownership/nomination model and encrypted evidence, with aggregate allocation validation.
+1. Deploy and run hosted acceptance of the asset workflow; signed historical-version browsing remains a later history increment.
 2. Document execution/existence/original location/version models; execution status must not imply legal validity.
 3. People with multiple roles and shared professional relationships.
 4. Access, trigger and verification-policy schemas, with no trigger activation until sharing/recovery acceptance is complete.
