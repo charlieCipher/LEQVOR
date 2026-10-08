@@ -1,6 +1,6 @@
 # Selected sharing — 9 October 2026
 
-Prepared migrations: `20261009_selected_sharing.sql` and `20261009_shared_files.sql`. Neither applied to production yet. Do not deploy a live-sharing entry point before the migrations are authorized and applied. User instruction: preserve the current UI. The proposed standalone sharing panel was removed before deployment; existing visual design remains unchanged. Frontend behavior is provided by the markup-free `useSharingController`.
+Migrations `20261009_selected_sharing.sql` and `20261009_shared_files.sql` were explicitly approved and applied to production project `awdsyhxdnyfilnzamflt` on 9 October 2026. Hosted disposable two-account API acceptance passed; frontend rollout is in progress. User instruction: preserve the current UI. The proposed standalone sharing panel was removed before deployment; existing visual design remains unchanged. Frontend behavior is provided by the markup-free `useSharingController` and existing access dialogs.
 
 ## Implemented increment
 
@@ -28,7 +28,7 @@ Independent recipient confirmation pins a key/account identifier; it does not es
 
 Disposable PostgreSQL tests cover missing/stale authentication, MFA downgrade/missing assurance, stale record revisions, key substitution, pending/unrelated access, sender acceptance, replay acceptance, direct-table isolation, absent VMK wrapper, expiry and revocation. Real crypto/component tests cover recipient decryption, key/identity substitution rejection, Cold Lock, explicit reveal and focus-loss cleanup.
 
-Hosted two-account runner is prepared, not run before migration application:
+Hosted two-account runner passed after migration application:
 
 ```powershell
 node --env-file=.env.local scripts/test-hosted-disposable-accounts.mjs --run-hosted-test --sharing
@@ -38,4 +38,4 @@ It provisions disposable accounts, uses ordinary authenticated clients for invit
 
 Validation result: all 228 regression tests across 54 files passed. New frontend tests verify review-before-invite, confirmed-recipient selection, reauthentication failure, multi-record rejection, disabled emergency activation, verified acceptance/revocation, explicit reveal, focus-loss hiding, expiration and account-change cleanup. Earlier tests cover recipient attachment decryption, proxy authorization ordering, wrong-path/key denial, malformed requests, in-flight revocation, plaintext/oversized object rejection and sanitized failures. All PostgreSQL suites passed, including atomic file/grant rollback, unselected-file denial, pending/unrelated/expired/revoked recipients, direct key-table denial and deleted-file key cascade. Lint and production build checks passed; the preceding attachment increment also passed encrypted restore. Build retains its existing bundle-size warning. Workspace changes are limited to wiring the existing dialogs; no CSS, typography, layout or standalone panel changes are included.
 
-Production read-only readiness query confirmed both sharing RPCs are absent. Both migrations are staged in the Supabase SQL Editor for action-time approval, not executed. Evidence: `docs/sharing-migration-review.png`. No production sharing permissions have been changed, and the hosted sharing runner has not yet been executed.
+Production read-only readiness query confirmed both sharing RPCs were absent before rollout. After explicit action-time approval, Supabase SQL Editor returned Success for both migrations. Evidence: `docs/sharing-migrations-applied.png`. The hosted runner passed invitation acceptance, selected-revision decryption, recipient attachment decryption through the authorized proxy helper, direct owner-record/file/storage isolation and revoked retrieval denial. Synthetic records/files and generated accounts were removed; account absence was verified. These API checks do not establish full browser/physical-device acceptance. Deployment/HTTP endpoint verification remains the next gate.
