@@ -113,6 +113,9 @@ export const DatabaseProvider = {
     result(
       requireClient().from("trusted_people").insert(encryptedWrite("person", row)).select().single(),
     ),
+  updatePerson: (row, expectedNonce) => result(requireClient().from('trusted_people')
+    .update(encryptedWrite('person',row)).eq('id',row.id).eq('owner_id',row.owner_id)
+    .eq('vault_id',row.vault_id).eq('encrypted_metadata->>nonce',expectedNonce).select().single()),
 };
 export const ObjectStorageProvider = {
   upload: (path, envelope) =>

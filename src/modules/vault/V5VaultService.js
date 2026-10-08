@@ -195,7 +195,27 @@ export class V5VaultService {
       });
       assertActive();
       const saved = await this.db.savePerson({ ...row, status: "unverified" });
+      assertActive();
       return { ...details, ...(recipient_binding ? {recipient_binding} : {}), ...saved, v5: true };
+    });
+  }
+  async updatePerson(person,details) {
+    this.assertIdentity(person);
+    if(person.status!=='unverified'||!person.encrypted_metadata?.nonce)throw new Error('This contact cannot be edited through the unverified-contact workflow.');
+    return this.session.run(async(key,assertActive)=>{
+      const metadata=await decryptRecordMetadata(key,person);
+      const payload=await decryptRecordPayload(key,person);
+      // Preserve the encrypted recipient binding; profile edits cannot replace identity keys.
+      const allowed=['display_name','relationship','professional','roles','professional_details','reviewed_at'];
+      if(Object.keys(details).some(field=>!allowed.includes(field)))throw new Error('Unsupported contact edit.');
+      const merged={...metadata,...details};
+      const row=await encryptRecord(key,{id:person.id,owner_id:person.owner_id,vault_id:person.vault_id,metadata:merged,payload});
+      assertActive();
+      let saved;
+      try{saved=await this.db.updatePerson({...row,status:'unverified'},person.encrypted_metadata.nonce);}
+      catch(error){if(error?.code==='PGRST116')throw new AurevaError('STALE_CONTACT','This contact changed in another session. Close this form and reload People before editing again.');throw error;}
+      assertActive();this.assertIdentity(saved);
+      return {...merged,...saved,v5:true};
     });
   }
   async people() {

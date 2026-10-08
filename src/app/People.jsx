@@ -1,6 +1,7 @@
 import { policiesForPerson } from '../modules/insurance/continuity';
 import TrustedPersonForm from "../components/people/TrustedPersonForm";
 import SharingIdentity from '../components/people/SharingIdentity';
+import PersonConnections from '../components/people/PersonConnections';
 import { useVault } from "../features/vault/VaultContext";
 import { useState } from "react";
 import Icon from "../components/Icon";
@@ -27,13 +28,14 @@ export default function People({
   const [selected, setSelected] = useState(null),
     [adding, setAdding] = useState(false);
   const [query,setQuery]=useState(''),[role,setRole]=useState('All Roles');
+  const [editing,setEditing]=useState(false);
   const shown=people.filter(p=>p.display_name.toLowerCase().includes(query.toLowerCase())&&(role==='All Roles'||p.relationship===role||p.roles?.includes(role)));
   const portrait=(p)=>p.demo && ['priya','arjun','kiara','rajesh','sunita','daniel','neha'].includes(p.id)?<span className={'person-avatar portrait portrait-'+p.id}/>:<span className="person-avatar">{p.display_name[0]}</span>;
   return (
     <>
       <Heading
         eyebrow="PEOPLE"
-        title="Family & Beneficiaries"
+        title="People & Trusted Access"
         text="The right people. The right access. At the right time."
       />
       <div className="people-actions">
@@ -61,15 +63,15 @@ export default function People({
           <div className="panel-heading">
             <div>
               
-              <h2>Your Family Circle</h2>
+              <h2>Your Trusted Circle</h2>
             </div>
-            <div className="people-filters"><label className="search-field"><Icon name="search" size={16}/><input aria-label="Search family members" placeholder="Search family members…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filter by relationship" value={role} onChange={e=>setRole(e.target.value)}>{['All Roles',...new Set(people.flatMap(p=>[p.relationship,...(p.roles||[])]))].map(r=><option key={r}>{r}</option>)}</select></div>
+            <div className="people-filters"><label className="search-field"><Icon name="search" size={16}/><input aria-label="Search trusted people" placeholder="Search trusted people…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filter by relationship or role" value={role} onChange={e=>setRole(e.target.value)}>{['All Roles',...new Set(people.flatMap(p=>[p.relationship,...(p.roles||[])]))].map(r=><option key={r}>{r}</option>)}</select></div>
           </div>
           <p className="muted">
             Every relationship is personal. Every permission is explicit.
           </p>
           {people.length && !shown.length ? (<Empty title="No matching people" text="Try another name or clear your filters."><Button onClick={()=>{setQuery('');setRole('All Roles');}}>Clear people filters</Button></Empty>) : people.length ? (
-            <div className="people-table-wrap"><table className="people-table"><thead><tr>{['Name','Role','Relationship','Access Level','Verification','Trigger Conditions','Invitation',''].map((h,i)=><th key={i}>{h}</th>)}</tr></thead><tbody>{shown.map(p=><tr key={p.id}><td><button className="person-table-name" onClick={()=>setSelected(p)}>{portrait(p)}<span><strong>{p.display_name}</strong><small>{p.demo?p.display_name.toLowerCase().replaceAll(' ','.')+'@example.com':'Trusted contact'}</small></span></button></td><td><span className="role-pill">{['Son','Daughter'].includes(p.relationship)?'Beneficiary':p.relationship}</span></td><td>{p.relationship}</td><td><Badge>{p.permission||'No access'}</Badge></td><td><span className={'verification '+(p.verification==='Verified'?'verified':'pending')}><Icon name={p.verification==='Verified'?'check':'clock'} size={15}/>{p.verification||'Unverified'}</span></td><td>{p.activation||'None assigned'}</td><td><span className="invitation-state">{p.invitation || (p.demo?(p.verification==='Pending'?'Invited':'Active'):'Not sent')}</span></td><td><button className="icon-button" aria-label={'View '+p.display_name} onClick={()=>setSelected(p)}><Icon name="chevron" size={14}/></button></td></tr>)}</tbody></table>{!shown.length&&<p className="muted">No matching people.</p>}</div>
+            <div className="people-table-wrap"><table className="people-table"><thead><tr>{['Name','Role','Relationship','Access Level','Verification','Trigger Conditions','Invitation',''].map((h,i)=><th key={i}>{h}</th>)}</tr></thead><tbody>{shown.map(p=><tr key={p.id}><td><button className="person-table-name" onClick={()=>setSelected(p)}>{portrait(p)}<span><strong>{p.display_name}</strong><small>{p.demo?p.display_name.toLowerCase().replaceAll(' ','.')+'@example.com':'Trusted contact'}</small></span></button></td><td><span className="role-pill">{p.roles?.length?p.roles.join(' · '):'Not recorded'}</span></td><td>{p.relationship}</td><td><Badge>{p.permission||'No access'}</Badge></td><td><span className={'verification '+(p.verification==='Verified'?'verified':'pending')}><Icon name={p.verification==='Verified'?'check':'clock'} size={15}/>{p.verification||'Unverified'}</span></td><td>{p.activation||'None assigned'}</td><td><span className="invitation-state">{p.invitation || (p.demo?(p.verification==='Pending'?'Invited':'Active'):'Not sent')}</span></td><td><button className="icon-button" aria-label={'View '+p.display_name} onClick={()=>setSelected(p)}><Icon name="chevron" size={14}/></button></td></tr>)}</tbody></table>{!shown.length&&<p className="muted">No matching people.</p>}</div>
           ) : (
             <Empty
               title="Build your trusted circle"
@@ -171,20 +173,24 @@ export default function People({
         </Modal>
       )}
       {selected && (
-        <Modal title="Trusted person details" onClose={() => setSelected(null)}>
+        <Modal title="Trusted person details" onClose={() => {setSelected(null);setEditing(false);}}>
+          {editing?<TrustedPersonForm person={selected} onSaved={saved=>{setPeople(old=>old.map(person=>person.id===saved.id?saved:person));setSelected(saved);setEditing(false);notify('Encrypted contact updated. Access permissions unchanged.');}}/>:<>
           <div className="person-detail">
             <span className="person-avatar">{selected.display_name[0]}</span>
             <h2>{selected.display_name}</h2>
+            {!demo&&vault&&selected.status==='unverified'&&<Button type="button" onClick={()=>setEditing(true)}>Edit contact details</Button>}
+            {!demo && vault && <PersonConnections key={selected.id} person={selected} records={records} service={vault.service} onOpen={id=>{setSelected(null);go('/app/vault/'+id);}}/>}
             <section className="linked-policies"><h3>Connected policies</h3>{policiesForPerson(records,selected.id).length ? policiesForPerson(records,selected.id).map(({record,roles})=><button className="document-row" key={record.id} onClick={()=>{setSelected(null);go("/app/vault/"+record.id)}}><Icon name="shield"/><span>{record.title}<small>{roles.join(" · ")}</small></span><Icon name="chevron"/></button>):<p className="muted">No policy roles recorded for this person.</p>}</section>
             <p className="muted">{selected.relationship}</p>
             <div className="setting-row"><span>Recorded roles</span><strong>{selected.roles?.join(' · ') || 'Not recorded'}</strong></div>
             <p className="field-hint">Recorded roles describe this person. They do not establish legal authority or grant access.</p>
+            {selected.professional_details && <section><h3>Professional relationship</h3>{[['Organization',selected.professional_details.organization],['Country',selected.professional_details.country],['State or region',selected.professional_details.region],['Relationship status',selected.professional_details.status]].map(([label,value])=><div className="setting-row" key={label}><span>{label}</span><strong>{value||'Not recorded'}</strong></div>)}<p className="field-hint">Owner-recorded contact information; professional qualifications have not been verified by LEQVOR.</p></section>}
             {[
               ["Verification", selected.verification || "Unverified"],
               ["Permission", selected.permission || "No access"],
               ["Activation condition", selected.activation || "None"],
               ["Invitation", selected.demo ? "Sample only" : "Not sent"],
-              ["Public sharing key", "Not registered"],
+              ["Public sharing key", selected.recipient_binding ? "Independently confirmed by owner" : "Not registered"],
               [
                 "Assigned records",
                 selected.demo
@@ -202,6 +208,7 @@ export default function People({
               before real access can be granted.
             </p>
           </div>
+          </>}
         </Modal>
       )}
     </>

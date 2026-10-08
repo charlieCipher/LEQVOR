@@ -1,6 +1,7 @@
 import {randomBytes} from 'node:crypto';
 import {createVaultEnvelope,generateRecoverySecret,unlockVault,encryptRecord,decryptRecordPayload,encryptDocument,decryptDocument} from '../src/modules/security/v5Crypto.js';
 import {encryptedWrite} from '../src/lib/ciphertextBoundary.js';
+import {decryptRecordMetadata} from '../src/modules/security/v5Crypto.js';
 
 const value=async request=>{const response=await request;if(response.error)throw new Error('Backend request failed');return response.data;};
 const check=(condition)=>{if(!condition)throw new Error('Acceptance check failed');};
@@ -16,6 +17,17 @@ export async function runHostedDocuments(a,b,report=()=>{}){
   stage='document links and evidence';
   person=await encryptRecord(key,{owner_id:user.id,vault_id:vault.id,metadata:{display_name:'Synthetic custodian'},payload:{}});
   await value(a.from('trusted_people').insert(encryptedWrite('person',{...person,status:'unverified'})));
+  stage='encrypted professional profile edit';
+  const oldNonce=person.encrypted_metadata.nonce;
+  const profile={display_name:'Synthetic custodian',roles:['Lawyer','Executor'],professional_details:{version:1,organization:'SYNTHETIC_FIRM',country:'IN',region:'MH',status:'FORMER',verification_status:'UNVERIFIED'}};
+  const edited=await encryptRecord(key,{id:person.id,owner_id:user.id,vault_id:vault.id,metadata:profile,payload:{}});
+  check(!JSON.stringify(edited).includes('SYNTHETIC_FIRM'));
+  person=await value(a.from('trusted_people').update(encryptedWrite('person',{...edited,status:'unverified'})).eq('id',person.id).eq('owner_id',user.id).eq('vault_id',vault.id).eq('encrypted_metadata->>nonce',oldNonce).select().single());
+  check((await decryptRecordMetadata(key,person)).professional_details.status==='FORMER');
+  check((await value(a.from('trusted_people').update(encryptedWrite('person',{...edited,status:'unverified'})).eq('id',person.id).eq('encrypted_metadata->>nonce',oldNonce).select())).length===0);
+  check((await value(b.from('trusted_people').update({encrypted_metadata:edited.encrypted_metadata}).eq('id',person.id).select())).length===0);
+  report('PASS encrypted professional profile edit, stale-write rejection and foreign-account edit isolation');
+  stage='document links and evidence';
   const id=crypto.randomUUID(),identity={id,owner_id:user.id,vault_id:vault.id};
   const nodes=[{...identity,entity_type:'DOCUMENT',record_id:id,person_id:null},{id:person.id,owner_id:user.id,vault_id:vault.id,entity_type:'PERSON',record_id:null,person_id:person.id}];
   const edges=async()=>[{...await encryptRecord(key,{owner_id:user.id,vault_id:vault.id,metadata:{},payload:{from_entity_id:id,to_entity_id:person.id,relation_type:'ORIGINAL_HELD_BY'}}),from_entity_id:id,to_entity_id:person.id,managed_record_id:id}];

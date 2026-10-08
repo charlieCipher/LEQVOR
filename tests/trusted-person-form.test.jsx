@@ -40,6 +40,6 @@ it('retains rejected input for retry and saves trimmed contact data without perm
  await act(async()=>fireEvent.submit(form));
  expect(saved).toHaveBeenCalledWith({id:'p'});
  const sent=service.addPerson.mock.calls[1][0];
- expect(sent).toEqual({display_name:'Test person',relationship:'Advisor',professional:true,roles:['Executor','Chartered Accountant'],reviewed_at:expect.any(String)});
+ expect(sent).toEqual({display_name:'Test person',relationship:'Advisor',professional:true,professional_details:null,roles:['Executor','Chartered Accountant'],reviewed_at:expect.any(String)});
  expect(name.value).toBe('');expect(role.value).toBe('');
 });
