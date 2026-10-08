@@ -57,3 +57,24 @@ it('disables expired invitations and removes a previous account selection when t
  expect(screen.queryByRole('button',{name:'Revoke access'})).toBeNull();
  await screen.findByRole('button',{name:'Accept invitation'});expect(current.accept).not.toHaveBeenCalled();
 });
+it('shares only attachments explicitly chosen in review and clears choices after going back',async()=>{
+ const invite=vi.fn().mockResolvedValue(),files=vi.fn().mockResolvedValue([{id:'one',name:'First attachment'},{id:'two',name:'Second attachment'}]);auth.reauthenticate.mockResolvedValue();
+ render(<AccessPlanner people={people} records={records} onInvite={invite} onFiles={files}/>);select();
+ fireEvent.click(screen.getByRole('button',{name:'Review selected access'}));
+ const first=await screen.findByLabelText('First attachment');expect(first.checked).toBe(false);fireEvent.click(first);
+ expect(screen.getByLabelText('Second attachment').checked).toBe(false);
+ fireEvent.click(screen.getByRole('button',{name:'Back'}));fireEvent.click(screen.getByRole('button',{name:'Review selected access'}));
+ expect((await screen.findByLabelText('First attachment')).checked).toBe(false);
+ fireEvent.click(screen.getByLabelText('Second attachment'));fireEvent.click(screen.getByRole('button',{name:'Verify & send invitation'}));
+ await act(async()=>fireEvent.submit(screen.getByLabelText('Account password').closest('form')));
+ expect(invite).toHaveBeenCalledWith(records[0],people[0],[{id:'two',name:'Second attachment'}]);
+});
+it('offers downloads only after explicit recipient reveal and reports denial without exposing backend details',async()=>{
+ const current=service('recipient');
+ current.list.mockResolvedValue([{id:'grant',record_id:'record',owner_id:'owner',status:'active',expires_at:'2099-01-01'}]);
+ current.files=vi.fn().mockResolvedValue([{file_id:'selected-file'}]);current.download=vi.fn().mockRejectedValue(new Error('PRIVATE_REVOKED_DETAIL'));
+ render(<SharePermissions service={current}/>);expect(screen.queryByRole('button',{name:'Download'})).toBeNull();
+ fireEvent.click(await screen.findByRole('button',{name:'Reveal securely'}));
+ fireEvent.click(await screen.findByRole('button',{name:'Download'}));await screen.findByRole('alert');
+ expect(current.download).toHaveBeenCalledWith('grant','selected-file');expect(screen.getByRole('alert').textContent).not.toContain('PRIVATE_REVOKED_DETAIL');
+});

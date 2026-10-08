@@ -322,6 +322,11 @@ export async function decryptDocument(vmk, row, envelope) {
     raw.fill(0);
   }
 }
+export async function decryptDocumentMetadata(vmk,row){
+  const raw=await openBytes(vmk,row.wrapped_file_dek,row.id,'file-dek');
+  try{return await openJSON(await aes(raw),row.encrypted_filename,row.id,'filename');}
+  finally{raw.fill(0);}
+}
 
 // AES CryptoKeys are non-extractable and held only by the session controller.
 // JavaScript cannot guarantee erasure of copies retained by the browser/GC.

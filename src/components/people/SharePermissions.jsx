@@ -33,6 +33,8 @@ export default function SharePermissions({service}){
   <h3>{disclosure.revealed.metadata.title||'Selected record'}</h3>
   <p className="muted">Saved revision {disclosure.revealed.revision}. Linked references do not grant access to another record. Information hides after 30 seconds or when this window loses focus.</p>
   {fields(disclosure.revealed.payload).map(([label,value])=><div className="setting-row" key={label}><span>{label.replaceAll('_',' ')}</span><span>{value}</span></div>)}
+  {disclosure.error&&<p role="alert" className="notice">{disclosure.error}</p>}
+  {disclosure.revealed.attachments.map(file=><div className="setting-row" key={file.file_id}><span>Selected attachment {String(file.file_id).slice(0,8)}</span><Button disabled={disclosure.busy} onClick={()=>disclosure.download(file.file_id)}>Download</Button></div>)}
   <Button onClick={disclosure.hide}>Hide information</Button>
  </div>;
  return <div className="stack-form">

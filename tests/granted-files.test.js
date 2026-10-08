@@ -1,6 +1,6 @@
 // @vitest-environment node
 import {it,expect} from 'vitest';
-import {createSharingIdentity,encryptDocument,createFileGrant,decryptGrantedDocument} from '../src/modules/security/v5Crypto.js';
+import {createSharingIdentity,encryptDocument,createFileGrant,decryptGrantedDocument,decryptDocumentMetadata} from '../src/modules/security/v5Crypto.js';
 import {recipientKeyFingerprint} from '../src/modules/security/recipientKeys.js';
 it('uses an independent recipient file key bound to grant, record, file and recipient',async()=>{
  const key=()=>crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
@@ -8,6 +8,8 @@ it('uses an independent recipient file key bound to grant, record, file and reci
  const grant={id:'grant',record_id:'record',owner_id:'owner',vault_id:'vault',recipient_id:'recipient',crypto_version:'leqvor-v5',permissions:'view',grant_version:1};
  const sample=new TextEncoder().encode('PRIVATE_FILE_CONTENT');
  const file=await encryptDocument(owner,{record_id:'record',owner_id:'owner',vault_id:'vault',name:'PRIVATE_FILE_NAME',type:'text/plain',bytes:sample});
+ expect(await decryptDocumentMetadata(owner,file.row)).toEqual({name:'PRIVATE_FILE_NAME',type:'text/plain'});
+ await expect(decryptDocumentMetadata(await key(),file.row)).rejects.toThrow();
  const wrapped=await createFileGrant(owner,file.row,grant,identity.public_key,await recipientKeyFingerprint(identity.public_key));
  expect(JSON.stringify(wrapped)).not.toContain('PRIVATE_');expect(wrapped).not.toHaveProperty('wrapped_file_dek');
  const minimal={...file.row};delete minimal.wrapped_file_dek;

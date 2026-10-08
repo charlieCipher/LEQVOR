@@ -14,6 +14,7 @@ import {
   decryptRecordPayload,
   encryptDocument,
   decryptDocument,
+  decryptDocumentMetadata,
   newId,
   MAX_DOCUMENT_BYTES,
   createSharingIdentity,
@@ -218,6 +219,14 @@ export class V5VaultService {
       catch(error){if(error?.code==='PGRST116')throw new AurevaError('STALE_CONTACT','This contact changed in another session. Close this form and reload People before editing again.');throw error;}
       assertActive();this.assertIdentity(saved);
       return {...merged,...saved,v5:true};
+    });
+  }
+  async fileChoices(record){
+    const rows=await this.files(record);
+    return this.session.run(async(key,active)=>{
+      const choices=[];
+      for(const row of rows){const metadata=await decryptDocumentMetadata(key,row);active();choices.push({...row,name:typeof metadata.name==='string'?metadata.name:'Attachment'});}
+      return choices;
     });
   }
   async people() {
