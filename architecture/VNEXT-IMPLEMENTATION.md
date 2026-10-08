@@ -23,6 +23,8 @@ The migration is additive, with no conversion, renaming or deletion of legacy as
 
 ## Still required by the specification
 
+Asset increment: create/edit/reveal supports ownership type, selected owner/nominee/beneficiary person IDs, separate allocations per group and nomination evidence notes. Percentage input is parsed into exact integer basis points. Blank means unknown; partial totals are permitted but not represented as complete. Duplicate people, non-People IDs, total allocations above 100%, multiple sole owners and nominees under OPTED_OUT/NOT_APPLICABLE are rejected. Existing People are referenced without copying contact profiles. These links are encrypted within each asset record and are not yet synchronized to continuity_edges; no grants or legal authority are created. Nomination evidence attachments and dedicated related asset tabs remain future increments.
+
 Second increment: record create/edit/reveal now supports an explicit continuity type, asset nomination status, document existence/execution/physical-original status, jurisdiction and last verification date. People creation supports multiple encrypted roles, displayed in person details. These are per-record attributes in existing encrypted payloads, not a vault-wide JSON aggregate. Existing records default to unknown; no inferred execution or nomination status is backfilled. Typed ownership, nominee allocations and linked custodians still need their graph workflows. This increment does not require the graph migration to be installed and does not automatically register graph entities.
 
 1. Improved asset/ownership/nomination model and encrypted evidence, with aggregate allocation validation.

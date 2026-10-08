@@ -37,6 +37,15 @@ async function setup(){
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
 const file=()=>new File(['PRIVATE_FILE_CANARY'],'private-canary.txt',{type:'text/plain'});
+it('round trips encrypted asset people links and exact allocations',async()=>{
+ const t=await setup();
+ const asset={ownership_type:'JOINT',owners:[{person_id:'PRIVATE_PERSON_ID',allocation_bps:3333},{person_id:'SECOND_PRIVATE_PERSON',allocation_bps:6667}],nominees:[],beneficiaries:[],nomination_status:'UNKNOWN'};
+ const record=await t.service.create({title:'Private asset'},{continuity_details:{kind:'ASSET',asset}});
+ const updated=await t.service.update(record,{title:'Private asset'},{continuity_details:{kind:'ASSET',asset:{...asset,nomination_status:'NEEDS_VERIFICATION'}}});
+ expect((await t.service.reveal(updated)).continuity_details.asset.owners).toEqual(asset.owners);
+ const wire=JSON.stringify([...t.rows.values()]);
+ for(const plaintext of ['PRIVATE_PERSON_ID','SECOND_PRIVATE_PERSON','NEEDS_VERIFICATION'])expect(wire).not.toContain(plaintext);
+});
 it('keeps structured document and jurisdiction details encrypted through edit and reveal',async()=>{
  const t=await setup();
  const continuity_details={version:1,kind:'DOCUMENT',document:{execution_status:'EXECUTED',physical_original:'YES',existence:'EXISTS'},jurisdiction:{country:'IN',state_or_region:'PRIVATE_REGION'}};
