@@ -492,6 +492,28 @@ export async function decryptGrantedRecord(
     raw.fill(0);
   }
 }
+// Files have independent DEKs. Never reuse a record grant as a file wrapper.
+export async function createFileGrant(vmk,file,grant,verifiedPublicKey,expectedFingerprint){
+  if(file.crypto_version!==CRYPTO_VERSION||grant.crypto_version!==CRYPTO_VERSION||grant.permissions!=='view'||grant.grant_version!==1||file.owner_id!==grant.owner_id||file.vault_id!==grant.vault_id||file.record_id!==grant.record_id||!grant.id||!grant.recipient_id||grant.recipient_id===file.owner_id)throw new Error('File grant identity mismatch.');
+  await verifyRecipientKey(verifiedPublicKey,expectedFingerprint);
+  const ephemeral=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+  const salt=encode(random(16)),raw=await openBytes(vmk,file.wrapped_file_dek,file.id,'file-dek');
+  try{
+    const kek=await sharedKey(ephemeral.privateKey,verifiedPublicKey,salt);
+    return {grant_id:grant.id,file_id:file.id,record_id:file.record_id,owner_id:file.owner_id,vault_id:file.vault_id,recipient_id:grant.recipient_id,crypto_version:CRYPTO_VERSION,salt,sender_public_material:await crypto.subtle.exportKey('jwk',ephemeral.publicKey),encrypted_file_key:await sealBytes(kek,raw,`${grant.id}:${file.record_id}:${file.id}:${grant.recipient_id}`,'grant-file-dek')};
+  }finally{raw.fill(0);}
+}
+export async function decryptGrantedDocument(recipientVMK,identity,grant,file,fileGrant,envelope){
+  if(identity.owner_id!==grant.recipient_id||identity.crypto_version!==CRYPTO_VERSION||grant.crypto_version!==CRYPTO_VERSION||grant.permissions!=='view'||grant.grant_version!==1||file.crypto_version!==CRYPTO_VERSION||fileGrant.crypto_version!==CRYPTO_VERSION||fileGrant.grant_id!==grant.id||fileGrant.file_id!==file.id||fileGrant.record_id!==grant.record_id||file.record_id!==grant.record_id||fileGrant.recipient_id!==identity.owner_id||fileGrant.owner_id!==grant.owner_id||file.owner_id!==grant.owner_id||fileGrant.vault_id!==grant.vault_id||file.vault_id!==grant.vault_id)throw new Error('File grant identity mismatch.');
+  const privateKey=await sharingPrivate(recipientVMK,identity),kek=await sharedKey(privateKey,fileGrant.sender_public_material,fileGrant.salt);
+  const raw=await openBytes(kek,fileGrant.encrypted_file_key,`${grant.id}:${file.record_id}:${file.id}:${identity.owner_id}`,'grant-file-dek');
+  try{
+    const dek=await aes(raw);
+    const metadata=await openJSON(dek,file.encrypted_filename,file.id,'filename');
+    const bytes=await openBytes(dek,envelope,file.id,'file');
+    return {...metadata,bytes};
+  }finally{raw.fill(0);}
+}
 // Re-encrypting via encryptRecord generates a new DEK. Old grants cannot open
 // that new version. A trusted server transaction must persist the record and
 // replacement grants atomically; client-only access lists are not authorization.

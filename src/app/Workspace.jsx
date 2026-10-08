@@ -19,7 +19,6 @@ import {
 import Modal from "../components/Modal";
 import RecordWizard from "./RecordWizard";
 import { useVault } from "../features/vault/VaultContext";
-import SelectedSharing from '../components/people/SelectedSharing';
 import { DatabaseProvider, ObjectStorageProvider } from "../lib/providers";
 import SecureAction from "../components/security/SecureAction";
 import { digest } from "../modules/security/v5Crypto";
@@ -482,8 +481,6 @@ export default function Workspace({ session, demo = false }) {
             <MfaSetup />
           ) : securityDetailNames.has(modal) ? (
             <SecurityDetails key={modal} name={modal} demo={demo} records={records} preferences={detailPreferences(modal, previewPreferences)} onSave={value => setPreviewPreferences(p => saveDetailPreferences(p, modal, value))}/>
-          ) : !demo && (modal==='Share Record'||modal==='Review Permissions') ? (
-            <SelectedSharing people={people} records={records}/>
           ) : modal === 'Share Record' || modal === 'Emergency Access' ? (
             <AccessPlanner key={modal} demo={demo} people={people} records={records} emergency={modal === 'Emergency Access'} onSave={plan => setAccessPlans(p => [...p, plan])}/>
           ) : modal === 'Review Permissions' ? (

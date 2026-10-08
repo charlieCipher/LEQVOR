@@ -43,6 +43,15 @@ begin
  begin perform public.invite_v5_record(jsonb_set(g,'{id}',to_jsonb(gen_random_uuid())),1,pub);raise exception 'FAIL missing MFA assurance';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claims',jsonb_build_object('aal','aal2','amr',jsonb_build_array(jsonb_build_object('method','password','timestamp',extract(epoch from now())::bigint-600)))::text,true);
  begin perform public.invite_v5_record(jsonb_set(g,'{id}',to_jsonb(gen_random_uuid())),1,pub);raise exception 'FAIL stale authentication';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claims',jsonb_build_object('aal','aal2','amr',jsonb_build_array(jsonb_build_object('method','totp','timestamp',extract(epoch from now())::bigint)))::text,true);
+ begin perform public.invite_v5_record(jsonb_set(jsonb_set(g,'{id}',to_jsonb(gen_random_uuid())),'{sender_public_material,private_note}','"PLAINTEXT"'),1,pub);raise exception 'FAIL extra public key fields';exception when invalid_parameter_value then null;end;
+ begin insert into public.record_grants(id,record_id,owner_id,vault_id,recipient_id,encrypted_record_key,sender_public_material,permissions,grant_version) values(gen_random_uuid(),r,a,v,b,e,pub,'view',1);raise exception 'FAIL direct grant creation';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ insert into public.record_grants(id,record_id,owner_id,vault_id,recipient_id,encrypted_record_key,sender_public_material,permissions,grant_version,status,crypto_version,salt,record_revision,record_snapshot,expires_at)
+ select gen_random_uuid(),record_id,owner_id,vault_id,recipient_id,encrypted_record_key,sender_public_material,permissions,grant_version,'active',crypto_version,salt,record_revision,record_snapshot,now()+interval '1 day'
+ from public.record_grants cross join generate_series(1,100) where id=invitation;
+ execute 'set local role authenticated';
+ begin perform public.invite_v5_record(jsonb_set(g,'{id}',to_jsonb(gen_random_uuid())),1,pub);raise exception 'FAIL unbounded invitations';exception when invalid_parameter_value then null;end;
 end $$;
 reset role;
 rollback;
