@@ -12,6 +12,7 @@ const result = async (request) => {
   return data;
 };
 const grantTransport=grant=>({id:grant.id,record_id:grant.record_id,owner_id:grant.owner_id,vault_id:grant.vault_id,recipient_id:grant.recipient_id,permissions:grant.permissions,grant_version:grant.grant_version,crypto_version:grant.crypto_version,salt:grant.salt,sender_public_material:grant.sender_public_material,encrypted_record_key:ciphertextEnvelope(grant.encrypted_record_key)});
+const planningTable=kind=>{const table={policy:'verification_policies',rule:'trigger_rules',entry:'trigger_review_entries'}[kind];if(!table)throw new Error('Invalid planning collection.');return table;};
 export const AuthProvider = {
   signIn: (email,password) => result(requireClient().auth.signInWithPassword({email,password})),
   signUp: async (email,password,name,redirectTo) => { validateNewPassword(password); return result(requireClient().auth.signUp({email,password,options:{emailRedirectTo:redirectTo,data:{name}}})); },
@@ -59,6 +60,8 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  triggerPlanning:kind=>result(requireClient().from(planningTable(kind)).select('*').order('created_at')),
+  saveTriggerPlanning:(kind,row)=>result(requireClient().from(planningTable(kind)).insert(encryptedWrite(kind,row)).select().single()),
   sharedFiles:id=>result(requireClient().rpc('list_v5_shared_files',{target:id})),
   readSharedFile:(id,fileId)=>result(requireClient().rpc('read_v5_shared_file',{target:id,selected_file:fileId})),
   inviteShareWithFiles:(grant,revision,publicKey,files)=>result(requireClient().rpc('invite_v5_record_with_files',{grant_data:grantTransport(grant),expected_revision:revision,recipient_key:publicKey,file_keys:files.map(file=>({grant_id:file.grant_id,file_id:file.file_id,record_id:file.record_id,owner_id:file.owner_id,vault_id:file.vault_id,recipient_id:file.recipient_id,crypto_version:file.crypto_version,salt:file.salt,sender_public_material:file.sender_public_material,encrypted_file_key:ciphertextEnvelope(file.encrypted_file_key)}))})),

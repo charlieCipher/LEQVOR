@@ -1,5 +1,8 @@
 // Transport schemas deliberately exclude decrypted UI models.
 const schemas = {
+  policy: ['id','owner_id','vault_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek'],
+  rule: ['id','owner_id','vault_id','policy_id','record_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek'],
+  entry: ['id','owner_id','vault_id','rule_id','evidence_record_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek'],
   edge: ['id','owner_id','vault_id','from_entity_id','to_entity_id','managed_record_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek'],
   record: ['id','owner_id','vault_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek','updated_at'],
   person: ['id','owner_id','vault_id','crypto_version','encrypted_metadata','encrypted_payload','wrapped_dek','status'],
