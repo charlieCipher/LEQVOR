@@ -24,6 +24,10 @@ function commitment(request,outcome){
  if(!['APPROVED','REJECTED','NEEDS_REVIEW'].includes(outcome)||!Number.isSafeInteger(request.record_revision)||request.record_revision<1||!Number.isFinite(Date.parse(request.expires_at)))throw new Error('Invalid signed review context.');
  const identifiers={request_id:request.id,owner_id:request.owner_id,vault_id:request.vault_id,rule_id:request.rule_id,grant_id:request.grant_id,reviewer_id:request.reviewer_id,signing_key_id:request.signing_key_id};
  Object.values(identifiers).forEach(opaqueId);
+ if(request.manifest_id!==undefined&&request.manifest_id!==null){
+  opaqueId(request.manifest_id);if(typeof request.manifest_hash!=='string'||!/^[0-9a-f]{64}$/.test(request.manifest_hash))throw new Error('Invalid manifest commitment.');
+  return {domain:'leqvor-trigger-review-decision-v2',...identifiers,manifest_id:request.manifest_id,manifest_hash:request.manifest_hash,record_revision:request.record_revision,expires_at:new Date(request.expires_at).toISOString(),outcome};
+ }
  return {domain:'leqvor-trigger-review-decision-v1',...identifiers,record_revision:request.record_revision,expires_at:new Date(request.expires_at).toISOString(),outcome};
 }
 export async function signReviewDecision(vmk,identity,request,outcome){

@@ -1,4 +1,4 @@
-import {encryptRecord,decryptRecordPayload,newId} from '../security/v5Crypto';
+import {encryptRecord,decryptRecordPayload,newId,canonical} from '../security/v5Crypto';
 import {opaqueId,verificationPolicy,triggerPlan,reviewEntry} from './verificationPolicy';
 import {verifyRecipientKey} from '../security/recipientKeys';
 import {createReviewSigningIdentity,signReviewDecision,verifyReviewDecision,reviewPublicKey} from '../security/reviewSignatures';
@@ -14,8 +14,48 @@ export class TriggerPlanningService {
    await this.db.registerReviewSigningIdentity(identity);active();return identity;
   });
  }
- requestReview(rule,person,grant){
+ createManifest(rule,people,grants,evidence){
+  this.assertOwner(rule);
+  return this.session.run(async(_key,active)=>{
+   const policies=await this.read('policy');active();const policy=policies.find(p=>p.id===rule.policy_id);
+   if(!policy||!Array.isArray(grants)||!Array.isArray(people)||people.length!==policy.details.reviewer_ids.length||new Set(people.map(p=>p.id)).size!==people.length||!Array.isArray(evidence)||evidence.length!==policy.details.required_evidence.length)throw new Error('Select all policy reviewers and required evidence.');
+   const reviewers=[];
+   for(const person of people){
+    this.assertOwner(person);const sharing=person.recipient_binding,signing=person.review_signing_binding;
+    if(!policy.details.reviewer_ids.includes(person.id)||!sharing?.verified_at||!signing?.verified_at||sharing.account_id!==signing.account_id)throw new Error('Verify each policy reviewer independently.');
+    await verifyRecipientKey(sharing.public_key,sharing.fingerprint);await verifyRecipientKey(signing.public_key,signing.fingerprint);active();
+    const grant=grants?.find(g=>g.recipient_id===sharing.account_id&&g.record_id===rule.record_id&&g.status==='active');this.assertOwner(grant);opaqueId(signing.key_id);
+    const {kty,crv,x,y}=signing.public_key;reviewers.push({grant_id:grant.id,signing_key_id:signing.key_id,public_key:{kty,crv,x,y}});
+   }
+   const refs=evidence.map(({record,observed_at},requirement_index)=>{
+    this.assertOwner(record);reviewEntry({kind:'EVIDENCE_REFERENCE',observed_at});
+    if(!Number.isSafeInteger(record.revision)||record.revision<1)throw new Error('Evidence revision is unavailable.');
+    return {record_id:record.id,record_revision:record.revision,observed_at,requirement_index};
+   });
+   const data={target_rule:rule.id,required_approvals:policy.details.minimum_approvals,evidence_days:policy.details.evidence_expiry_days,required_evidence_count:refs.length,reviewers,evidence_refs:refs};active();
+   const manifest=await this.db.createTriggerManifest(data);active();this.assertOwner(manifest);
+   const snapshot=manifest.snapshot,same=(a,b)=>JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
+   if(manifest.rule_id!==rule.id||manifest.minimum_approvals!==data.required_approvals||!/^[0-9a-f]{64}$/.test(manifest.manifest_hash)||snapshot?.policy_id!==policy.id||snapshot.rule_id!==rule.id||snapshot.owner_id!==this.vault.owner_id||snapshot.vault_id!==this.vault.id||snapshot.minimum_approvals!==data.required_approvals||snapshot.evidence_days!==data.evidence_days||snapshot.required_evidence_count!==refs.length||!same(snapshot.policy_payload,policy.encrypted_payload)||!same(snapshot.rule_payload,rule.encrypted_payload))throw new Error('Policy manifest integrity check failed.');
+   const expectedReviewers=reviewers.map(r=>({...r,reviewer_id:grants.find(g=>g.id===r.grant_id).recipient_id})).sort((a,b)=>a.grant_id.localeCompare(b.grant_id));
+   if(!same(snapshot.reviewers,expectedReviewers)||snapshot.record?.id!==rule.record_id||grants.filter(g=>reviewers.some(r=>r.grant_id===g.id)).some(g=>g.record_revision!==snapshot.record.revision)||snapshot.evidence?.length!==refs.length)throw new Error('Manifest reference integrity check failed.');
+   for(const ref of refs){const saved=snapshot.evidence.find(e=>e.requirement_index===ref.requirement_index),source=evidence[ref.requirement_index].record;
+    if(!saved||saved.record_id!==ref.record_id||saved.record_revision!==ref.record_revision||Date.parse(saved.observed_at)!==Date.parse(ref.observed_at)||!same(saved.encrypted_payload,source.encrypted_payload)||!same(saved.encrypted_metadata,source.encrypted_metadata))throw new Error('Evidence manifest integrity check failed.');
+   }
+   return manifest;
+  });
+ }
+ readiness(manifest){
+  this.assertOwner(manifest);
+  return this.session.run(async(_key,active)=>{
+   const result=await this.db.triggerManifestReadiness(manifest.id);active();
+   if(result.activation_enabled!==false||!['EXPIRED','STALE','BLOCKED','NEEDS_REVIEW','READY_FOR_OWNER_REVIEW'].includes(result.state))throw new Error('Invalid manifest readiness.');
+   return result;
+  });
+ }
+ requestReview(rule,person,grant,manifest){
   this.assertOwner(rule);this.assertOwner(person);this.assertOwner(grant);
+  this.assertOwner(manifest);
+  if(manifest.rule_id!==rule.id||!manifest.snapshot?.reviewers.some(r=>r.grant_id===grant.id&&r.reviewer_id===grant.recipient_id))throw new Error('Reviewer is not selected in this manifest.');
   const binding=person.recipient_binding;
   const signing=person.review_signing_binding;
   if(!binding?.verified_at||binding.account_id!==grant.recipient_id||rule.record_id!==grant.record_id||grant.status!=='active')throw new Error('Choose an independently verified reviewer with an accepted selected share.');
@@ -27,7 +67,7 @@ export class TriggerPlanningService {
    const policies=await this.read('policy');active();
    if(!policies.find(p=>p.id===rule.policy_id)?.details.reviewer_ids.includes(person.id))throw new Error('Reviewer is not selected in this policy.');
    const {kty,crv,x,y}=signing.public_key;
-   const id=await this.db.requestTriggerReview(rule.id,grant.id,{id:signing.key_id,kty,crv,x,y});active();return opaqueId(id);
+   const id=await this.db.requestTriggerReview(rule.id,grant.id,{id:signing.key_id,kty,crv,x,y},manifest.id);active();return opaqueId(id);
   });
  }
  decide(request,outcome){

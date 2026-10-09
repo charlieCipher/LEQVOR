@@ -28,7 +28,7 @@ export async function createDisposableDatabase({verifiedDecisions=true}={}) {
   for (const name of ['20260911_continuity_v5.sql', '20260913_record_transactions.sql', '20260927_ciphertext_envelopes.sql', '20261006_sharing_identity.sql', '20261008_continuity_graph.sql', '20261008_asset_workflow.sql', '20261008_document_workflow.sql', '20261009_selected_sharing.sql', '20261009_shared_files.sql', '20261009_trigger_planning.sql', '20261009_trigger_reviews.sql', '20261009_signed_trigger_reviews.sql']) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
-  if(verifiedDecisions)await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_trigger_decisions.sql',import.meta.url),'utf8'));
+  if(verifiedDecisions){await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_trigger_decisions.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../supabase/migrations/20261009_trigger_manifests.sql',import.meta.url),'utf8'));}
   return db;
  } catch (error) { await db.close(); throw error; }
 }
@@ -45,6 +45,9 @@ try {
   await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_trigger_decisions.sql',import.meta.url),'utf8'));
   await db.exec(await readFile(new URL('../supabase/tests/verified_trigger_decisions.sql',import.meta.url),'utf8'));
   console.log('PASS PostgreSQL verified_trigger_decisions.sql');
+  await db.exec(await readFile(new URL('../supabase/migrations/20261009_trigger_manifests.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/tests/trigger_manifests.sql',import.meta.url),'utf8'));
+  console.log('PASS PostgreSQL trigger_manifests.sql');
   const readiness = await db.exec(await readFile(new URL('../supabase/tests/v5_schema_readiness.sql', import.meta.url), 'utf8'));
   const gates = readiness.flatMap(result => result.rows).filter(row => Object.hasOwn(row, 'ready'));
   if (gates.length < 18 || gates.some(row => row.ready !== true)) throw new Error('Schema readiness failed');

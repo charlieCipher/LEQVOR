@@ -62,7 +62,9 @@ export const AuthProvider = {
 export const DatabaseProvider = {
   reviewSigningIdentity:()=>result(requireClient().from('review_signing_keys').select('*').maybeSingle()),
   registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;return result(requireClient().rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty:public_key.kty,crv:public_key.crv,x:public_key.x,y:public_key.y}}}));},
-  requestTriggerReview:(rule,grant,key)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant,expected_key:key})),
+  createTriggerManifest:data=>result(requireClient().rpc('create_v5_trigger_manifest',data)),
+  triggerManifestReadiness:target=>result(requireClient().rpc('v5_trigger_manifest_readiness',{target})),
+  requestTriggerReview:(rule,grant,key,manifest)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant,expected_key:key,target_manifest:manifest})),
   decideTriggerReview:async(target,decision,signature)=>{
     const session=await result(requireClient().auth.getSession());
     if(!session?.session?.access_token)throw new Error('Sign in again to record this review.');

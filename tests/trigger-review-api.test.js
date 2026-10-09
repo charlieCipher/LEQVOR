@@ -8,7 +8,7 @@ async function fixture(){
  const now=Date.parse('2026-10-09T00:00:00Z');
  const vmk=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
  const signer=await createReviewSigningIdentity(vmk,id(),id());
- const request={id:id(),owner_id:id(),vault_id:id(),rule_id:id(),grant_id:id(),reviewer_id:signer.owner_id,record_revision:1,expires_at:'2026-10-10T00:00:00Z',signing_key_id:signer.id,signing_public_key:signer.public_key};
+ const request={id:id(),owner_id:id(),vault_id:id(),rule_id:id(),grant_id:id(),reviewer_id:signer.owner_id,record_revision:1,expires_at:'2026-10-10T00:00:00Z',signing_key_id:signer.id,signing_public_key:signer.public_key,manifest_id:id(),manifest_hash:'a'.repeat(64)};
  const claims={sub:signer.owner_id,iss:'https://awdsyhxdnyfilnzamflt.supabase.co/auth/v1',aud:'authenticated',role:'authenticated',aal:'aal1',exp:now/1000+3600,amr:[{method:'password',timestamp:now/1000}]};
  const token=()=>`header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
  const signature=await signReviewDecision(vmk,signer,request,'APPROVED');
@@ -26,7 +26,7 @@ it('verifies real ECDSA before invoking the privileged writer with only verified
  expect(f.caller.auth.getUser.mock.invocationCallOrder[0]).toBeLessThan(f.read.mock.invocationCallOrder[0]);
 });
 it('rejects altered outcome, context, expiry, signer or signature before creating a writer',async()=>{
- for(const mutate of [f=>{f.input.body.outcome='REJECTED';},f=>{f.request.record_revision=2;},f=>{f.request.reviewer_id=id();},f=>{f.request.signing_key_id=id();},f=>{f.request.cancelled_at='2026-10-09';},f=>{f.request.expires_at='2026-10-08';},f=>{f.input.body.signature='A'.repeat(86)+'==';}]){
+ for(const mutate of [f=>{f.input.body.outcome='REJECTED';},f=>{f.request.manifest_id=id();},f=>{f.request.manifest_hash='b'.repeat(64);},f=>{f.request.record_revision=2;},f=>{f.request.reviewer_id=id();},f=>{f.request.signing_key_id=id();},f=>{f.request.cancelled_at='2026-10-09';},f=>{f.request.expires_at='2026-10-08';},f=>{f.input.body.signature='A'.repeat(86)+'==';}]){
   const f=await fixture();mutate(f);expect((await triggerReviewDecision(f.input)).status).toBe(404);expect(f.factory).toHaveBeenCalledTimes(1);expect(f.write).not.toHaveBeenCalled();
  }
 });

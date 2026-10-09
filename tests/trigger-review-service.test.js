@@ -27,15 +27,16 @@ it('pins owner-selected reviewers and rejects policy, record or identity substit
  const signer=await createReviewSigningIdentity(key,recipient,id());
  person.review_signing_binding={account_id:recipient,key_id:signer.id,public_key:signer.public_key,fingerprint:await recipientKeyFingerprint(signer.public_key),verified_at:'2026-10-09'};
  const policyId=id(),rule={id:id(),owner_id:vault.owner_id,vault_id:vault.id,policy_id:policyId,record_id:id()},grant={id:id(),owner_id:vault.owner_id,vault_id:vault.id,recipient_id:recipient,record_id:rule.record_id,status:'active'};
+ const manifest={id:id(),owner_id:vault.owner_id,vault_id:vault.id,rule_id:rule.id,snapshot:{reviewers:[{grant_id:grant.id,reviewer_id:recipient}]}};
  const row=await encryptRecord(key,{id:policyId,owner_id:vault.owner_id,vault_id:vault.id,metadata:{},payload:{binding:{kind:'policy',id:policyId},details:{reviewer_ids:[person.id],minimum_approvals:1,evidence_expiry_days:30,required_evidence:['Document'],instructions:'',manual_review:true}}});
  const db={triggerPlanning:async()=>[row],requestTriggerReview:vi.fn(async()=>id())};const service=new TriggerPlanningService(session,vault,db);
  try{
-  await service.requestReview(rule,person,grant);expect(db.requestTriggerReview.mock.calls[0].slice(0,2)).toEqual([rule.id,grant.id]);
-  expect(()=>service.requestReview(rule,person,{...grant,record_id:id()})).toThrow();
-  expect(()=>service.requestReview(rule,person,{...grant,recipient_id:id()})).toThrow();
-  await expect(service.requestReview({...rule,policy_id:id()},person,grant)).rejects.toThrow('policy');
- await expect(service.requestReview(rule,{...person,recipient_binding:{...person.recipient_binding,fingerprint:'A'.repeat(43)}},grant)).rejects.toThrow();
-  expect(()=>service.requestReview(rule,{...person,review_signing_binding:null},grant)).toThrow('signing');
+  await service.requestReview(rule,person,grant,manifest);expect(db.requestTriggerReview.mock.calls[0].slice(0,2)).toEqual([rule.id,grant.id]);
+  expect(()=>service.requestReview(rule,person,{...grant,record_id:id()},manifest)).toThrow();
+  expect(()=>service.requestReview(rule,person,{...grant,recipient_id:id()},manifest)).toThrow();
+  await expect(service.requestReview({...rule,policy_id:id()},person,grant,manifest)).rejects.toThrow('policy');
+  await expect(service.requestReview(rule,{...person,recipient_binding:{...person.recipient_binding,fingerprint:'A'.repeat(43)}},grant,manifest)).rejects.toThrow();
+  expect(()=>service.requestReview(rule,{...person,review_signing_binding:null},grant,manifest)).toThrow('signing');
   expect(db.requestTriggerReview).toHaveBeenCalledTimes(1);
  }finally{session.dispose();}
 });

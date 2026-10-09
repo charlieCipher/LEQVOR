@@ -30,6 +30,7 @@ export async function triggerReviewDecision({method,authorization,body,env,clien
   // expiration, request snapshot, current signing key, replay and MFA atomically.
   const writer=clientFactory(project,env.SUPABASE_SERVICE_ROLE_KEY,options);
   const expected={id:request.id,owner_id:request.owner_id,vault_id:request.vault_id,rule_id:request.rule_id,grant_id:request.grant_id,reviewer_id:request.reviewer_id,record_revision:request.record_revision,expires_at:request.expires_at,signing_key_id:request.signing_key_id,signing_public_key:request.signing_public_key};
+  if(request.manifest_id){expected.manifest_id=request.manifest_id;expected.manifest_hash=request.manifest_hash;}
   const written=await writer.rpc('record_verified_v5_trigger_decision',{verified_user:user,verified_amr:amr,verified_aal:claims.aal,expected_request:expected,decision:body.outcome,decision_signature:body.signature});
   if(written.error)return unavailable;
   return {status:200,body:{recorded:true}};
