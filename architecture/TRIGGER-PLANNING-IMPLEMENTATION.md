@@ -21,6 +21,18 @@ No UI or styles changed. The service is available for later integration into exi
 - Atomic grant issuance only after distinct verification; no legal eligibility determination.
 - Hosted adversarial acceptance before enabling any activation controls.
 
+## Authenticated administrative review increment
+
+`20261009_trigger_reviews.sql` adds request/decision storage and narrow RPCs, still local and not deployed. An owner with recent authentication requests review against an accepted, unexpired selected share of the rule's record. The server captures the grant recipient and exact shared revision; the caller cannot nominate a different decision author. Requests expire within seven days or at the share expiration, whichever comes first. Duplicate current requests for the same rule/share are rejected; outstanding requests are bounded to 100 per owner.
+
+Only that authenticated recipient can record one decision (`APPROVED`, `REJECTED`, `NEEDS_REVIEW`), with recent authentication and configured MFA enforced by the existing sharing gate. Decisions cannot be replayed or directly rewritten by clients. Owners can cancel requests; revoked/expired shares, cancelled/expired requests and deleted sharing identities block new decisions. The service treats retained decisions as unavailable when their request/share ceases to be current. It never converts an approval into a grant or active rule.
+
+Request/decision tables expose only participant IDs, selected revision, timestamps and the administrative decision enum to their participants. They contain no plaintext evidence, policy descriptions or notes. Participants do not receive access to the owner's policy/rule/evidence tables. The client checks the selected person's independently pinned sharing key and membership in the decrypted policy before requesting review.
+
+These are authenticated account-attributed administrative decisions on an already shared revision, not cryptographically signed attestations, proof of legal identity/qualification, or approval of death/incapacity/claim eligibility. The server cannot read the encrypted reviewer roster, approval threshold or evidence requirements; a separately committed, server-verifiable policy/evidence manifest is still required before any threshold can authorize activation. Review controls and encrypted context delivery are not yet wired into the existing UI. No production permissions are changed in this increment.
+
+Increment validation: 237 tests across 56 files passed; lint, PostgreSQL permissions/adversarial checks, build/artifact checks and the existing core encrypted restore passed. This restore covers existing core record/file data, not preservation of the new review tables. The current UI/CSS remains unchanged. Hosted review acceptance and deployment remain pending.
+
 Tests cover real client encryption/decryption, plaintext transport rejection, topology tampering, foreign reviewer/record ownership, lock denial, prohibited authorities/types/approval outcomes, date validation and factual evidence expiration. PostgreSQL tests cover foreign record/policy/evidence references, owner spoofing, read isolation, ciphertext checks, append-only permissions, draft-only behavior, no grant creation and deletion lifecycle.
 
 Validation: 235 tests across 55 files passed on the completed source; lint, PostgreSQL checks, encrypted restore, build and artifact checks passed. Existing main bundle-size warning remains. CSS artifact hash remains `index-58SJVvnB.css`. These checks do not constitute hosted trigger activation acceptance, physical-device testing or independent review.

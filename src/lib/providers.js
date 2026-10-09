@@ -60,6 +60,11 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  requestTriggerReview:(rule,grant)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant})),
+  decideTriggerReview:(target,decision)=>result(requireClient().rpc('decide_v5_trigger_review',{target,decision})),
+  cancelTriggerReview:target=>result(requireClient().rpc('cancel_v5_trigger_review',{target})),
+  triggerReviewRequests:()=>result(requireClient().from('trigger_review_requests').select('*').order('created_at')),
+  triggerReviewerDecisions:()=>result(requireClient().from('trigger_reviewer_decisions').select('*')),
   triggerPlanning:kind=>result(requireClient().from(planningTable(kind)).select('*').order('created_at')),
   saveTriggerPlanning:(kind,row)=>result(requireClient().from(planningTable(kind)).insert(encryptedWrite(kind,row)).select().single()),
   sharedFiles:id=>result(requireClient().rpc('list_v5_shared_files',{target:id})),
