@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Badge, Empty } from '../ui/Primitives';
 import VaultControls from './VaultControls';
 import PasskeySettings from './PasskeySettings';
+import SecurityTimeline from './SecurityTimeline';
 import { sampleDevices, sampleSessions } from './previewPreferences';
 
 import { settings } from './securityDetailCatalog';
@@ -15,6 +16,7 @@ export default function SecurityDetails({ name, demo, records = [], preferences,
   const save = () => { onSave(values); setNotice('Preview preferences saved for this workspace session.'); };
 
   if(!demo&&['Passkeys','Face ID / Touch ID','Require biometric confirmation'].includes(name))return <PasskeySettings/>;
+  if(!demo&&name==='Security Timeline')return <SecurityTimeline/>;
 
   if (name === 'Cold Lock' || name === 'Recovery practice') return <div className="stack-form">
     <p className="muted">{name === 'Cold Lock' ? 'Inactivity and leaving the app clear decrypted content and active key references. Unlock again to continue.' : 'Verify that your offline recovery secret can unlock your vault without revealing records.'}</p>

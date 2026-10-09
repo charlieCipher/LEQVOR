@@ -10,13 +10,14 @@ const table=kind=>({policy:'verification_policies',rule:'trigger_rules',entry:'t
 
 // Ordinary authenticated clients do all workflow operations. Admin credentials
 // remain exclusively in the disposable-account harness for creation/cleanup.
-export async function runHostedArchitecture(a,b,report=()=>{}){
+export async function runHostedArchitecture(a,b,report=()=>{}, {securityHistory=false}={}){
  let stage='setup',success=false,server;const vaults=[],sessions=[],paths=[],records=[];
  try{
   server=await createServer({server:{middlewareMode:true},appType:'custom'});
   const {TriggerPlanningService}=await server.ssrLoadModule('/src/modules/continuity/TriggerPlanningService.js');
   const {VaultSession}=await server.ssrLoadModule('/src/modules/security/VaultSession.js');
   const {insuranceGraph}=await server.ssrLoadModule('/src/modules/continuity/insuranceGraph.js');
+  const {SecurityHistoryService}=await server.ssrLoadModule('/src/modules/security/SecurityHistoryService.js');
   const users=await Promise.all([a,b].map(async client=>(await value(client.auth.getUser())).user));check(users[0].id!==users[1].id);
   const keys=[],sharing=[];
   for(const [i,client] of [a,b].entries()){
@@ -27,6 +28,12 @@ export async function runHostedArchitecture(a,b,report=()=>{}){
    const identity=await createSharingIdentity(key,users[i].id);sharing.push(await value(client.rpc('register_v5_sharing_identity',{target_vault:vault.id,key_data:identity})));
   }
   const adapter=client=>({
+   securityEvents:()=>value(client.from('security_events').select('*').order('sequence').limit(10001)),
+   appendSecurityEvent:async event=>{
+    const {session}=await value(client.auth.getSession());
+    const response=await fetch('https://leqvor.vercel.app/api/security-history',{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(event),signal:AbortSignal.timeout(30000)});
+    check(response.ok&&response.headers.get('cache-control')?.includes('no-store'));check((await response.json()).recorded===true);
+   },
    reviewSigningIdentity:()=>value(client.from('review_signing_keys').select('*').maybeSingle()),
    registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;const {kty,crv,x,y}=public_key;return value(client.rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty,crv,x,y}}}));},
    createTriggerManifest:data=>value(client.rpc('create_v5_trigger_manifest',data)),
@@ -77,7 +84,20 @@ export async function runHostedArchitecture(a,b,report=()=>{}){
   let replayDenied=false;try{await owner.authorize(manifest,record,person);}catch{replayDenied=true;}check(replayDenied);
   await value(a.rpc('revoke_v5_share',{target:grant.id}));check(!!(await b.rpc('read_v5_trigger_review',{target:requestId})).error);
   await value(a.rpc('revoke_v5_share',{target:invitation}));check(!!(await b.rpc('read_v5_share',{target:invitation})).error);
-  report('PASS hosted encrypted review delivery, real ECDSA API approval, owner authorization, recipient acceptance, replay rejection and revocation');success=true;
+  report('PASS hosted encrypted review delivery, real ECDSA API approval, owner authorization, recipient acceptance, replay rejection and revocation');
+  if(securityHistory){
+   stage='signed account history';const history=new SecurityHistoryService(sessions[1],vaults[1],adapter(b));
+   check((await history.snapshot(null)).state==='EMPTY');const first=await history.review(null),second=await history.review(first);
+   check((await history.snapshot(second)).state==='VERIFIED');check((await history.snapshot(first)).state==='INVALID');check((await history.snapshot(null)).state==='UNANCHORED');
+   const rows=await value(b.from('security_events').select('*').order('sequence'));check(rows.length===2&&rows.every(row=>row.encrypted_details===null));
+   check((await value(a.from('security_events').select('*').eq('owner_id',users[1].id))).length===0);
+   const {signature,...last}=rows[1],event={...last,signing_key_id:signature.signing_key_id,signature:signature.value};delete event.encrypted_details;event.created_at=new Date(event.created_at).toISOString();
+   const post=async(client,body)=>{const {session}=await value(client.auth.getSession());return fetch('https://leqvor.vercel.app/api/security-history',{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});};
+   check((await post(b,event)).status===409);check((await post(a,event)).status===401);check(!(await post(b,{...event,signature:'A'.repeat(86)+'=='})).ok);check(!(await post(b,{...event,notes:'SYNTHETIC_PRIVATE_CANARY'})).ok);
+   check((await value(b.from('security_events').select('id'))).length===2);
+   report('PASS hosted signed history append, retained-head verification, replay/tamper rejection and two-account isolation');
+  }
+  success=true;
  }catch{report(`FAIL architecture workflow: ${stage}; sensitive details suppressed`);}
  finally{
   sessions.forEach(session=>session.dispose());if(server)await server.close();

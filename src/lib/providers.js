@@ -1,6 +1,7 @@
 import { encryptedWrite, ciphertextEnvelope } from './ciphertextBoundary';
 import { supabase, supabaseConfig } from "../supabase";
 import {createPasskeyAdapter} from '../modules/security/passkeys';
+import {securityEventCommitment} from '../modules/security/securityEventSignatures';
 import { validateNewPassword } from './passwordPolicy';
 import {AurevaError} from '../modules/security/safeEvents';
 const requireClient = () => {
@@ -66,6 +67,14 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  securityEvents:()=>result(requireClient().from('security_events').select('*').order('sequence').limit(10001)),
+  appendSecurityEvent:async(event)=>{
+    securityEventCommitment(event);
+    const {session}=await result(requireClient().auth.getSession());if(!session?.access_token)throw new Error('Sign in again.');
+    const response=await fetch('/api/security-history',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(event),signal:AbortSignal.timeout(30000),cache:'no-store'});
+    if(response.status===409)throw new AurevaError('HISTORY_CHANGED','Security history changed. Verify your latest checkpoint before retrying.');
+    if(!response.ok||(await response.json()).recorded!==true)throw new Error('Security event was not recorded.');
+  },
   reviewSigningIdentity:()=>result(requireClient().from('review_signing_keys').select('*').maybeSingle()),
   registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;return result(requireClient().rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty:public_key.kty,crv:public_key.crv,x:public_key.x,y:public_key.y}}}));},
   createTriggerManifest:data=>result(requireClient().rpc('create_v5_trigger_manifest',data)),

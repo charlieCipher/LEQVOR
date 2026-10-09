@@ -8,6 +8,7 @@ import { ContinuityGraphService } from '../continuity/ContinuityGraphService';
 import {documentGraph} from '../continuity/documentGraph';
 import {SharingService} from '../continuity/SharingService';
 import {TriggerPlanningService} from '../continuity/TriggerPlanningService';
+import {SecurityHistoryService} from '../security/SecurityHistoryService';
 import {assetGraph} from '../continuity/assetGraph';
 import {insuranceGraph} from '../continuity/insuranceGraph';
 import {
@@ -33,6 +34,7 @@ export class V5VaultService {
     this.vault = vault;
     this.db = db;
     this.storage = storage;
+    this.securityHistory = new SecurityHistoryService(session,vault,db);
     this.graph = new ContinuityGraphService(session, vault, db);
     this.sharing = new SharingService(session, vault, db);
     this.triggerPlanning = new TriggerPlanningService(session, vault, db);
