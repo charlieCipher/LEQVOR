@@ -1,6 +1,6 @@
 # Trigger and verification planning
 
-9 October 2026 — local implementation, not applied to production. Earlier increment notes below are historical; the delivery/owner-authorization increment now connects existing dialogs as described in ITEMS-1-6-ROLLOUT.md.
+9 October 2026 — deployed as b9d529a after explicit approval of the seven-migration bundle. Hosted two-account encrypted delivery, real ECDSA API approval, one-use owner authorization, recipient acceptance and revocation passed. Earlier increment notes below are historical; the delivery/owner-authorization increment connects existing dialogs as described in ITEMS-1-6-ROLLOUT.md. Browser/device acceptance remains separate.
 
 ## Delivery and explicit owner authorization
 

@@ -15,7 +15,7 @@ The existing visual design is preserved. No stylesheet, background, font or layo
 
 ## Production dependency
 
-Initial read-only production SQL inspection returned false for trigger_rules, trigger_manifests, save_vnext_policy and authorize_v5_reviewed_invitation. After explicit user approval, the seven-migration bundle was applied successfully; repeat inspection returned true for these components and trigger_review_packets. Frontend/API rollout and hosted increment acceptance follow separately.
+Initial read-only production SQL inspection returned false for trigger_rules, trigger_manifests, save_vnext_policy and authorize_v5_reviewed_invitation. After explicit user approval, the seven-migration bundle was applied successfully; repeat inspection returned true for these components and trigger_review_packets. Frontend/API source b9d529a is deployed: Vercel deployment 6yXufhURvykCvhTjFohz77hrv97E, Production Ready, assigned to leqvor.vercel.app.
 
 Apply the following tested additive migrations in order before deploying their frontend/API:
 
@@ -35,4 +35,6 @@ Validation: 253 regression tests across 62 files passed, followed by 10 focused 
 
 Local PostgreSQL tests cover authorization, rollback, stale writes, isolation, recipient substitution, expired/revoked context and replay. SQL signature fixtures test database contracts, not ECDSA verification; API/client tests verify real signatures separately. Existing core restore tests do not certify preservation of new review tables.
 
-Hosted browser acceptance of this increment must follow migration and deployment. Current production core sharing acceptance does not prove these new review/insurance paths. Another physical device, separate backup destination/cloud restore, independently reviewed legal documents and an independent security reviewer remain outstanding. No independent audit or universal Shield completion is claimed.
+Hosted ordinary-user acceptance passed Insurance graph creation/edit, stale-write rejection, encrypted upload/download/decryption and cross-account isolation. It also passed committed encrypted review delivery, explicit reveal/decryption, real ECDSA approval through the deployed API, owner authorization, recipient acceptance, one-use replay rejection and revocation. Synthetic records/files and both disposable accounts were removed and account absence verified. The first teardown attempt tried deleting vaults before their sharing identities and was rejected; the harness now follows the existing account-owned cleanup sequence, without changing production permissions.
+
+Hosted browser acceptance of every dialog and physical-device testing remain separate from API/service acceptance. Another physical device, separate backup destination/cloud restore, independently reviewed legal documents and an independent security reviewer remain outstanding. No independent audit or universal Shield completion is claimed.

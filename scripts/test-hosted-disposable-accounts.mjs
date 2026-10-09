@@ -6,6 +6,7 @@ import {createClient} from '@supabase/supabase-js';
 import {runHostedWorkflow} from './check-hosted-workflow.mjs';
 import {runHostedDocuments} from './check-hosted-documents.mjs';
 import {runHostedSharing} from './check-hosted-sharing.mjs';
+import {runHostedArchitecture} from './check-hosted-architecture.mjs';
 
 const target='https://awdsyhxdnyfilnzamflt.supabase.co';
 const env=process.env;
@@ -48,7 +49,7 @@ if (!process.argv.includes('--run-hosted-test') || url!==target || !adminKey || 
       if(signed.error || signed.data.user?.id!==created.data.user.id) throw new Error('Authentication failed');
     }
     stage='ordinary-user hosted workflow';
-    success=await (process.argv.includes('--sharing')?runHostedSharing:process.argv.includes('--documents')?runHostedDocuments:runHostedWorkflow)(clients[0],clients[1],report,{hostedHttp:process.argv.includes('--sharing-http')});
+    success=await (process.argv.includes('--architecture')?runHostedArchitecture:process.argv.includes('--sharing')?runHostedSharing:process.argv.includes('--documents')?runHostedDocuments:runHostedWorkflow)(clients[0],clients[1],report,{hostedHttp:process.argv.includes('--sharing-http')});
   } catch {
     report(`FAIL ${stage}; credentials and sensitive responses suppressed`);
   } finally {
@@ -58,7 +59,7 @@ if (!process.argv.includes('--run-hosted-test') || url!==target || !adminKey || 
     // IDs originate only from successful createUser calls in this invocation.
     for(const id of users) {
       try {
-        if(process.argv.includes('--sharing')){
+        if(process.argv.includes('--sharing')||process.argv.includes('--architecture')){
           const keys=await admin.from('user_sharing_keys').delete().eq('owner_id',id);
           if(keys.error){cleanupFailed=true;continue;}
         }
