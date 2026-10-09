@@ -1,5 +1,5 @@
-import {encryptRecord,decryptRecordPayload,canonical} from './v5Crypto';
-import {opaqueId} from '../continuity/verificationPolicy';
+import {encryptRecord,decryptRecordPayload,canonical} from './v5Crypto.js';
+import {opaqueId} from '../continuity/verificationPolicy.js';
 const bytes=value=>new TextEncoder().encode(JSON.stringify(canonical(value)));
 const encode=value=>btoa(String.fromCharCode(...new Uint8Array(value)));
 const decode=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));

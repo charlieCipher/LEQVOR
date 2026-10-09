@@ -44,7 +44,7 @@ it('marks expired, cancelled and revoked approvals unavailable and rejects late 
  const vault={id:id(),owner_id:id()},signer=await createReviewSigningIdentity(key,vault.owner_id,vault.id);
  const request={id:id(),owner_id:id(),vault_id:id(),rule_id:id(),reviewer_id:vault.owner_id,grant_id:id(),record_revision:1,expires_at:'2026-10-10T00:00:00Z',signing_key_id:signer.id,signing_public_key:signer.public_key},now=Date.parse('2026-10-09T00:00:00Z');
  let share={id:request.grant_id,owner_id:request.owner_id,recipient_id:request.reviewer_id,record_revision:1,status:'active',expires_at:request.expires_at};
- const decision={request_id:request.id,reviewer_id:vault.owner_id,signing_key_id:signer.id,outcome:'APPROVED',signature:await signReviewDecision(key,signer,request,'APPROVED')};
+ const decision={request_id:request.id,reviewer_id:vault.owner_id,signing_key_id:signer.id,outcome:'APPROVED',server_signature_verified:true,signature:await signReviewDecision(key,signer,request,'APPROVED')};
  const db={triggerReviewRequests:async()=>[request],triggerReviewerDecisions:async()=>[decision],listShares:async()=>[share],decideTriggerReview:vi.fn(async()=>{}),reviewSigningIdentity:async()=>signer};
  const service=new TriggerPlanningService(session,vault,db);
  try{

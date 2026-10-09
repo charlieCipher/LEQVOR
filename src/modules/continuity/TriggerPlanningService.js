@@ -53,7 +53,7 @@ export class TriggerPlanningService {
     const grant=shares.find(g=>g.id===request.grant_id);
     const current=!!grant&&grant.status==='active'&&grant.owner_id===request.owner_id&&grant.recipient_id===request.reviewer_id&&grant.record_revision===request.record_revision&&Date.parse(grant.expires_at)>now&&Date.parse(request.expires_at)>now&&!request.cancelled_at;
     const decision=decisions.find(d=>d.request_id===request.id&&d.reviewer_id===request.reviewer_id);
-    const verified=!!decision&&await verifyReviewDecision(request,decision,pinnedSigningKeys[request.signing_key_id]);
+    const verified=decision?.server_signature_verified===true&&await verifyReviewDecision(request,decision,pinnedSigningKeys[request.signing_key_id]);
     return {...request,decision:decision||null,signature_verified:verified,review_state:current?(decision?(verified?decision.outcome:'UNVERIFIED'):'PENDING'):'UNAVAILABLE',activation_enabled:false};
    }));active();return result;
   });

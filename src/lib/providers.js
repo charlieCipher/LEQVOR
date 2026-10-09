@@ -63,7 +63,13 @@ export const DatabaseProvider = {
   reviewSigningIdentity:()=>result(requireClient().from('review_signing_keys').select('*').maybeSingle()),
   registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;return result(requireClient().rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty:public_key.kty,crv:public_key.crv,x:public_key.x,y:public_key.y}}}));},
   requestTriggerReview:(rule,grant,key)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant,expected_key:key})),
-  decideTriggerReview:(target,decision,signature)=>result(requireClient().rpc('decide_v5_trigger_review',{target,decision,decision_signature:signature})),
+  decideTriggerReview:async(target,decision,signature)=>{
+    const session=await result(requireClient().auth.getSession());
+    if(!session?.session?.access_token)throw new Error('Sign in again to record this review.');
+    const response=await fetch('/api/trigger-review',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.session.access_token}`},body:JSON.stringify({request_id:target,outcome:decision,signature}),signal:AbortSignal.timeout(30000),cache:'no-store'});
+    if(!response.ok)throw new Error('Review unavailable. Verify your account and try again.');
+    const body=await response.json();if(body.recorded!==true)throw new Error('Review was not recorded.');
+  },
   cancelTriggerReview:target=>result(requireClient().rpc('cancel_v5_trigger_review',{target})),
   triggerReviewRequests:()=>result(requireClient().from('trigger_review_requests').select('*').order('created_at')),
   triggerReviewerDecisions:()=>result(requireClient().from('trigger_reviewer_decisions').select('*')),
