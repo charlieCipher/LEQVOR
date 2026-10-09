@@ -25,7 +25,7 @@ export async function createDisposableDatabase() {
     create function storage.foldername(name text) returns text[] language sql immutable as
       $$ select (string_to_array(name,'/'))[1:array_length(string_to_array(name,'/'),1)-1] $$;
   `);
-  for (const name of ['20260911_continuity_v5.sql', '20260913_record_transactions.sql', '20260927_ciphertext_envelopes.sql', '20261006_sharing_identity.sql', '20261008_continuity_graph.sql', '20261008_asset_workflow.sql', '20261008_document_workflow.sql', '20261009_selected_sharing.sql', '20261009_shared_files.sql', '20261009_trigger_planning.sql', '20261009_trigger_reviews.sql']) {
+  for (const name of ['20260911_continuity_v5.sql', '20260913_record_transactions.sql', '20260927_ciphertext_envelopes.sql', '20261006_sharing_identity.sql', '20261008_continuity_graph.sql', '20261008_asset_workflow.sql', '20261008_document_workflow.sql', '20261009_selected_sharing.sql', '20261009_shared_files.sql', '20261009_trigger_planning.sql', '20261009_trigger_reviews.sql', '20261009_signed_trigger_reviews.sql']) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
   return db;
@@ -36,7 +36,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 let db;
 try {
   db = await createDisposableDatabase();
-  for (const name of ['v5_isolation.sql', 'record_transactions.sql', 'ciphertext_envelopes.sql', 'sharing_identity.sql', 'hosted_rollback_acceptance.sql', 'continuity_graph.sql', 'asset_workflow.sql', 'document_history.sql', 'selected_sharing.sql', 'shared_files.sql', 'trigger_planning.sql', 'trigger_reviews.sql']) {
+  for (const name of ['v5_isolation.sql', 'record_transactions.sql', 'ciphertext_envelopes.sql', 'sharing_identity.sql', 'hosted_rollback_acceptance.sql', 'continuity_graph.sql', 'asset_workflow.sql', 'document_history.sql', 'selected_sharing.sql', 'shared_files.sql', 'trigger_planning.sql', 'trigger_reviews.sql', 'signed_trigger_reviews.sql']) {
     await db.exec(await readFile(new URL(`../supabase/tests/${name}`, import.meta.url), 'utf8'));
     console.log(`PASS PostgreSQL ${name}`);
   }

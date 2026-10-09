@@ -1,42 +1,61 @@
 import {encryptRecord,decryptRecordPayload,newId} from '../security/v5Crypto';
 import {opaqueId,verificationPolicy,triggerPlan,reviewEntry} from './verificationPolicy';
 import {verifyRecipientKey} from '../security/recipientKeys';
+import {createReviewSigningIdentity,signReviewDecision,verifyReviewDecision,reviewPublicKey} from '../security/reviewSignatures';
 
 // Planning only. No record-grant mutation, activation or eligibility determination.
 export class TriggerPlanningService {
  constructor(session,vault,db){this.session=session;this.vault=vault;this.db=db;}
+ enrollSigningKey(){
+  return this.session.run(async(key,active)=>{
+   const existing=await this.db.reviewSigningIdentity();active();
+   if(existing){this.assertOwner(existing);await reviewPublicKey(existing.public_key);active();return existing;}
+   const identity=await createReviewSigningIdentity(key,this.vault.owner_id,this.vault.id);active();
+   await this.db.registerReviewSigningIdentity(identity);active();return identity;
+  });
+ }
  requestReview(rule,person,grant){
   this.assertOwner(rule);this.assertOwner(person);this.assertOwner(grant);
   const binding=person.recipient_binding;
+  const signing=person.review_signing_binding;
   if(!binding?.verified_at||binding.account_id!==grant.recipient_id||rule.record_id!==grant.record_id||grant.status!=='active')throw new Error('Choose an independently verified reviewer with an accepted selected share.');
+  if(!signing?.verified_at||signing.account_id!==binding.account_id)throw new Error('Independently verify the reviewer signing key first.');
+  opaqueId(signing.key_id);
   return this.session.run(async(_key,active)=>{
    await verifyRecipientKey(binding.public_key,binding.fingerprint);active();
+   await verifyRecipientKey(signing.public_key,signing.fingerprint);active();
    const policies=await this.read('policy');active();
    if(!policies.find(p=>p.id===rule.policy_id)?.details.reviewer_ids.includes(person.id))throw new Error('Reviewer is not selected in this policy.');
-   const id=await this.db.requestTriggerReview(rule.id,grant.id);active();return opaqueId(id);
+   const {kty,crv,x,y}=signing.public_key;
+   const id=await this.db.requestTriggerReview(rule.id,grant.id,{id:signing.key_id,kty,crv,x,y});active();return opaqueId(id);
   });
  }
  decide(request,outcome){
   if(request?.reviewer_id!==this.vault.owner_id)throw new Error('This review is assigned to another account.');
   opaqueId(request.id);
   if(!['APPROVED','REJECTED','NEEDS_REVIEW'].includes(outcome))throw new Error('Invalid review decision.');
-  return this.session.run(async(_key,active)=>{await this.db.decideTriggerReview(request.id,outcome);active();});
+  return this.session.run(async(key,active)=>{
+   const identity=await this.db.reviewSigningIdentity();active();this.assertOwner(identity);
+   const signature=await signReviewDecision(key,identity,request,outcome);active();
+   await this.db.decideTriggerReview(request.id,outcome,signature);active();
+  });
  }
  cancel(request){
   this.assertOwner(request);
   return this.session.run(async(_key,active)=>{await this.db.cancelTriggerReview(request.id);active();});
  }
- reviews(now){
+ reviews(now,pinnedSigningKeys={}){
   if(!Number.isFinite(now))throw new Error('Supply the review time.');
   return this.session.run(async(_key,active)=>{
    const [requests,decisions,shares]=await Promise.all([this.db.triggerReviewRequests(),this.db.triggerReviewerDecisions(),this.db.listShares()]);active();
-   return requests.map(request=>{
+   const result=await Promise.all(requests.map(async request=>{
     if(request.owner_id!==this.vault.owner_id&&request.reviewer_id!==this.vault.owner_id)throw new Error('Review participant mismatch.');
     const grant=shares.find(g=>g.id===request.grant_id);
     const current=!!grant&&grant.status==='active'&&grant.owner_id===request.owner_id&&grant.recipient_id===request.reviewer_id&&grant.record_revision===request.record_revision&&Date.parse(grant.expires_at)>now&&Date.parse(request.expires_at)>now&&!request.cancelled_at;
     const decision=decisions.find(d=>d.request_id===request.id&&d.reviewer_id===request.reviewer_id);
-    return {...request,decision:decision||null,review_state:current?(decision?.outcome||'PENDING'):'UNAVAILABLE',activation_enabled:false};
-   });
+    const verified=!!decision&&await verifyReviewDecision(request,decision,pinnedSigningKeys[request.signing_key_id]);
+    return {...request,decision:decision||null,signature_verified:verified,review_state:current?(decision?(verified?decision.outcome:'UNVERIFIED'):'PENDING'):'UNAVAILABLE',activation_enabled:false};
+   }));active();return result;
   });
  }
  assertOwner(row){if(row?.owner_id!==this.vault.owner_id||row?.vault_id!==this.vault.id)throw new Error('Planning item does not belong to this vault.');opaqueId(row.id);}

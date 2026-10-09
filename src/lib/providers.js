@@ -60,8 +60,10 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
-  requestTriggerReview:(rule,grant)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant})),
-  decideTriggerReview:(target,decision)=>result(requireClient().rpc('decide_v5_trigger_review',{target,decision})),
+  reviewSigningIdentity:()=>result(requireClient().from('review_signing_keys').select('*').maybeSingle()),
+  registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;return result(requireClient().rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty:public_key.kty,crv:public_key.crv,x:public_key.x,y:public_key.y}}}));},
+  requestTriggerReview:(rule,grant,key)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant,expected_key:key})),
+  decideTriggerReview:(target,decision,signature)=>result(requireClient().rpc('decide_v5_trigger_review',{target,decision,decision_signature:signature})),
   cancelTriggerReview:target=>result(requireClient().rpc('cancel_v5_trigger_review',{target})),
   triggerReviewRequests:()=>result(requireClient().from('trigger_review_requests').select('*').order('created_at')),
   triggerReviewerDecisions:()=>result(requireClient().from('trigger_reviewer_decisions').select('*')),
