@@ -1,5 +1,6 @@
 import { encryptedWrite, ciphertextEnvelope } from './ciphertextBoundary';
-import { supabase } from "../supabase";
+import { supabase, supabaseConfig } from "../supabase";
+import {createPasskeyAdapter} from '../modules/security/passkeys';
 import { validateNewPassword } from './passwordPolicy';
 import {AurevaError} from '../modules/security/safeEvents';
 const requireClient = () => {
@@ -13,7 +14,12 @@ const result = async (request) => {
 };
 const grantTransport=grant=>({id:grant.id,record_id:grant.record_id,owner_id:grant.owner_id,vault_id:grant.vault_id,recipient_id:grant.recipient_id,permissions:grant.permissions,grant_version:grant.grant_version,crypto_version:grant.crypto_version,salt:grant.salt,sender_public_material:grant.sender_public_material,encrypted_record_key:ciphertextEnvelope(grant.encrypted_record_key)});
 const planningTable=kind=>{const table={policy:'verification_policies',rule:'trigger_rules',entry:'trigger_review_entries'}[kind];if(!table)throw new Error('Invalid planning collection.');return table;};
+const passkeys=createPasskeyAdapter(supabase,supabaseConfig?.passkeysEnabled);
 export const AuthProvider = {
+  get passkeysAvailable(){return passkeys.available;},
+  signInWithPasskey:()=>passkeys.signIn(),
+  registerPasskey:()=>passkeys.register(),
+  listPasskeys:()=>passkeys.list(),
   signIn: (email,password) => result(requireClient().auth.signInWithPassword({email,password})),
   signUp: async (email,password,name,redirectTo) => { validateNewPassword(password); return result(requireClient().auth.signUp({email,password,options:{emailRedirectTo:redirectTo,data:{name}}})); },
   requestPasswordReset: (email,redirectTo) => result(requireClient().auth.resetPasswordForEmail(email,{redirectTo})),

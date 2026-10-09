@@ -7,7 +7,7 @@ export function validateReleaseConfig(env) {
   // Vercel injects these documented public build identifiers for Vite deployments.
   // Keep exact names: accepting every VITE_VERCEL_* could expose credentials.
   const allowed = new Set([
-    'VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY','VITE_SUPABASE_PUBLISHABLE_KEY',
+    'VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY','VITE_SUPABASE_PUBLISHABLE_KEY','VITE_ENABLE_PASSKEYS',
     ...['ENV','TARGET_ENV','URL','BRANCH_URL','PROJECT_PRODUCTION_URL','HASH_SALT',
       'GIT_PROVIDER','GIT_REPO_SLUG','GIT_REPO_OWNER','GIT_REPO_ID','GIT_COMMIT_REF',
       'GIT_COMMIT_SHA','GIT_COMMIT_MESSAGE','GIT_COMMIT_AUTHOR_LOGIN',
@@ -16,6 +16,7 @@ export function validateReleaseConfig(env) {
   const unexpected = Object.keys(env).filter(name => name.startsWith('VITE_') && !allowed.has(name));
   if (unexpected.length)
     issues.push(`Unexpected browser-exposed environment variable. Review the explicit allowlist: ${unexpected.map(name => /^VITE_[A-Z0-9_]{1,80}$/.test(name) ? name : '[invalid name]').join(', ')}`);
+  if(env.VITE_ENABLE_PASSKEYS!==undefined&&!['true','false'].includes(env.VITE_ENABLE_PASSKEYS))issues.push('Passkey pilot flag must be exactly true or false.');
   try {
     const url = new URL(env.VITE_SUPABASE_URL?.trim());
     if (url.protocol !== 'https:' || !/^[a-z]{20}\.supabase\.co$/.test(url.hostname) ||

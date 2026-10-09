@@ -70,6 +70,13 @@ export default function Auth() {
       setBusy(false);
     }
   }
+  async function passkeySignIn(){
+    if(busy||!AuthProvider.passkeysAvailable)return;
+    setBusy(true);setNotice(null);
+    try{await AuthProvider.signInWithPasskey();setPassword('');}
+    catch(error){setNotice({text:errorMessage(error)});}
+    finally{setBusy(false);}
+  }
   return (
     <main className="auth-page">
       <section className="auth-story">
@@ -240,7 +247,7 @@ export default function Auth() {
           </form>
           <p className="auth-legal">Limited beta · Read our <a href="/privacy">Interim Privacy Notice</a> and <a href="/terms">Terms of Use</a> before creating an account. Use sample or non-sensitive data.</p>
           {(mode === 'login' || mode === 'signup') && <button className="text-button" disabled={busy} onClick={() => changeMode('confirm')}>Need a confirmation email?</button>}
-          {mode === "login" && <><p className="auth-divider">OR</p><button className="secondary passkey-button" disabled><Icon name="fingerprint" size={32}/><span>Use Passkey / Biometric<small>Not connected yet · use your password</small></span><Icon name="arrow"/></button></>}
+          {mode === "login" && <><p className="auth-divider">OR</p><button type="button" className="secondary passkey-button" disabled={busy||!AuthProvider.passkeysAvailable} onClick={passkeySignIn}><Icon name="fingerprint" size={32}/><span>Use Passkey / Biometric<small>{AuthProvider.passkeysAvailable?'Account sign-in · vault unlock stays separate':'Not enabled here · use your password'}</small></span><Icon name="arrow"/></button></>}
           <p className="auth-switch">
             {mode === "login" ? "New to LEQVOR?" : "Already have an account?"}{" "}
             <button

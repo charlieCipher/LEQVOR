@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest';
+import {createClient} from '@supabase/supabase-js';
 vi.mock('@supabase/supabase-js', () => ({ createClient: vi.fn(() => ({})) }));
 afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
 async function configured(url, dev, key = 'public-test-key') {
@@ -22,4 +23,10 @@ it('retains HTTPS support in production', async () => {
 });
 it('rejects secret keys on local development endpoints', async () => {
   expect(await configured('http://127.0.0.1:54321', true, 'sb_secret_fixture')).toBe(false);
+});
+it('opts in to the experimental passkey SDK only with an explicit pilot flag',async()=>{
+ vi.stubEnv('VITE_ENABLE_PASSKEYS','false');await configured('https://example.supabase.co',false);
+ expect(createClient.mock.lastCall[2].auth.experimental.passkey).toBe(false);
+ vi.resetModules();vi.stubEnv('VITE_ENABLE_PASSKEYS','true');await configured('https://example.supabase.co',false);
+ expect(createClient.mock.lastCall[2].auth.experimental.passkey).toBe(true);
 });

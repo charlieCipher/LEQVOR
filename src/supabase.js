@@ -24,11 +24,13 @@ try {
 }
 export const supabaseConfig = {
   configured,
+  passkeysEnabled: import.meta.env.VITE_ENABLE_PASSKEYS === 'true',
   url: url || "",
   projectHost: configured ? new URL(url).host : "",
 };
 export const supabase = configured
   ? createClient(url, key, {
+      auth: {experimental: {passkey: supabaseConfig.passkeysEnabled}},
       global: {
         fetch: (input, init = {}) =>
           fetch(input, {

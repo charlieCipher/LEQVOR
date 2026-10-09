@@ -5,6 +5,10 @@ import { validateReleaseConfig } from '../scripts/check-release-config.mjs';
 import { inspectHeaders,checkDeployment } from '../scripts/check-deployment.mjs';
 import { readFile } from 'node:fs/promises';
 const valid = {VITE_SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_syntheticpublickey1234'};
+it('allows only a boolean-string public passkey pilot flag',()=>{
+ for(const flag of ['true','false'])expect(validateReleaseConfig({...valid,VITE_ENABLE_PASSKEYS:flag})).toEqual([]);
+ const issues=validateReleaseConfig({...valid,VITE_ENABLE_PASSKEYS:'PRIVATE_CANARY'});expect(issues.length).toBeGreaterThan(0);expect(issues.join()).not.toContain('PRIVATE_CANARY');
+});
 it('accepts documented Vercel build metadata without allowing arbitrary prefixed secrets',()=>{
   expect(validateReleaseConfig({...valid,VITE_VERCEL_ENV:'production',
     VITE_VERCEL_URL:'aureva-example.vercel.app',VITE_VERCEL_GIT_COMMIT_SHA:'abc123',

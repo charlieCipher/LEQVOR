@@ -1,7 +1,7 @@
 // @vitest-environment node
 import {afterEach,it,expect,vi} from 'vitest';
 const sdk=vi.hoisted(()=>({from:vi.fn(),rpc:vi.fn(),storage:{from:vi.fn()},auth:{getSession:vi.fn(),mfa:{getAuthenticatorAssuranceLevel:vi.fn(),listFactors:vi.fn(),challengeAndVerify:vi.fn()}}}));
-vi.mock('../src/supabase',()=>({supabase:sdk}));
+vi.mock('../src/supabase',()=>({supabase:sdk,supabaseConfig:{passkeysEnabled:false}}));
 import {DatabaseProvider,ObjectStorageProvider,AuthProvider} from '../src/lib/providers';
 const envelope={crypto_version:'leqvor-v5',algorithm:'AES-256-GCM',aad_version:1,nonce:'AAAAAAAAAAAAAAAA',ciphertext:'AAAAAAAAAAAAAAAAAAAAAA=='};
 const row={id:'id',owner_id:'owner',vault_id:'vault',crypto_version:'leqvor-v5',encrypted_metadata:envelope,encrypted_payload:envelope,wrapped_dek:envelope};

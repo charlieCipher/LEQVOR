@@ -1,10 +1,10 @@
 import {afterEach,it,expect,vi} from 'vitest';
 import {cleanup,render,screen,fireEvent,waitFor} from '@testing-library/react';
-const auth=vi.hoisted(()=>({configured:true,signIn:vi.fn(),signUp:vi.fn(),requestPasswordReset:vi.fn(),resendConfirmation:vi.fn()}));
+const auth=vi.hoisted(()=>({configured:true,signIn:vi.fn(),signUp:vi.fn(),requestPasswordReset:vi.fn(),resendConfirmation:vi.fn(),signInWithPasskey:vi.fn(),passkeysAvailable:false}));
 vi.mock('../src/lib/providers',()=>({AuthProvider:auth}));
 vi.mock('../src/supabase',()=>({supabaseConfig:{configured:true}}));
 import Auth from '../src/Auth';
-afterEach(()=>{cleanup();vi.resetAllMocks();});
+afterEach(()=>{cleanup();vi.resetAllMocks();auth.passkeysAvailable=false;});
 it('announces mode changes, links password guidance and conceals new passwords',()=>{
  render(<Auth/>);
  const input=screen.getByPlaceholderText('Enter your password');
@@ -17,6 +17,14 @@ it('announces mode changes, links password guidance and conceals new passwords',
 it('does not present unavailable passkeys as an enabled sign-in method',()=>{
  render(<Auth/>);
  expect(screen.getByRole('button',{name:/Use Passkey/}).disabled).toBe(true);
+});
+it('uses the existing passkey control for account authentication without sending a password',async()=>{
+ auth.passkeysAvailable=true;auth.signInWithPasskey.mockResolvedValue({});render(<Auth/>);
+ fireEvent.change(screen.getByPlaceholderText('Enter your password'),{target:{value:'private-canary'}});
+ fireEvent.click(screen.getByRole('button',{name:/Use Passkey/}));
+ await waitFor(()=>expect(auth.signInWithPasskey).toHaveBeenCalledWith());
+ await waitFor(()=>expect(screen.getByPlaceholderText('Enter your password').value).toBe(''));
+ expect(auth.signIn).not.toHaveBeenCalled();
 });
 it('submits account credentials through the adapter and clears the password on success',async()=>{
  auth.signIn.mockResolvedValue({});render(<Auth/>);

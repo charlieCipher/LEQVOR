@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 const auth = vi.hoisted(() => ({ getUser: vi.fn(), signInWithPassword: vi.fn(), mfa: {
   getAuthenticatorAssuranceLevel: vi.fn(), listFactors: vi.fn(), challengeAndVerify: vi.fn(),
 } }));
-vi.mock('../src/supabase', () => ({ supabase: { auth } }));
+vi.mock('../src/supabase', () => ({ supabase: { auth },supabaseConfig:{passkeysEnabled:false} }));
 import { AuthProvider } from '../src/lib/providers';
 const user = { id: 'owner', email: 'owner@example.invalid' };
 const ok = data => ({ data, error: null });
