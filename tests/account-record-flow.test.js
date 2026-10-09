@@ -39,10 +39,25 @@ async function setup(){
   db.lastGraph=graph;return saved;
  });
  db.saveDocumentBundle=db.saveAssetBundle;
+ db.savePolicyBundle=db.saveAssetBundle;
  const storage={upload:async(path,e)=>objects.set(path,ciphertextEnvelope(e)),download:async(path)=>objects.get(path),remove:vi.fn(async(paths)=>paths.forEach(p=>objects.delete(p)))};
  return {session,db,storage,rows,objects,jobs,service:new V5VaultService(session,vault,db,storage)};
 }
 const file=()=>new File(['PRIVATE_FILE_CANARY'],'private-canary.txt',{type:'text/plain'});
+it('round trips encrypted policy roles, graph updates and independent evidence files',async()=>{
+ const t=await setup(),person=crypto.randomUUID(),asset=crypto.randomUUID();
+ const payload={institution:'PRIVATE_INSURER',insurance:{owner_id:'self',insured_ids:[person],beneficiary_ids:[person],asset_ids:[asset],renewal_date:'2027-10-01'},continuity_details:{kind:'OTHER',jurisdiction:{country:'IN'}}};
+ const record=await t.service.create({title:'Policy',category:'Insurance'},payload,file());
+ expect(record.continuity_kind).toBe('POLICY');expect(t.db.lastGraph.edges).toHaveLength(3);
+ const updated=await t.service.update(record,{},payload,file());
+ expect((await t.service.reveal(updated)).insurance).toEqual(payload.insurance);
+ const [listed]=await t.service.list();expect(listed.insurance_index.renewal_date).toBe('2027-10-01');
+ const files=await t.service.files(updated);expect(files).toHaveLength(2);
+ expect(new TextDecoder().decode((await t.service.download(files[1])).bytes)).toBe('PRIVATE_FILE_CANARY');
+ expect(JSON.stringify([...t.rows.values()])).not.toContain('PRIVATE_INSURER');expect(JSON.stringify([...t.rows.values()])).not.toContain(person);
+ await expect(t.service.update(updated,{category:'Other',continuity_kind:'OTHER'},{continuity_details:{kind:'OTHER'}})).rejects.toMatchObject({code:'RECORD_TYPE_CHANGE'});
+ expect(t.db.savePolicyBundle).toHaveBeenCalledTimes(2);
+});
 it('round trips encrypted asset people links and exact allocations',async()=>{
  const t=await setup();
  const asset={ownership_type:'JOINT',owners:[{person_id:'PRIVATE_PERSON_ID',allocation_bps:3333},{person_id:'SECOND_PRIVATE_PERSON',allocation_bps:6667}],nominees:[],beneficiaries:[],nomination_status:'UNKNOWN'};

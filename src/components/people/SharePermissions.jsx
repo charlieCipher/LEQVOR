@@ -3,6 +3,7 @@ import {Button,Empty} from '../ui/Primitives';
 import SecureAction from '../security/SecureAction';
 import {safeFailure} from '../../modules/security/safeEvents';
 import {useSharingController} from './useSharingController';
+import TriggerReviews from './TriggerReviews';
 
 function fields(value,prefix='',depth=0){
  if(depth>8||value===null||value===undefined)return [];
@@ -12,7 +13,8 @@ function fields(value,prefix='',depth=0){
 
 // Uses the existing permissions dialog's rows and verification controls.
 // Metadata only: opening this dialog never decrypts a shared record.
-export default function SharePermissions({service}){
+const EMPTY = Object.freeze([]);
+export default function SharePermissions({service,triggerService,people=EMPTY,records=EMPTY}){
  const disclosure=useSharingController(service);
  const [loaded,setRows]=useState(null),[error,setError]=useState(''),[selection,setSelected]=useState(null),[reload,setReload]=useState(0);
  const [now,setNow]=useState(()=>Date.now());
@@ -48,5 +50,6 @@ export default function SharePermissions({service}){
    const current=['pending','active'].includes(row.status)&&Date.parse(row.expires_at)>now;
    return <div className="setting-row" key={row.id}><span><strong>Record {String(row.record_id).slice(0,8)}</strong><small>{owner?'Sent':'Received'} · View only · {current?row.status:row.status==='revoked'?'revoked':'expired'} · revision {row.record_revision}</small></span><Button disabled={!current||disclosure.busy} onClick={()=>!owner&&row.status==='active'?disclosure.reveal(row.id):setSelected({source:service,row})}>{owner?'Revoke access':row.status==='pending'?'Accept invitation':'Reveal securely'}</Button></div>;
   })}
+  {triggerService&&<TriggerReviews service={triggerService} people={people} records={records}/>}
  </div>;
 }

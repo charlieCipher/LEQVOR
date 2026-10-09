@@ -63,6 +63,10 @@ export const DatabaseProvider = {
   reviewSigningIdentity:()=>result(requireClient().from('review_signing_keys').select('*').maybeSingle()),
   registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;return result(requireClient().rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty:public_key.kty,crv:public_key.crv,x:public_key.x,y:public_key.y}}}));},
   createTriggerManifest:data=>result(requireClient().rpc('create_v5_trigger_manifest',data)),
+  triggerManifests:()=>result(requireClient().from('trigger_manifests').select('*').order('created_at',{ascending:false})),
+  deliverTriggerReview:(target,row,grant)=>result(requireClient().rpc('deliver_v5_trigger_review',{target,record_data:{id:row.id,owner_id:row.owner_id,vault_id:row.vault_id,revision:row.revision,crypto_version:row.crypto_version,encrypted_metadata:ciphertextEnvelope(row.encrypted_metadata),encrypted_payload:ciphertextEnvelope(row.encrypted_payload)},grant_data:grantTransport(grant)})),
+  readTriggerReview:target=>result(requireClient().rpc('read_v5_trigger_review',{target})),
+  authorizeReviewedInvitation:(manifest,grant,key)=>result(requireClient().rpc('authorize_v5_reviewed_invitation',{target_manifest:manifest,grant_data:grantTransport(grant),recipient_key:key})),
   triggerManifestReadiness:target=>result(requireClient().rpc('v5_trigger_manifest_readiness',{target})),
   requestTriggerReview:(rule,grant,key,manifest)=>result(requireClient().rpc('request_v5_trigger_review',{target_rule:rule,selected_grant:grant,expected_key:key,target_manifest:manifest})),
   decideTriggerReview:async(target,decision,signature)=>{
@@ -99,6 +103,7 @@ export const DatabaseProvider = {
   recordVersions:id=>result(requireClient().from('record_revision_history').select('*').eq('record_id',id).order('revision',{ascending:false})),
   saveDocumentBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_document',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
   saveAssetBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_asset',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
+  savePolicyBundle:(row,revision,file,graph)=>result(requireClient().rpc('save_vnext_policy',{record_data:encryptedWrite('record',row),expected_revision:revision,file_data:file?encryptedWrite('file',file):null,entity_data:graph.entities,edge_data:graph.edges.map(e=>encryptedWrite('edge',e))})),
   graphEntities:()=>result(requireClient().from('continuity_entities').select('*')),
   graphEdges:()=>result(requireClient().from('continuity_edges').select('*')),
   registerGraphEntity:({id,owner_id,vault_id,entity_type,record_id,person_id})=>result(requireClient().from('continuity_entities').insert({id,owner_id,vault_id,entity_type,record_id,person_id}).select().single()),

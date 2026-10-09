@@ -357,6 +357,7 @@ export function RecordPage({ record, go, onLock, onChanged, records=[], people=[
                 records={records}
                 people={people}
                 onOpenRecord={id=>go(`/app/vault/${encodeURIComponent(id)}`)}
+                onOpenPerson={id=>go(`/app/people?person=${encodeURIComponent(id)}`)}
                 onChanged={onChanged}
                 onDeleted={() => {
                   onChanged?.();

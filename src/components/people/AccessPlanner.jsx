@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Button, Badge, Empty } from '../ui/Primitives';
 import SecureAction from '../security/SecureAction';
 import AttachmentChoices from './AttachmentChoices';
+import TriggerPlanner from './TriggerPlanner';
 
-export default function AccessPlanner({ demo, people, records, emergency, onSave, onInvite, onFiles }) {
+export default function AccessPlanner({ demo, people, records, emergency, onSave, onInvite, onFiles, triggerService }) {
   const [person, setPerson] = useState(''), [chosen, setChosen] = useState([]);
   const [permission, setPermission] = useState('View only'), [condition, setCondition] = useState('Owner approval');
   const [review, setReview] = useState(false), [saved, setSaved] = useState(false);
@@ -13,6 +14,7 @@ export default function AccessPlanner({ demo, people, records, emergency, onSave
   const live=!demo&&!emergency&&typeof onInvite==='function';
   const confirmed=!!recipient?.recipient_binding?.verified_at;
   const ready=!!person&&chosen.length>0&&(demo||(live&&confirmed&&chosen.length===1));
+  if(!demo&&emergency&&triggerService)return <TriggerPlanner service={triggerService} people={people} records={records}/>;
   if (!people.length || !records.length) return <Empty title="Start with people and records" text="Add a trusted person and a record before planning selected access."/>;
   if(verify&&!saved)return <SecureAction title="Send selected record invitation" onVerified={async()=>{
     if(!ready||!live)throw new Error('Selected access unavailable.');

@@ -1,6 +1,14 @@
 # Trigger and verification planning
 
-9 October 2026 — local implementation, not applied to production.
+9 October 2026 — local implementation, not applied to production. Earlier increment notes below are historical; the delivery/owner-authorization increment now connects existing dialogs as described in ITEMS-1-6-ROLLOUT.md.
+
+## Delivery and explicit owner authorization
+
+The review-delivery migration adds immutable encrypted recipient-specific context packets, readable only by the assigned reviewer while the accepted target share remains current. Each packet has an independent DEK; the owner VMK wrapper is excluded. The client binds revealed content to request/manifest IDs and hash, and drops it after 30 seconds, focus loss or vault lock. An undelivered request cannot receive a verified decision.
+
+The final recipient account/public key is committed into the manifest before reviews are requested. The atomic authorization RPC rechecks threshold, revisions, expiry, accepted reviewer grants, exact recipient key and recent authentication/MFA. A manifest can produce one pending selected-record invitation; it never automatically activates access. Changing the recipient, replaying authorization or revoking an approval grant prevents authorization. Recipients still accept the invitation. This is an administrative approval workflow, not legal eligibility, a universal Shield subsystem or emergency automation.
+
+Signing-card registration and independent pin confirmation use existing People/Security controls. Emergency Access prepares OWNER_APPROVAL/VIEW review requests, and Review Permissions reveals context, signs decisions and lets the owner explicitly authorize eligible manifests. Evidence copies require explicit selection/consent and exclude attachments/unrelated links. Hosted acceptance remains pending deployment of all seven migrations listed in ITEMS-1-6-ROLLOUT.md.
 
 `V5VaultService.triggerPlanning` supplies owner-only encrypted policy creation, record-specific draft rules and append-only evidence/review entries. The database provider rejects decrypted fields at its transport boundary. Each item has its own record DEK, wrapped with the owner's VMK; rule/policy/record/evidence references are also bound inside authenticated ciphertext. Retrieval requires an unlocked session and drops results if Cold Lock occurs during the operation.
 

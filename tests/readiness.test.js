@@ -1,10 +1,18 @@
 import {describe,it,expect} from 'vitest';
-import {assessReadiness,completeness,needsReview,recordedSections,reviewSchedule,reviewDate} from '../src/modules/continuity/readiness';
+import {assessReadiness,completeness,continuityIndex,needsReview,recordedSections,reviewSchedule,reviewDate} from '../src/modules/continuity/readiness';
 describe('documented continuity readiness',()=>{
  it('scores only active records and returns exact missing fields',()=>{const result=assessReadiness([{id:'a',completeness:{context:true,institution:true}},{id:'b',archived:true},{id:'c',kind:'statement'}]);expect(result.percent).toBe(43);expect(result.gaps.map(g=>g.field)).toEqual(['original_location','professional','trusted_person','instructions']);});
  it('uses explicit booleans rather than truthy imported data',()=>{expect(assessReadiness([{id:'a',completeness:{context:'yes'}}]).percent).toBe(14);expect(assessReadiness([]).percent).toBe(0);});
  it('flags missing, invalid, future, and expired review dates',()=>{const now=Date.parse('2026-09-11');for(const date of [undefined,'bad','2027-01-01','2025-01-01'])expect(needsReview({reviewed_at:date},now)).toBe(true);expect(needsReview({reviewed_at:'2026-08-01'},now)).toBe(false);});
  it('derives completeness without retaining private input',()=>{const result=completeness({description:'private',instructions:'   ',institution:'provider'});expect(result.context).toBe(true);expect(result.instructions).toBe(false);expect(JSON.stringify(result)).not.toContain('private');});
+});
+it('detects deleted links and expired reviews rather than accepting descriptions as relationships',()=>{
+ const index=continuityIndex({continuity_details:{kind:'ASSET',jurisdiction:{country:'IN'},asset:{owners:[{person_id:'owner'}],beneficiaries:[{person_id:'deleted'}],documents:['missing']}}});
+ const record={id:'home',continuity_index:index,completeness:completeness(Object.fromEntries(['description','institution','original_location','professional','trusted_person','instructions'].map(f=>[f,'recorded']))),reviewed_at:'2024-01-01'};
+ const result=assessReadiness([record],Date.parse('2026-10-09'),[{id:'owner'}]);
+ expect(result.gaps.map(g=>g.field)).toEqual(['review','linked_people','linked_records','beneficiary']);
+ expect(result.percent).toBeLessThan(100);
+ expect(JSON.stringify(index)).not.toContain(':"recorded"');
 });
 
 it('uses valid custom calendar dates and rejects rollover or malformed dates',()=>{

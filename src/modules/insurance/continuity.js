@@ -20,7 +20,7 @@ export function insuranceIndex(payload = {}, fileCount = 0) {
     insured_ids: ids(p.insured_ids), beneficiary_ids: ids(p.beneficiary_ids),
     asset_ids: ids(p.asset_ids), trusted_ids: ids(p.trusted_ids),
     policy_status: ['Active', 'Inactive'].includes(p.policy_status) ? p.policy_status : 'Not recorded',
-    renewal_recorded: validDate(p.renewal_date),
+    renewal_recorded: validDate(p.renewal_date), renewal_date: validDate(p.renewal_date) ? p.renewal_date : null,
     checks: {
       provider: present(payload.institution), reference: present(payload.reference),
       owner: present(p.owner_id), insured: ids(p.insured_ids).length > 0,
@@ -35,8 +35,8 @@ export function claimReadiness(record, people) {
   if (people) {
     const known = new Set(people.map(p => p.id));
     checks.owner = checks.owner === true && (index.owner_id === 'self' || known.has(index.owner_id));
-    checks.insured = checks.insured === true && ids(index.insured_ids).some(id => id === 'self' || known.has(id));
-    checks.beneficiary = checks.beneficiary === true && ids(index.beneficiary_ids).some(id => known.has(id));
+    checks.insured = checks.insured === true && ids(index.insured_ids).length > 0 && ids(index.insured_ids).every(id => id === 'self' || known.has(id));
+    checks.beneficiary = checks.beneficiary === true && ids(index.beneficiary_ids).length > 0 && ids(index.beneficiary_ids).every(id => known.has(id));
   }
   const items = CLAIM_ITEMS.map(([key, label]) => ({ key, label, complete: checks[key] === true }));
   return { items, completed: items.filter(i => i.complete).length, total: items.length };
@@ -65,7 +65,7 @@ export function coverageFacts(records, assetId) {
   return facts;
 }
 export function readInsuranceForm(form, records, people) {
-  const personIds = new Set(people.map(p => p.id)), assetIds = new Set(records.filter(r => r.category !== 'Insurance').map(r => r.id));
+  const personIds = new Set(people.filter(p=>!p.archived).map(p => p.id)), assetIds = new Set(records.filter(isInsuranceAsset).map(r => r.id));
   const selected = (field, allowed, self = false) => [...new Set(form.getAll(field).filter(id => allowed.has(id) || (self && id === 'self')))];
   const owner = form.get('policy_owner') || '';
   const date = form.get('renewal_date') || '';
@@ -80,4 +80,15 @@ export function readInsuranceForm(form, records, people) {
     asset_ids: selected('policy_asset', assetIds),
     renewal_date: date, claim_instructions: String(form.get('claim_instructions') || ''),
   };
+}
+export const isInsuranceAsset = record => !record.archived && (record.continuity_kind === 'ASSET' || (record.demo && ['Property','Financial','Other'].includes(record.category)));
+
+export function renewalSchedule(records,now=Date.now()) {
+  if(!Number.isFinite(now))throw new Error('Supply the review time.');
+  const today=new Date(now),date=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  return insurancePolicies(records).map(record=>{
+    const value=record.insurance_index?.renewal_date;
+    const due=validDate(value)?new Date(`${value}T00:00:00`):null;
+    return {id:record.id,title:record.title,date:value||null,state:!due?'MISSING':due<date?'OVERDUE':due.getTime()-date.getTime()<=30*86400000?'UPCOMING':'RECORDED'};
+  }).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 }

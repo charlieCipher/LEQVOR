@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useVault } from "../../features/vault/VaultContext";
 import { Button } from "../ui/Primitives";
-import { safeFailure } from "../../modules/security/safeEvents";
+import { safeFailure,AurevaError } from "../../modules/security/safeEvents";
 import {PERSON_ROLES} from '../../modules/continuity/recordDetails';
 import {readProfessionalDetails} from '../../modules/continuity/professionalDetails';
 export default function TrustedPersonForm({ onSaved,person=null }) {
@@ -36,6 +36,8 @@ export default function TrustedPersonForm({ onSaved,person=null }) {
         try {
           const card=String(form.get('recipient_card') || '').trim();
           const fingerprint=String(form.get('fingerprint') || '').trim();
+          const reviewCard=String(form.get('review_card')||'').trim(),reviewFingerprint=String(form.get('review_fingerprint')||'').trim();
+          if((reviewCard||reviewFingerprint)&&form.get('review_confirmed')!=='on')throw new AurevaError('REVIEWER_CONFIRMATION_REQUIRED','Independently confirm the reviewer account and signing-key fingerprint.');
           if ((card || fingerprint) && form.get('confirmed') !== 'on') {
             setError('Confirm the account identifier and fingerprint with this person through a separate trusted channel.');
             return;
@@ -48,7 +50,8 @@ export default function TrustedPersonForm({ onSaved,person=null }) {
               roles:form.getAll('roles').filter(role=>PERSON_ROLES.includes(role)),
               reviewed_at: new Date().toISOString(),
             };
-          const saved=person?await v.service.updatePerson(person,details):await v.service.addPerson(details,card || fingerprint ? {card,fingerprint} : undefined);
+          if(!person&&(reviewCard||reviewFingerprint)&&!(card&&fingerprint))throw new AurevaError('RECIPIENT_REQUIRED','Verify the recipient sharing card before linking a signing key.');
+          const saved=person?(reviewCard||reviewFingerprint?await v.service.updatePerson(person,details,{card:reviewCard,fingerprint:reviewFingerprint}):await v.service.updatePerson(person,details)):await v.service.addPerson(details,card || fingerprint ? {card,fingerprint,...(reviewCard||reviewFingerprint?{reviewCard,reviewFingerprint}:{})} : undefined);
           if (active.current) {
             element.reset();
             onSaved(saved);
@@ -92,6 +95,12 @@ export default function TrustedPersonForm({ onSaved,person=null }) {
         <label>Recipient public sharing card<textarea name="recipient_card" rows={4} maxLength={2048}/></label>
         <label>Independently confirmed fingerprint<input name="fingerprint" maxLength={43} autoComplete="off" spellCheck={false}/></label>
         <label className="checkbox-label"><input type="checkbox" name="confirmed"/>I independently confirmed this person's account identifier and fingerprint.</label>
+      </details>}
+      {(!person||person.recipient_binding)&&!person?.review_signing_binding&&<details><summary>Verify a reviewer signing key (optional)</summary>
+        <p className="field-hint">Use the public reviewer card from the same recipient account. Confirm its fingerprint in person or on a trusted call. This key grants no access.</p>
+        <label>Public reviewer card<textarea name="review_card" rows={4} maxLength={2048}/></label>
+        <label>Independently confirmed signing-key fingerprint<input name="review_fingerprint" maxLength={43} autoComplete="off" spellCheck={false}/></label>
+        <label className="checkbox-label"><input type="checkbox" name="review_confirmed"/>I independently confirmed this signing key and account.</label>
       </details>}
       {error && (
         <p className="notice" role="alert">

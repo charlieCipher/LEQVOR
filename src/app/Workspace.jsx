@@ -8,6 +8,7 @@ import LegacyImport from "../components/security/LegacyImport";
 import MfaSetup from "../components/security/MfaSetup";
 import Pricing from "../Pricing";
 import { assessReadiness } from "../modules/continuity/readiness";
+import {useReviewClock} from '../modules/continuity/useReviewClock';
 import { useEffect, useRef, useState } from "react";
 import Icon from "../components/Icon";
 import {
@@ -80,8 +81,11 @@ export default function Workspace({ session, demo = false }) {
     .replace(/[._-]+/g, " ")
     .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
   function go(next) {
-    window.history.pushState({}, "", next + (demo ? "?preview=1" : ""));
-    setPath(next);
+    const target=new URL(next,window.location.origin);
+    if(target.origin!==window.location.origin||!target.pathname.startsWith('/app'))throw new Error('Invalid workspace destination.');
+    if(demo)target.searchParams.set('preview','1');
+    window.history.pushState({}, "", target.pathname+target.search);
+    setPath(target.pathname);
     setModal(null);
     setEpoch((e) => e + 1);
     setSearch("");
@@ -157,8 +161,9 @@ export default function Workspace({ session, demo = false }) {
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
+  const reviewNow=useReviewClock();
   const notify = (text) => setToast(text),
-    pct = demo ? 83 : assessReadiness(records).percent,
+    pct = demo ? 83 : assessReadiness(records,reviewNow,people).percent,
     active =
       nav.find(([url]) => url !== "/app" && path.startsWith(url)) || nav[0];
   async function signOut() {
@@ -409,6 +414,7 @@ export default function Workspace({ session, demo = false }) {
             />
           ) : (path === "/app/people" || path === "/app/access") ? (
             <People
+              key={epoch}
               {...{ people, setPeople, demo, session, setModal, notify, records, go }}
             />
           ) : path === "/app/continuity" ? (
@@ -483,9 +489,9 @@ export default function Workspace({ session, demo = false }) {
           ) : securityDetailNames.has(modal) ? (
             <SecurityDetails key={modal} name={modal} demo={demo} records={records} preferences={detailPreferences(modal, previewPreferences)} onSave={value => setPreviewPreferences(p => saveDetailPreferences(p, modal, value))}/>
           ) : modal === 'Share Record' || modal === 'Emergency Access' ? (
-            <AccessPlanner key={modal} demo={demo} people={people} records={records} emergency={modal === 'Emergency Access'} onSave={plan => setAccessPlans(p => [...p, plan])} onInvite={!demo&&vaultContext?.service.sharing?(record,person,files)=>vaultContext.service.sharing.invite(record,person,files):undefined} onFiles={!demo&&vaultContext?.service?record=>vaultContext.service.fileChoices(record):undefined}/>
+            <AccessPlanner key={modal} triggerService={!demo?vaultContext?.service.triggerPlanning:undefined} demo={demo} people={people} records={records} emergency={modal === 'Emergency Access'} onSave={plan => setAccessPlans(p => [...p, plan])} onInvite={!demo&&vaultContext?.service.sharing?(record,person,files)=>vaultContext.service.sharing.invite(record,person,files):undefined} onFiles={!demo&&vaultContext?.service?record=>vaultContext.service.fileChoices(record):undefined}/>
           ) : modal === 'Review Permissions' ? (
-            !demo&&vaultContext?.service.sharing?<SharePermissions service={vaultContext.service.sharing}/>:
+            !demo&&vaultContext?.service.sharing?<SharePermissions service={vaultContext.service.sharing} triggerService={vaultContext.service.triggerPlanning} people={people} records={records}/>:
             <div className="stack-form"><p className="muted">Relationships never grant permissions automatically.</p>{accessPlans.length ? accessPlans.map((plan,i) => <div className="setting-row" key={i}><span><strong>{people.find(p => p.id===plan.person)?.display_name}</strong><small>{plan.records.length} records · {plan.permission} · {plan.condition}</small></span><Button onClick={() => setAccessPlans(p => p.filter((_,index) => index!==i))}>Remove sample plan</Button></div>) : <Empty title="No access plans" text="Use Share Record to review selected access. No real permissions have been granted."/>}</div>
           ) : modal === "Plan" ? (
             <Pricing onClose={() => setModal(null)} />
@@ -534,3 +540,4 @@ export default function Workspace({ session, demo = false }) {
     </div>
   );
 }
+

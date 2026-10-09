@@ -23,9 +23,9 @@ export default function AssetPeopleFields({value={},people=[],records=[]}){
  {['documents','policies','instructions'].map(group=><fieldset key={group}><legend>Linked {group}</legend>{records.map(r=><label className="checkbox-label" key={r.id}><input type="checkbox" name={`asset_${group}`} value={r.id} defaultChecked={value[group]?.includes(r.id)||false}/>{r.title}</label>)}{(value[group]||[]).filter(id=>!records.some(r=>r.id===id)).map(id=><label className="checkbox-label" key={id}><input type="checkbox" name={`asset_${group}`} value={id} defaultChecked/>Unavailable record — uncheck to remove this link</label>)}{!records.length&&<p>No other records available.</p>}</fieldset>)}
  <p className="field-hint">Leave unknown allocations blank. Each group may total up to 100%; a partial total is incomplete information. Nominees and beneficiaries are recorded separately. These entries grant no access or legal entitlement.</p></>;
 }
-export function AssetPeopleView({value,people=[]}){
+export function AssetPeopleView({value,people=[],onOpenPerson}){
  if(!value)return null;
  return <section><h3>Ownership and designations</h3><p>Ownership: {value.ownership_type||'UNKNOWN'}</p>
- {ASSET_GROUPS.map(group=><div key={group}><h4>{group[0].toUpperCase()+group.slice(1)}</h4>{value[group]?.length?<ul>{value[group].map(row=><li key={row.person_id}>{people.find(p=>p.id===row.person_id)?.display_name||'Unavailable person'} — {row.allocation_bps==null?'Allocation unknown':`${(row.allocation_bps/100).toFixed(2)}%`}</li>)}</ul>:<p>Not recorded</p>}</div>)}
+ {ASSET_GROUPS.map(group=><div key={group}><h4>{group[0].toUpperCase()+group.slice(1)}</h4>{value[group]?.length?<ul>{value[group].map(row=><li key={row.person_id}>{people.find(p=>p.id===row.person_id)?.display_name||'Unavailable person'} — {row.allocation_bps==null?'Allocation unknown':`${(row.allocation_bps/100).toFixed(2)}%`}{onOpenPerson&&people.some(p=>p.id===row.person_id)&&<a href={`/app/people?person=${encodeURIComponent(row.person_id)}`} onClick={event=>{if(!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onOpenPerson(row.person_id);}}}> Open person</a>}</li>)}</ul>:<p>Not recorded</p>}</div>)}
  <p>Nomination evidence: {value.nomination_evidence||'Not recorded'}</p></section>;
 }

@@ -1,11 +1,53 @@
-import {encryptRecord,decryptRecordPayload,newId,canonical} from '../security/v5Crypto';
+import {encryptRecord,decryptRecordPayload,newId,canonical,createRecordGrant,decryptGrantedRecord,verifySharingIdentity} from '../security/v5Crypto';
+import {recipientKeyFingerprint} from '../security/recipientKeys';
 import {opaqueId,verificationPolicy,triggerPlan,reviewEntry} from './verificationPolicy';
 import {verifyRecipientKey} from '../security/recipientKeys';
 import {createReviewSigningIdentity,signReviewDecision,verifyReviewDecision,reviewPublicKey} from '../security/reviewSignatures';
 
-// Planning only. No record-grant mutation, activation or eligibility determination.
+// Manual review and explicit owner authorization. Never legal eligibility or
+// automatic activation; reviewed invitations still require recipient acceptance.
 export class TriggerPlanningService {
  constructor(session,vault,db){this.session=session;this.vault=vault;this.db=db;}
+ signingCard(register=false){
+  return this.session.run(async(_key,active)=>{
+   const identity=register?await this.enrollSigningKey():await this.db.reviewSigningIdentity();active();
+   if(!identity)return null;this.assertOwner(identity);await reviewPublicKey(identity.public_key);
+   const {kty,crv,x,y}=identity.public_key;const fingerprint=await recipientKeyFingerprint(identity.public_key);active();
+   return {fingerprint,card:JSON.stringify({version:'leqvor-reviewer-v1',owner_id:identity.owner_id,key_id:identity.id,public_key:{kty,crv,x,y}})};
+  });
+ }
+ manifests(){return this.session.run(async(_key,active)=>{const rows=await this.db.triggerManifests();active();rows.forEach(row=>this.assertOwner(row));return rows;});}
+ deliverReview(requestId,manifest,rule,policy,person,evidence){
+  opaqueId(requestId);this.assertOwner(manifest);this.assertOwner(rule);this.assertOwner(policy);this.assertOwner(person);
+  if(manifest.rule_id!==rule.id||rule.policy_id!==policy.id||!Array.isArray(evidence)||evidence.length!==manifest.snapshot?.evidence?.length)throw new Error('Select the complete manifest evidence.');
+  return this.session.run(async(key,active)=>{
+   const binding=person.recipient_binding;
+   if(!binding?.verified_at||!manifest.snapshot.reviewers.some(r=>r.reviewer_id===binding.account_id))throw new Error('Reviewer binding unavailable.');
+   await verifyRecipientKey(binding.public_key,binding.fingerprint);
+   const policyPayload=await decryptRecordPayload(key,policy),rulePayload=await decryptRecordPayload(key,rule),items=[];
+   const same=value=>JSON.stringify(canonical(value));
+   if(same(policy.encrypted_payload)!==same(manifest.snapshot.policy_payload)||same(rule.encrypted_payload)!==same(manifest.snapshot.rule_payload))throw new Error('Planning context changed.');
+   for(const ref of manifest.snapshot.evidence){
+    const record=evidence.find(e=>e.id===ref.record_id);this.assertOwner(record);
+    if(record.revision!==ref.record_revision||same(record.encrypted_payload)!==same(ref.encrypted_payload)||same(record.encrypted_metadata)!==same(ref.encrypted_metadata))throw new Error('Evidence changed. Create a fresh manifest.');
+    items.push({record_id:record.id,revision:record.revision,requirement_index:ref.requirement_index,observed_at:ref.observed_at,payload:await decryptRecordPayload(key,record)});active();
+   }
+   const row={...await encryptRecord(key,{owner_id:this.vault.owner_id,vault_id:this.vault.id,metadata:{title:'Selected verification context'},payload:{domain:'leqvor-review-context-v1',request_id:requestId,manifest_id:manifest.id,manifest_hash:manifest.manifest_hash,recipient:manifest.snapshot.recipient,policy:policyPayload.details,rule:rulePayload.details,evidence:items}}),revision:1};
+   const grant=await createRecordGrant(key,row,binding.account_id,binding.public_key,binding.fingerprint);active();
+   await this.db.deliverTriggerReview(requestId,row,grant);active();
+  });
+ }
+ revealReview(request){
+  if(request?.reviewer_id!==this.vault.owner_id)throw new Error('Review is assigned to another account.');
+  return this.session.run(async(key,active)=>{
+   const [identity,bundle]=await Promise.all([this.db.sharingIdentity(),this.db.readTriggerReview(request.id)]);active();
+   if(identity?.owner_id!==this.vault.owner_id||identity.vault_id!==this.vault.id)throw new Error('Recipient identity unavailable.');
+   await verifySharingIdentity(key,identity);
+   const value=await decryptGrantedRecord(key,identity,bundle.grant,bundle.record);active();
+   if(value.payload?.domain!=='leqvor-review-context-v1'||value.payload.request_id!==request.id||value.payload.manifest_id!==request.manifest_id||value.payload.manifest_hash!==request.manifest_hash)throw new Error('Review context integrity check failed.');
+   return value.payload;
+  });
+ }
  enrollSigningKey(){
   return this.session.run(async(key,active)=>{
    const existing=await this.db.reviewSigningIdentity();active();
@@ -14,7 +56,7 @@ export class TriggerPlanningService {
    await this.db.registerReviewSigningIdentity(identity);active();return identity;
   });
  }
- createManifest(rule,people,grants,evidence){
+ createManifest(rule,people,grants,evidence,recipient){
   this.assertOwner(rule);
   return this.session.run(async(_key,active)=>{
    const policies=await this.read('policy');active();const policy=policies.find(p=>p.id===rule.policy_id);
@@ -32,9 +74,12 @@ export class TriggerPlanningService {
     if(!Number.isSafeInteger(record.revision)||record.revision<1)throw new Error('Evidence revision is unavailable.');
     return {record_id:record.id,record_revision:record.revision,observed_at,requirement_index};
    });
-   const data={target_rule:rule.id,required_approvals:policy.details.minimum_approvals,evidence_days:policy.details.evidence_expiry_days,required_evidence_count:refs.length,reviewers,evidence_refs:refs};active();
+   let selectedRecipient;
+   if(recipient){this.assertOwner(recipient);const binding=recipient.recipient_binding;if(!binding?.verified_at)throw new Error('Verify the selected recipient.');await verifyRecipientKey(binding.public_key,binding.fingerprint);const {kty,crv,x,y}=binding.public_key;selectedRecipient={account_id:binding.account_id,public_key:{kty,crv,x,y}};}
+   const data={target_rule:rule.id,required_approvals:policy.details.minimum_approvals,evidence_days:policy.details.evidence_expiry_days,required_evidence_count:refs.length,reviewers,evidence_refs:refs,...(selectedRecipient?{recipient:selectedRecipient}:{})};active();
    const manifest=await this.db.createTriggerManifest(data);active();this.assertOwner(manifest);
    const snapshot=manifest.snapshot,same=(a,b)=>JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
+   if(selectedRecipient&&!same(snapshot?.recipient,selectedRecipient))throw new Error('Manifest recipient changed.');
    if(manifest.rule_id!==rule.id||manifest.minimum_approvals!==data.required_approvals||!/^[0-9a-f]{64}$/.test(manifest.manifest_hash)||snapshot?.policy_id!==policy.id||snapshot.rule_id!==rule.id||snapshot.owner_id!==this.vault.owner_id||snapshot.vault_id!==this.vault.id||snapshot.minimum_approvals!==data.required_approvals||snapshot.evidence_days!==data.evidence_days||snapshot.required_evidence_count!==refs.length||!same(snapshot.policy_payload,policy.encrypted_payload)||!same(snapshot.rule_payload,rule.encrypted_payload))throw new Error('Policy manifest integrity check failed.');
    const expectedReviewers=reviewers.map(r=>({...r,reviewer_id:grants.find(g=>g.id===r.grant_id).recipient_id})).sort((a,b)=>a.grant_id.localeCompare(b.grant_id));
    if(!same(snapshot.reviewers,expectedReviewers)||snapshot.record?.id!==rule.record_id||grants.filter(g=>reviewers.some(r=>r.grant_id===g.id)).some(g=>g.record_revision!==snapshot.record.revision)||snapshot.evidence?.length!==refs.length)throw new Error('Manifest reference integrity check failed.');
@@ -50,6 +95,18 @@ export class TriggerPlanningService {
    const result=await this.db.triggerManifestReadiness(manifest.id);active();
    if(result.activation_enabled!==false||!['EXPIRED','STALE','BLOCKED','NEEDS_REVIEW','READY_FOR_OWNER_REVIEW'].includes(result.state))throw new Error('Invalid manifest readiness.');
    return result;
+  });
+ }
+ authorize(manifest,record,person){
+  this.assertOwner(manifest);this.assertOwner(record);this.assertOwner(person);
+  const expected=manifest.snapshot?.recipient,binding=person.recipient_binding;
+  if(!expected||!binding?.verified_at||binding.account_id!==expected.account_id||record.id!==manifest.snapshot.record?.id||record.revision!==manifest.snapshot.record.revision)throw new Error('Reviewed recipient or record changed.');
+  return this.session.run(async(key,active)=>{
+   await verifyRecipientKey(binding.public_key,binding.fingerprint);
+   const {kty,crv,x,y}=binding.public_key,pub={kty,crv,x,y};
+   if(JSON.stringify(canonical(pub))!==JSON.stringify(canonical(expected.public_key)))throw new Error('Reviewed recipient key changed.');
+   const grant=await createRecordGrant(key,record,binding.account_id,pub,binding.fingerprint);active();
+   const result=await this.db.authorizeReviewedInvitation(manifest.id,grant,pub);active();return result;
   });
  }
  requestReview(rule,person,grant,manifest){

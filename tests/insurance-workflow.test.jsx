@@ -13,7 +13,7 @@ describe('Insurance record workflows',()=>{
   });
   it('creates separate policy roles without persisting sample secrets or granting permissions',async()=>{
     const onSaved=vi.fn();
-    render(<RecordWizard demo initialCategory="Insurance" records={[{id:'home',title:'Home',category:'Property'}]} people={[{id:'priya',display_name:'Priya'}]} onSaved={onSaved} onCancel={()=>{}}/>);
+    render(<RecordWizard demo initialCategory="Insurance" records={[{id:'home',title:'Home',category:'Property',continuity_kind:'ASSET'}]} people={[{id:'priya',display_name:'Priya'}]} onSaved={onSaved} onCancel={()=>{}}/>);
     fireEvent.change(screen.getByLabelText('Record title'),{target:{value:'Sample policy'}});
     fireEvent.click(screen.getByRole('button',{name:'Continue',exact:true}));
     fireEvent.change(screen.getByLabelText('Policy owner'),{target:{value:'self'}});
@@ -33,7 +33,7 @@ describe('Insurance record workflows',()=>{
   });
   it('opens a policy record from the hub and shows missing information factually',()=>{
     const go=vi.fn(),record={id:'policy',title:'House policy',category:'Insurance',insurance_index:insuranceIndex({insurance:{asset_ids:['home']}},0)};
-    render(<Insurance demo records={[record,{id:'home',title:'Family home',category:'Property'}]} people={[]} go={go}/>);
+    render(<Insurance demo records={[record,{id:'home',title:'Family home',category:'Property',continuity_kind:'ASSET'}]} people={[]} go={go}/>);
     expect(screen.getByText('Renewal information missing')).toBeTruthy();
     expect(screen.getByText('Beneficiary not recorded')).toBeTruthy();
     fireEvent.click(screen.getByRole('button',{name:'Open policy record'}));

@@ -1,4 +1,4 @@
-import { insurancePolicies, claimReadiness } from '../modules/insurance/continuity';
+import { insurancePolicies, claimReadiness, renewalSchedule } from '../modules/insurance/continuity';
 import { useVault } from "../features/vault/VaultContext";
 import StatementForm from "../components/continuity/StatementForm";
 import V5RecordDetail from "../components/records/V5RecordDetail";
@@ -8,6 +8,7 @@ import { Button, Card, Progress, Heading } from "../components/ui/Primitives";
 import Modal from "../components/Modal";
 import LegacyForm from "../components/LegacyForm";
 import RecordDetail from "../components/RecordDetail";
+import {useReviewClock} from '../modules/continuity/useReviewClock';
 import { recordedSections, reviewSchedule } from '../modules/continuity/readiness';
 const sections = [
   ["Final wishes", "Your intentions, in your own words.", "heart"],
@@ -47,7 +48,10 @@ export default function Continuity({
     [sampleDone, setDone] = useState(demo ? [0, 2, 3, 4, 5] : []);
   const done = demo ? sampleDone : recordedSections(letters, sections.map(([name])=>name));
   const progress = Math.round((done.length / 6) * 100);
-  const reviews = reviewSchedule([...new Map([...records,...letters].map(record=>[record.id,record])).values()]);
+  const reviewNow=useReviewClock();
+  const renewalStates=new Map(renewalSchedule(records,reviewNow).map(r=>[r.id,r.state]));
+  const renewalNote=id=>({MISSING:" · Renewal information missing",OVERDUE:" · Recorded renewal date passed",UPCOMING:" · Recorded renewal within 30 days"})[renewalStates.get(id)]||"";
+  const reviews = reviewSchedule([...new Map([...records,...letters].map(record=>[record.id,record])).values()],reviewNow);
   return (
     <>
       <Heading
@@ -241,7 +245,7 @@ export default function Continuity({
               </p>
             </div> : <>
               <p className="field-hint">{reviews.filter(review=>review.due).length} due for review. Custom dates take priority; otherwise reviews are annual. No email reminder is scheduled.</p>
-              {reviews.length ? reviews.slice(0,3).map(review=><button key={review.id} className="document-row" onClick={()=>go('/app/vault/'+review.id)}><span>{review.title}<small>{review.due ? 'Review due' : 'Next review'}{review.date ? ` · ${new Date(review.date).toLocaleDateString()}` : ' · Review date not recorded'}</small></span><Icon name="chevron"/></button>) : <p className="muted">Save a record or statement to start your review schedule.</p>}
+              {reviews.length ? reviews.slice(0,3).map(review=><button key={review.id} className="document-row" onClick={()=>go('/app/vault/'+review.id)}><span>{review.title}<small>{review.due ? 'Review due' : 'Next review'}{review.date ? ` · ${new Date(review.date).toLocaleDateString()}` : ' · Review date not recorded'}{renewalNote(review.id)}</small></span><Icon name="chevron"/></button>) : <p className="muted">Save a record or statement to start your review schedule.</p>}
               {reviews.length > 3 && <Button onClick={()=>setShowReviews(true)}>View all {reviews.length} reviews</Button>}
             </>}
             <Button
@@ -260,7 +264,7 @@ export default function Continuity({
       {showReviews && (
         <Modal title="Record reviews" onClose={()=>setShowReviews(false)}>
           <p className="field-hint">Open a record, reveal it and confirm its information is still current. You can choose a custom next review date when editing.</p>
-          {reviews.map(review=><button key={review.id} className="document-row" onClick={()=>{setShowReviews(false);go('/app/vault/'+review.id);}}><span>{review.title}<small>{review.due ? 'Review due' : 'Next review'}{review.date ? ` · ${new Date(review.date).toLocaleDateString()}` : ' · Review date not recorded'}</small></span><Icon name="chevron"/></button>)}
+          {reviews.map(review=><button key={review.id} className="document-row" onClick={()=>{setShowReviews(false);go('/app/vault/'+review.id);}}><span>{review.title}<small>{review.due ? 'Review due' : 'Next review'}{review.date ? ` · ${new Date(review.date).toLocaleDateString()}` : ' · Review date not recorded'}{renewalNote(review.id)}</small></span><Icon name="chevron"/></button>)}
         </Modal>
       )}
       {editing && (
@@ -331,3 +335,4 @@ export default function Continuity({
     </>
   );
 }
+

@@ -205,7 +205,7 @@ export default function Overview({ records, people, pct, demo, name, go }) {
           </small>
         </Card>
       </div>
-      {!demo&&<ContinuityGaps records={records} go={go}/>}
+      {!demo&&<ContinuityGaps records={records} people={people} go={go}/>}
     </>
   );
 }

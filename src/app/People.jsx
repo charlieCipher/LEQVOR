@@ -25,7 +25,7 @@ export default function People({
   go,
 }) {
   const vault = useVault();
-  const [selected, setSelected] = useState(null),
+  const [selected, setSelected] = useState(()=>people.find(p=>p.id===new URLSearchParams(window.location.search).get('person'))||null),
     [adding, setAdding] = useState(false);
   const [query,setQuery]=useState(''),[role,setRole]=useState('All Roles');
   const [editing,setEditing]=useState(false);

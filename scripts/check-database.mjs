@@ -25,10 +25,10 @@ export async function createDisposableDatabase({verifiedDecisions=true}={}) {
     create function storage.foldername(name text) returns text[] language sql immutable as
       $$ select (string_to_array(name,'/'))[1:array_length(string_to_array(name,'/'),1)-1] $$;
   `);
-  for (const name of ['20260911_continuity_v5.sql', '20260913_record_transactions.sql', '20260927_ciphertext_envelopes.sql', '20261006_sharing_identity.sql', '20261008_continuity_graph.sql', '20261008_asset_workflow.sql', '20261008_document_workflow.sql', '20261009_selected_sharing.sql', '20261009_shared_files.sql', '20261009_trigger_planning.sql', '20261009_trigger_reviews.sql', '20261009_signed_trigger_reviews.sql']) {
+  for (const name of ['20260911_continuity_v5.sql', '20260913_record_transactions.sql', '20260927_ciphertext_envelopes.sql', '20261006_sharing_identity.sql', '20261008_continuity_graph.sql', '20261008_asset_workflow.sql', '20261008_document_workflow.sql', '20261009_insurance_workflow.sql', '20261009_selected_sharing.sql', '20261009_shared_files.sql', '20261009_trigger_planning.sql', '20261009_trigger_reviews.sql', '20261009_signed_trigger_reviews.sql']) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
-  if(verifiedDecisions){await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_trigger_decisions.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../supabase/migrations/20261009_trigger_manifests.sql',import.meta.url),'utf8'));}
+  if(verifiedDecisions){await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_trigger_decisions.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../supabase/migrations/20261009_trigger_manifests.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../supabase/migrations/20261009_review_delivery.sql',import.meta.url),'utf8'));}
   return db;
  } catch (error) { await db.close(); throw error; }
 }
@@ -38,7 +38,7 @@ let db;
 try {
   // Validate the earlier API contracts before testing their deliberate revocation.
   db = await createDisposableDatabase({verifiedDecisions:false});
-  for (const name of ['v5_isolation.sql', 'record_transactions.sql', 'ciphertext_envelopes.sql', 'sharing_identity.sql', 'hosted_rollback_acceptance.sql', 'continuity_graph.sql', 'asset_workflow.sql', 'document_history.sql', 'selected_sharing.sql', 'shared_files.sql', 'trigger_planning.sql', 'trigger_reviews.sql', 'signed_trigger_reviews.sql']) {
+  for (const name of ['v5_isolation.sql', 'record_transactions.sql', 'ciphertext_envelopes.sql', 'sharing_identity.sql', 'hosted_rollback_acceptance.sql', 'continuity_graph.sql', 'asset_workflow.sql', 'document_history.sql', 'insurance_workflow.sql', 'selected_sharing.sql', 'shared_files.sql', 'trigger_planning.sql', 'trigger_reviews.sql', 'signed_trigger_reviews.sql']) {
     await db.exec(await readFile(new URL(`../supabase/tests/${name}`, import.meta.url), 'utf8'));
     console.log(`PASS PostgreSQL ${name}`);
   }
@@ -48,6 +48,9 @@ try {
   await db.exec(await readFile(new URL('../supabase/migrations/20261009_trigger_manifests.sql',import.meta.url),'utf8'));
   await db.exec(await readFile(new URL('../supabase/tests/trigger_manifests.sql',import.meta.url),'utf8'));
   console.log('PASS PostgreSQL trigger_manifests.sql');
+  await db.exec(await readFile(new URL('../supabase/migrations/20261009_review_delivery.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/tests/review_delivery.sql',import.meta.url),'utf8'));
+  console.log('PASS PostgreSQL review_delivery.sql');
   const readiness = await db.exec(await readFile(new URL('../supabase/tests/v5_schema_readiness.sql', import.meta.url), 'utf8'));
   const gates = readiness.flatMap(result => result.rows).filter(row => Object.hasOwn(row, 'ready'));
   if (gates.length < 18 || gates.some(row => row.ready !== true)) throw new Error('Schema readiness failed');
@@ -58,3 +61,5 @@ try {
   process.exitCode = 1;
 } finally { await db?.close(); }
 }
+
+
