@@ -10,7 +10,7 @@ const table=kind=>({policy:'verification_policies',rule:'trigger_rules',entry:'t
 
 // Ordinary authenticated clients do all workflow operations. Admin credentials
 // remain exclusively in the disposable-account harness for creation/cleanup.
-export async function runHostedArchitecture(a,b,report=()=>{}, {securityHistory=false}={}){
+export async function runHostedArchitecture(a,b,report=()=>{}, {securityHistory=false,securityHistoryOnly=false}={}){
  let stage='setup',success=false,server;const vaults=[],sessions=[],paths=[],records=[];
  try{
   server=await createServer({server:{middlewareMode:true},appType:'custom'});
@@ -32,7 +32,7 @@ export async function runHostedArchitecture(a,b,report=()=>{}, {securityHistory=
    appendSecurityEvent:async event=>{
     const {session}=await value(client.auth.getSession());
     const response=await fetch('https://leqvor.vercel.app/api/security-history',{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(event),signal:AbortSignal.timeout(30000)});
-    check(response.ok&&response.headers.get('cache-control')?.includes('no-store'));check((await response.json()).recorded===true);
+   if(!response.ok)throw new Error('History endpoint rejected request');check(response.headers.get('cache-control')?.includes('no-store'));check((await response.json()).recorded===true);
    },
    reviewSigningIdentity:()=>value(client.from('review_signing_keys').select('*').maybeSingle()),
    registerReviewSigningIdentity:row=>{const {public_key,...encrypted}=row;const {kty,crv,x,y}=public_key;return value(client.rpc('register_v5_review_signing_key',{key_data:{...encryptedWrite('policy',encrypted),public_key:{kty,crv,x,y}}}));},
@@ -51,6 +51,19 @@ export async function runHostedArchitecture(a,b,report=()=>{}, {securityHistory=
     check(response.ok&&response.headers.get('cache-control')?.includes('no-store'));check((await response.json()).recorded===true);
    }
   });
+  if(securityHistory){
+   stage='signed account history';const history=new SecurityHistoryService(sessions[1],vaults[1],adapter(b));
+   check((await history.snapshot(null)).state==='EMPTY');stage='first signed history append';const first=await history.review(null);stage='second signed history append';const second=await history.review(first);stage='history checkpoints';
+   check((await history.snapshot(second)).state==='VERIFIED');check((await history.snapshot(first)).state==='INVALID');check((await history.snapshot(null)).state==='UNANCHORED');
+   const rows=await value(b.from('security_events').select('*').order('sequence'));check(rows.length===2&&rows.every(row=>row.encrypted_details===null));
+   check((await value(a.from('security_events').select('*').eq('owner_id',users[1].id))).length===0);
+   const event=history.events(rows)[1];
+   const post=async(client,body)=>{const {session}=await value(client.auth.getSession());return fetch('https://leqvor.vercel.app/api/security-history',{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});};
+   stage='history replay rejection';const replay=await post(b,event);if(replay.status!==409)report(`History replay response: HTTP ${replay.status}`);check(replay.status===409);stage='foreign history rejection';check((await post(a,event)).status===401);stage='history tamper rejection';check(!(await post(b,{...event,signature:'A'.repeat(86)+'=='})).ok);check(!(await post(b,{...event,notes:'SYNTHETIC_PRIVATE_CANARY'})).ok);
+   check((await value(b.from('security_events').select('id'))).length===2);
+   report('PASS hosted signed history append, retained-head verification, replay/tamper rejection and two-account isolation');
+   if(securityHistoryOnly){success=true;return true;}
+  }
   const owner=new TriggerPlanningService(sessions[0],vaults[0],adapter(a)),reviewer=new TriggerPlanningService(sessions[1],vaults[1],adapter(b));
   stage='encrypted policy graph';const sample='SYNTHETIC_POLICY_'+crypto.randomUUID();
   let record=await encryptRecord(keys[0],{owner_id:users[0].id,vault_id:vaults[0].id,metadata:{title:'Synthetic policy',continuity_kind:'POLICY',category:'Insurance'},payload:{insurance:{owner_id:'self',insured_ids:[],beneficiary_ids:[],asset_ids:[]},instructions:sample}});
@@ -85,20 +98,8 @@ export async function runHostedArchitecture(a,b,report=()=>{}, {securityHistory=
   await value(a.rpc('revoke_v5_share',{target:grant.id}));check(!!(await b.rpc('read_v5_trigger_review',{target:requestId})).error);
   await value(a.rpc('revoke_v5_share',{target:invitation}));check(!!(await b.rpc('read_v5_share',{target:invitation})).error);
   report('PASS hosted encrypted review delivery, real ECDSA API approval, owner authorization, recipient acceptance, replay rejection and revocation');
-  if(securityHistory){
-   stage='signed account history';const history=new SecurityHistoryService(sessions[1],vaults[1],adapter(b));
-   check((await history.snapshot(null)).state==='EMPTY');const first=await history.review(null),second=await history.review(first);
-   check((await history.snapshot(second)).state==='VERIFIED');check((await history.snapshot(first)).state==='INVALID');check((await history.snapshot(null)).state==='UNANCHORED');
-   const rows=await value(b.from('security_events').select('*').order('sequence'));check(rows.length===2&&rows.every(row=>row.encrypted_details===null));
-   check((await value(a.from('security_events').select('*').eq('owner_id',users[1].id))).length===0);
-   const {signature,...last}=rows[1],event={...last,signing_key_id:signature.signing_key_id,signature:signature.value};delete event.encrypted_details;event.created_at=new Date(event.created_at).toISOString();
-   const post=async(client,body)=>{const {session}=await value(client.auth.getSession());return fetch('https://leqvor.vercel.app/api/security-history',{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});};
-   check((await post(b,event)).status===409);check((await post(a,event)).status===401);check(!(await post(b,{...event,signature:'A'.repeat(86)+'=='})).ok);check(!(await post(b,{...event,notes:'SYNTHETIC_PRIVATE_CANARY'})).ok);
-   check((await value(b.from('security_events').select('id'))).length===2);
-   report('PASS hosted signed history append, retained-head verification, replay/tamper rejection and two-account isolation');
-  }
   success=true;
- }catch{report(`FAIL architecture workflow: ${stage}; sensitive details suppressed`);}
+ }catch(error){const category=['TimeoutError','AbortError'].includes(error?.name)?error.name:'rejected';report(`FAIL architecture workflow: ${stage} (${category}); sensitive details suppressed`);}
  finally{
   sessions.forEach(session=>session.dispose());if(server)await server.close();
   let cleanupStage='record deletion';

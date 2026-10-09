@@ -36,5 +36,6 @@ it('requires fresh password authentication and rejects invalid account claims',a
 });
 it('sanitizes database failures and reports concurrency conflicts',async()=>{
  const f=await fixture();f.write.mockResolvedValue({error:{code:'40001',message:'PRIVATE'}});expect((await securityHistoryEvent(f.input)).status).toBe(409);
+ f.write.mockResolvedValue({error:{code:'PT409',message:'PRIVATE'}});expect((await securityHistoryEvent(f.input)).status).toBe(409);
  f.write.mockResolvedValue({error:{code:'42501',message:'PRIVATE'}});const result=await securityHistoryEvent(f.input);expect(result.status).toBe(404);expect(JSON.stringify(result)).not.toContain('PRIVATE');
 });

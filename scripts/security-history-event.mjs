@@ -24,7 +24,7 @@ export async function securityHistoryEvent({method,authorization,body,env,client
   if(read.error||read.data?.owner_id!==user||!await verifySecurityEvent(read.data.public_key,body))return unavailable;
   const writer=clientFactory(project,env.SUPABASE_SERVICE_ROLE_KEY,options);
   const written=await writer.rpc('append_verified_v5_security_event',{verified_user:user,verified_amr:amr,verified_aal:claims.aal,event_data:body,expected_signer:read.data.public_key});
-  if(written.error?.code==='40001')return {status:409,body:{error:'Security history changed. Verify the latest checkpoint before retrying.'}};
+  if(['40001','PT409'].includes(written.error?.code))return {status:409,body:{error:'Security history changed. Verify the latest checkpoint before retrying.'}};
   if(written.error)return unavailable;
   return {status:200,body:{recorded:true}};
  }catch{return unavailable;}

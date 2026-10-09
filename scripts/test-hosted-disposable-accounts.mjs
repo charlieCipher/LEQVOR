@@ -13,7 +13,7 @@ const env=process.env;
 const url=env.SUPABASE_URL;
 const adminKey=env.SUPABASE_SERVICE_ROLE_KEY;
 const publicKey=env.LEQVOR_TEST_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
+const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(input,init={})=>fetch(input,{...init,signal:init.signal?AbortSignal.any([init.signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)})}};
 const report=line=>console.log(line);
 const users=[];
 const clients=[];
@@ -49,7 +49,7 @@ if (!process.argv.includes('--run-hosted-test') || url!==target || !adminKey || 
       if(signed.error || signed.data.user?.id!==created.data.user.id) throw new Error('Authentication failed');
     }
     stage='ordinary-user hosted workflow';
-    success=await (process.argv.includes('--architecture')?runHostedArchitecture:process.argv.includes('--sharing')?runHostedSharing:process.argv.includes('--documents')?runHostedDocuments:runHostedWorkflow)(clients[0],clients[1],report,{hostedHttp:process.argv.includes('--sharing-http'),securityHistory:process.argv.includes('--security-history')});
+    success=await (process.argv.includes('--architecture')?runHostedArchitecture:process.argv.includes('--sharing')?runHostedSharing:process.argv.includes('--documents')?runHostedDocuments:runHostedWorkflow)(clients[0],clients[1],report,{hostedHttp:process.argv.includes('--sharing-http'),securityHistory:process.argv.includes('--security-history'),securityHistoryOnly:process.argv.includes('--security-history-only')});
   } catch {
     report(`FAIL ${stage}; credentials and sensitive responses suppressed`);
   } finally {

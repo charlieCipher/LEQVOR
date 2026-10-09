@@ -20,9 +20,9 @@ begin
  begin perform public.append_verified_v5_security_event(a,amr,'aal1',event,pub);raise exception 'FAIL MFA bypass';exception when insufficient_privilege then null;end;
  -- Shape fixtures only: real ECDSA verification is separately exercised at the API.
  perform public.append_verified_v5_security_event(a,amr,'aal2',event,pub);
- begin perform public.append_verified_v5_security_event(a,amr,'aal2',event,pub);raise exception 'FAIL replay';exception when serialization_failure then null;end;
+ begin perform public.append_verified_v5_security_event(a,amr,'aal2',event,pub);raise exception 'FAIL replay';exception when sqlstate 'PT409' then null;end;
  event:=event||jsonb_build_object('id',gen_random_uuid(),'sequence',2,'previous_hash',repeat('B',43)||'=');
- begin perform public.append_verified_v5_security_event(a,amr,'aal2',event,pub);raise exception 'FAIL fork';exception when serialization_failure then null;end;
+ begin perform public.append_verified_v5_security_event(a,amr,'aal2',event,pub);raise exception 'FAIL fork';exception when sqlstate 'PT409' then null;end;
  event:=event||jsonb_build_object('previous_hash',repeat('A',43)||'=');perform public.append_verified_v5_security_event(a,amr,'aal2',event,pub);
  execute 'reset role';perform set_config('request.jwt.claim.sub',b::text,true);execute 'set local role authenticated';
  if exists(select 1 from public.security_events) then raise exception 'FAIL foreign read';end if;
