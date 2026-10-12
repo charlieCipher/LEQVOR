@@ -1,5 +1,7 @@
 # Remaining architecture work — 9 October 2026
 
+Current status, 12 October 2026 (supersedes historical local/not-deployed notes below): the approved three-migration batch is applied and cb76df3 is Vercel Production Ready on leqvor.vercel.app. Hosted device enrollment/proof/revocation, all three signed device events, signature/replay denial and two-account isolation passed. Fresh hosted vault/record/file acceptance passed again with fixture cleanup verified. See DEVICE-RELEASE-20261012.md. Full physical-browser/device acceptance, general Shield, live passkeys, another-device recovery, separate cloud backups and independent/legal review remain open. Founder offline authority has been added as a separate preparatory architecture; no hardware key exists and no production Founder Lock is active. See FOUNDER-ROOT-AUTHORITY.md.
+
 User instruction: work through these nine items in order. Future “continue” requests resume this plan. Record implementation separately from deployed and independently verified acceptance.
 
 Visual constraint: preserve the current website UI. Continue backend and frontend behavior work without redesigning layouts, colors, typography or panels. The proposed standalone SelectedSharing panel was removed before deployment; sharing state is now a markup-free controller for later wiring through existing views.
