@@ -1,6 +1,6 @@
 # LEQVOR Founder Authority Architecture v1
 
-Status: accepted specification, not implemented or activated. Supersedes the single-key founder proposal. User ordering: complete and deploy the preceding customer architecture first, then implement this founder system. The tested customer security increment cb76df3 is deployed, but outstanding customer acceptance and security/operations work is not thereby complete. Preserve the current customer UI.
+Status: accepted specification; local governance core implementation started, not activated. The user explicitly requested implementation after the customer unlock release. governance/README.md records the tested policy/queue/gateway/transaction/audit/offline-inspection implementation and its boundaries. Device signers, separate admin console and protected infrastructure executors remain unbuilt. Supersedes the single-key founder proposal. Customer release d23e534 is deployed, but outstanding customer acceptance and security/operations work is not thereby complete. Preserve the current customer UI.
 
 ## Boundaries
 
