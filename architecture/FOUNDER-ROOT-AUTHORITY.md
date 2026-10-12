@@ -1,5 +1,7 @@
 # LEQVOR Founder Root Authority
 
+Superseded design: the user subsequently selected the 2-of-3 laptop/phone/recovery-device model. FOUNDER-AUTHORITY-V1.md is now the governing specification. The single-key protocol and offline inspector below are preparatory experiments only, not the final mesh implementation. Complete the preceding customer release/acceptance work before implementing or deploying founder authority. No dedicated USB key is mandated by the revised specification.
+
 Status, 12 October 2026: architecture accepted; offline request inspection and signature-verification preparation implemented and tested. No production governance API, Founder Lock, founder key or hardware signing has been activated. The owner has no hardware key yet. This boundary is separate from account authentication, vault encryption, sharing, devices and Shield. It never grants access to vault plaintext.
 
 ## Trust boundary
