@@ -116,3 +116,40 @@ it('clears a failed unlock secret without exposing the underlying error',async()
  expect(screen.getByLabelText('Vault password').value).toBe('');
  expect(screen.queryByText(/PRIVATE_SECRET_CANARY/)).toBeNull();
 });
+
+it('shows the signed-in identity and reloads encrypted wrappers before unlocking',async()=>{
+ const old={id:'vault',owner_id:'owner',wrapped_vmk_password:{nonce:'old'}},latest={...old,wrapped_vmk_password:{nonce:'new'}};
+ mocks.db.vault.mockResolvedValueOnce(old).mockResolvedValue(latest);
+ mocks.unlock.mockResolvedValue({});
+ render(<VaultGate session={{user:{id:'owner',email:'disposable@example.invalid'}}}><div>Unlocked workspace</div></VaultGate>);
+ await screen.findByRole('button',{name:'Unlock vault',exact:true});
+ expect(screen.getByText(/Signed in as disposable@example.invalid/)).toBeTruthy();
+ fireEvent.change(screen.getByLabelText('Vault password'),{target:{value:'synthetic password'}});
+ fireEvent.click(screen.getByRole('button',{name:'Unlock vault',exact:true}));
+ await screen.findByText('Unlocked workspace');
+ expect(mocks.unlock).toHaveBeenCalledWith(latest,'synthetic password',false);
+ expect(mocks.db.updateVault).not.toHaveBeenCalled();
+});
+
+it('does not decrypt if the refreshed vault belongs to a different account',async()=>{
+ mocks.db.vault.mockResolvedValueOnce({id:'vault',owner_id:'owner'}).mockResolvedValue({id:'vault',owner_id:'other'});
+ render(<VaultGate session={{user:{id:'owner'}}}><div>Unlocked workspace</div></VaultGate>);
+ fireEvent.change(await screen.findByLabelText('Vault password'),{target:{value:'synthetic password'}});
+ fireEvent.click(screen.getByRole('button',{name:'Unlock vault',exact:true}));
+ await screen.findByRole('alert');
+ expect(mocks.unlock).not.toHaveBeenCalled();
+ expect(screen.getByLabelText('Vault password').value).toBe('');
+});
+
+it('distinguishes a local decryption failure from a connection retry',async()=>{
+ mocks.db.vault.mockResolvedValue({id:'vault',owner_id:'owner'});
+ mocks.unlock.mockRejectedValue(new DOMException('PRIVATE_SECRET_CANARY','OperationError'));
+ render(<VaultGate session={{user:{id:'owner'}}}><div>Unlocked workspace</div></VaultGate>);
+ fireEvent.change(await screen.findByLabelText('Vault password'),{target:{value:'synthetic password'}});
+ fireEvent.click(screen.getByRole('button',{name:'Unlock vault',exact:true}));
+ const alert=await screen.findByRole('alert');expect(alert.textContent).toContain('Check the signed-in account');
+ expect(screen.getByRole('button',{name:'Reload vault'})).toBeTruthy();
+ expect(screen.queryByRole('button',{name:'Retry connection'})).toBeNull();
+ expect(screen.queryByText(/PRIVATE_SECRET_CANARY/)).toBeNull();
+ expect(mocks.db.updateVault).not.toHaveBeenCalled();
+});

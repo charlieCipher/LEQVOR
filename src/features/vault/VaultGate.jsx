@@ -9,7 +9,7 @@ import {
   rewrapVaultPassword,
 } from "../../modules/security/v5Crypto";
 import { DatabaseProvider, AuthProvider } from "../../lib/providers";
-import { safeFailure } from "../../modules/security/safeEvents";
+import { AurevaError, safeFailure } from "../../modules/security/safeEvents";
 import { Button, Card } from "../../components/ui/Primitives";
 import SecureEntryFrame from '../../components/security/SecureEntryFrame';
 import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from '../../lib/passwordPolicy';
@@ -18,6 +18,7 @@ export default function VaultGate({ session, children }) {
     [loading, setLoading] = useState(true),
     [loaded, setLoaded] = useState(false),
     [error, setError] = useState(""),
+    [decryptFailed, setDecryptFailed] = useState(false),
     [lockNotice, setLockNotice] = useState(""),
     [unlocked, setUnlocked] = useState(false),
     [busy, setBusy] = useState(false),
@@ -35,6 +36,7 @@ export default function VaultGate({ session, children }) {
         if (alive) {
           setLoaded(true);
           setError('');
+          setDecryptFailed(false);
           setVault(v);
           setLoading(false);
         }
@@ -94,9 +96,20 @@ export default function VaultGate({ session, children }) {
       version = generation.current;
     setBusy(true);
     setError("");
+    setDecryptFailed(false);
     setLockNotice("");
     try {
       let current = vault;
+      if (current) {
+        // Another device may have legitimately replaced the password wrapper.
+        // Read ciphertext again; never reset a password or reuse a stale wrapper.
+        const latest = await DatabaseProvider.vault(session.user.id);
+        if (version !== generation.current) throw new Error('Session changed.');
+        if (!latest || latest.owner_id !== session.user.id || latest.id !== current.id)
+          throw new AurevaError('VAULT_UNAVAILABLE','This vault could not be verified for the signed-in account. Sign in again before continuing.');
+        current = latest;
+        setVault(current);
+      }
       if (!current) {
         if (form.get("password") !== form.get("confirm"))
           throw new Error("Passwords do not match.");
@@ -153,6 +166,7 @@ export default function VaultGate({ session, children }) {
           ? e.message
           : safeFailure(e),
       );
+      setDecryptFailed(e?.name === 'OperationError');
     } finally {
       element.reset();
       for (const name of [...form.keys()]) form.delete(name);
@@ -191,20 +205,24 @@ export default function VaultGate({ session, children }) {
               : "Create your private vault"}
         </h1>
         <p className="muted">
+          {session.user.email && <>Signed in as {session.user.email}. </>}
           Your account login and your vault secret protect different things.
           Only your vault secret can unlock your information.
         </p>
         {error && (
           <div className="notice" role="alert">
             {error}
+            {decryptFailed && ' Check the signed-in account and use its vault password, or recover using your saved 24 words. Your account login password does not unlock the vault.'}
             <Button
+              disabled={busy}
               onClick={() => {
                 setError("");
+                setDecryptFailed(false);
                 setLoading(true);
                 setRetry((n) => n + 1);
               }}
             >
-              Retry connection
+              {decryptFailed ? 'Reload vault' : 'Retry connection'}
             </Button>
           </div>
         )}
@@ -325,6 +343,7 @@ export default function VaultGate({ session, children }) {
               unlockForm.current?.reset();
               setRecovery(!recovery);
               setError("");
+              setDecryptFailed(false);
             }}
           >
             {recovery ? "Use vault password" : "Recover using 24 words"}
