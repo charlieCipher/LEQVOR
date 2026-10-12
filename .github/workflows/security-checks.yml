@@ -22,6 +22,8 @@ jobs:
           node-version: 22.23.3
           package-manager-cache: false
       - run: npm ci
+      - run: npm ci --ignore-scripts --prefix governance/control
+      - run: npm test --prefix governance/control
       - run: npm run lint -- --max-warnings=0
       - run: npm test
       - run: npm run check:database

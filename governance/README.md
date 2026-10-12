@@ -14,6 +14,7 @@ This is a separate, locally tested subsystem. It is not enrolled, connected to c
 | Audit | Hash-linked public events, signed approval packets, retained checkpoint verification including a digest of policy, version, freeze and complete request state; SQL append-only audit mirror; state/audit consistency checks |
 | Transaction store | PostgreSQL row locking, atomic state/audit writes, rollback and concurrent-checkpoint conflict rejection |
 | Admin gateway boundary | Separate control-session audience, explicit role provider, fresh MFA for mutations; no customer-session, caller-role or execute/bootstrap override |
+| Control-service transport | Separate pinned-dependency package: signed access-token/JWKS verification, mandatory live revocation/role adapters, bounded same-origin HTTPS handler and explicit TLS server assembly; no listener, provider configuration or online login UI |
 | Offline console | Local file inspector, verifies separately held public policy and exact target artifact, displays consequences and exact approval bytes; no listener or private-key fallback |
 | Native clients | Compiled Windows Hello console A and offline Android Keystore companion B; hardware/authentication checks, full action/target display, independently imported policy/checkpoint/state; no actual device enrollment or release signing |
 | Signed checkpoints | Native checkpoint signing path, two-device public signature assembly, snapshot/audit verification and rollback checks; no external upload or schedule |
@@ -43,6 +44,8 @@ Offline inspection:
 The Node inspector does not sign. Separate native clients now compile and expose OS-authenticated signing paths, but have not been physically tested/enrolled or published as signed releases. They must not receive a .pem/private JWK/software-key fallback. The prior `scripts/founder-inspect.mjs` is the superseded single-key experiment and is not the mesh console. [MANUAL-ACTIVATION.md](MANUAL-ACTIVATION.md) distinguishes manual requirements from unfinished engineering/integration.
 
 ## Remaining activation dependencies
+
+The control-service increment adds six passing acceptance tests for actual signed access tokens and HTTP rejection/logging boundaries; the existing 20 focused governance tests and lint also pass. See [control/README.md](control/README.md) for the exact identity/transport contract and remaining live configuration. No admin identity, listener, hosting change or founder activation was created.
 
 1. Physically verify the compiled Windows Hello console on the HP Victus 15, including independent TPM attestation validation and display-to-signature binding. Windows Hello may use software protection when TPM is unavailable; the client blocks signing without successful attestation evidence. Pinned Microsoft SDK 10.0.401 was checksum-verified and extracted into the ignored local tools folder; the project compiled with zero warnings/errors. No app was installed/launched or real key created.
 2. Physically verify the compiled Android Keystore companion on the Vivo Y19s, including Android version, hardware attestation and display-to-signature binding. The existing Android SDK and Java runtime compiled an unsigned APK. Public protocol interoperability tests passed. Never infer non-exportability/security level from its model alone; no phone application was installed or key enrolled.

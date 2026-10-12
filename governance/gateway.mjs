@@ -3,7 +3,7 @@ const roles=new Set(['FOUNDER','SECURITY_ADMIN','OPERATIONS_ADMIN','SUPPORT_ADMI
 // Transport-independent boundary. authenticate/getRole are trusted server
 // adapters, never values from the submitted packet. No default admin account.
 export class GovernanceGateway{
- constructor({engine,authenticate,getRole,clock=Date.now}){this.engine=engine;this.authenticate=authenticate;this.getRole=getRole;this.clock=clock;}
+ constructor({engine,authenticate,getRole,clock=Date.now}){if(!engine||typeof authenticate!=='function'||typeof getRole!=='function'||typeof clock!=='function')throw new Error('Trusted governance adapters required.');this.engine=engine;this.authenticate=authenticate;this.getRole=getRole;this.clock=clock;}
  async handle(token,packet){
   if(typeof token!=='string'||token.length>8192||!token)throw new Error('Control authentication required.');
   const principal=await this.authenticate(token),now=this.clock();
