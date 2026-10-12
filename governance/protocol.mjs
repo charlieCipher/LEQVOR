@@ -1,16 +1,9 @@
 import {createHash,createPublicKey,verify} from 'node:crypto';
-export const ROOT_ACTIONS=Object.freeze(['REMOVE_FOUNDER_ROOT','DISABLE_FOUNDER_PROTECTION','TRANSFER_PLATFORM_OWNERSHIP','REPLACE_FOUNDER_IDENTITY','CHANGE_ROOT_POLICY','CHANGE_ROOT_THRESHOLD','TRANSFER_CRITICAL_INFRASTRUCTURE','DELETE_GOVERNANCE_CONFIGURATION','GOVERNANCE_FREEZE','GOVERNANCE_UNFREEZE','CANCEL_GOVERNANCE_REQUEST']);
+import {ROOT_ACTIONS,canonical,exact,publicText} from './public-values.mjs';
+export {ROOT_ACTIONS,canonical,exact};
 const hashPattern=/^[a-f0-9]{64}$/;
-export function canonical(value){
- if(value===null||typeof value==='string'||typeof value==='boolean')return value;
- if(typeof value==='number'&&Number.isSafeInteger(value))return value;
- if(Array.isArray(value))return value.map(canonical);
- if(value&&typeof value==='object'&&Object.getPrototypeOf(value)===Object.prototype)return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));
- throw new Error('Unsupported canonical value.');
-}
-export const encode=value=>Buffer.from(JSON.stringify(canonical(value)),'utf8');
+export const encode=value=>Buffer.from(publicText(value),'utf8');
 export const hash=value=>createHash('sha256').update(encode(value)).digest('hex');
-export function exact(value,fields){if(!value||Array.isArray(value)||typeof value!=='object'||Object.keys(value).length!==fields.length||fields.some(k=>!Object.hasOwn(value,k)))throw new Error('Unsupported packet fields.');}
 export function publicCredential(credential){
  exact(credential,['slot','key_id','algorithm','spki']);
  if(!['A','B','C'].includes(credential.slot)||!hashPattern.test(credential.key_id)||!['ES256','RS256'].includes(credential.algorithm)||typeof credential.spki!=='string'||credential.spki.length>2048)throw new Error('Invalid credential.');
