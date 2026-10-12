@@ -31,6 +31,9 @@ export async function createDisposableDatabase({verifiedDecisions=true}={}) {
   if(verifiedDecisions){await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_trigger_decisions.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../supabase/migrations/20261009_trigger_manifests.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../supabase/migrations/20261009_review_delivery.sql',import.meta.url),'utf8'));}
   if(verifiedDecisions)await db.exec(await readFile(new URL('../supabase/migrations/20261009_signed_security_history.sql',import.meta.url),'utf8'));
   if(verifiedDecisions)await db.exec(await readFile(new URL('../supabase/migrations/20261009_security_history_conflicts.sql',import.meta.url),'utf8'));
+  if(verifiedDecisions)await db.exec(await readFile(new URL('../supabase/migrations/20261009_record_sharing_conflicts.sql',import.meta.url),'utf8'));
+  if(verifiedDecisions)await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_devices.sql',import.meta.url),'utf8'));
+  if(verifiedDecisions)await db.exec(await readFile(new URL('../supabase/migrations/20261009_vault_password_guard.sql',import.meta.url),'utf8'));
   return db;
  } catch (error) { await db.close(); throw error; }
 }
@@ -57,6 +60,15 @@ try {
   await db.exec(await readFile(new URL('../supabase/migrations/20261009_security_history_conflicts.sql',import.meta.url),'utf8'));
   await db.exec(await readFile(new URL('../supabase/tests/signed_security_history.sql',import.meta.url),'utf8'));
   console.log('PASS PostgreSQL signed_security_history.sql');
+  await db.exec(await readFile(new URL('../supabase/migrations/20261009_record_sharing_conflicts.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/tests/record_sharing_conflicts.sql',import.meta.url),'utf8'));
+  console.log('PASS PostgreSQL record_sharing_conflicts.sql');
+  await db.exec(await readFile(new URL('../supabase/migrations/20261009_verified_devices.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/tests/verified_devices.sql',import.meta.url),'utf8'));
+  console.log('PASS PostgreSQL verified_devices.sql');
+  await db.exec(await readFile(new URL('../supabase/migrations/20261009_vault_password_guard.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/tests/vault_password_guard.sql',import.meta.url),'utf8'));
+  console.log('PASS PostgreSQL vault_password_guard.sql');
   const readiness = await db.exec(await readFile(new URL('../supabase/tests/v5_schema_readiness.sql', import.meta.url), 'utf8'));
   const gates = readiness.flatMap(result => result.rows).filter(row => Object.hasOwn(row, 'ready'));
   if (gates.length < 18 || gates.some(row => row.ready !== true)) throw new Error('Schema readiness failed');

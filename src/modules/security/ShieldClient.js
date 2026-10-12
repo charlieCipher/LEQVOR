@@ -1,8 +1,8 @@
 export function getShieldStatus() {
   return {
-    status: "Safe",
-    label: "Shield active",
-    notes: ["Integrity checks ready", "No custom crypto added", "RLS remains the data boundary"],
+    status: "Unavailable",
+    enabled: false,
+    label: "Shield approvals unavailable",
+    notes: ["A general server-enforced Shield approval policy is not configured."],
   };
 }
-

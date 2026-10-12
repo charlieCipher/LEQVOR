@@ -27,3 +27,29 @@ it('never displays unanchored, altered or truncated history and refuses to exten
 it('cold lock cancels pending work before any event upload',async()=>{
  const f=await fixture();try{f.db.securityEvents.mockImplementation(async()=>{f.session.lock();return [];});await expect(f.service.review(null)).rejects.toThrow(/locked/);expect(f.db.appendSecurityEvent).not.toHaveBeenCalled();}finally{f.session.dispose();}
 });
+it('retains a public checkpoint before upload and recovers a committed lost response',async()=>{
+ const f=await fixture();let pending;try{
+  f.db.appendSecurityEvent.mockImplementation(async event=>{f.rows.push({...event,encrypted_details:null,signature:{domain:'leqvor-security-event-v1',signing_key_id:event.signing_key_id,value:event.signature}});throw new Error('Lost response');});
+  await expect(f.service.review(null,{beforeAppend:next=>{expect(f.rows).toHaveLength(0);pending={previous:null,next};}})).rejects.toThrow('Lost response');
+  expect(Object.keys(pending.next).sort()).toEqual(['event_hash','owner_id','sequence']);
+  expect((await f.service.reconcilePending(pending,null)).state).toBe('VERIFIED');
+  expect((await f.service.reconcilePending(pending,pending.next)).state).toBe('VERIFIED');
+ }finally{f.session.dispose();}
+});
+it('refuses an upload when checkpoint retention fails or Cold Lock occurs during retention',async()=>{
+ const f=await fixture();try{
+  await expect(f.service.review(null,{beforeAppend:()=>{throw new Error('Storage unavailable');}})).rejects.toThrow('Storage unavailable');expect(f.db.appendSecurityEvent).not.toHaveBeenCalled();
+  await expect(f.service.review(null,{beforeAppend:()=>f.session.lock()})).rejects.toThrow(/locked/);expect(f.db.appendSecurityEvent).not.toHaveBeenCalled();
+ }finally{f.session.dispose();}
+});
+it('pending recovery rejects absent, tampered, extra or unrelated history',async()=>{
+ const f=await fixture();let pending;try{
+  const first=await f.service.review(null),second=await f.service.review(first,{beforeAppend:next=>{pending={previous:first,next};}});
+  expect((await f.service.reconcilePending(pending,first)).state).toBe('VERIFIED');
+  await expect(f.service.reconcilePending({...pending,previous:null},null)).rejects.toThrow();
+  await expect(f.service.reconcilePending(pending,{...first,event_hash:'A'.repeat(43)+'='})).rejects.toThrow();
+  await expect(f.service.reconcilePending({...pending,next:{...second,owner_id:crypto.randomUUID()}},first)).rejects.toThrow();
+  const row=f.rows.pop();expect((await f.service.reconcilePending(pending,first)).state).toBe('INVALID');f.rows.push({...row,created_at:'2026-10-08T00:00:00.000Z'});expect((await f.service.reconcilePending(pending,first)).state).toBe('INVALID');f.rows[f.rows.length-1]=row;
+  await f.service.review(second);expect((await f.service.reconcilePending(pending,first)).state).toBe('INVALID');
+ }finally{f.session.dispose();}
+});

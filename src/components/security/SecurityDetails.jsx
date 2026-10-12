@@ -3,6 +3,7 @@ import { Button, Badge, Empty } from '../ui/Primitives';
 import VaultControls from './VaultControls';
 import PasskeySettings from './PasskeySettings';
 import SecurityTimeline from './SecurityTimeline';
+import TrustedDevices from './TrustedDevices';
 import { sampleDevices, sampleSessions } from './previewPreferences';
 
 import { settings } from './securityDetailCatalog';
@@ -17,6 +18,7 @@ export default function SecurityDetails({ name, demo, records = [], preferences,
 
   if(!demo&&['Passkeys','Face ID / Touch ID','Require biometric confirmation'].includes(name))return <PasskeySettings/>;
   if(!demo&&name==='Security Timeline')return <SecurityTimeline/>;
+  if(!demo&&name==='Trusted devices')return <TrustedDevices/>;
 
   if (name === 'Cold Lock' || name === 'Recovery practice') return <div className="stack-form">
     <p className="muted">{name === 'Cold Lock' ? 'Inactivity and leaving the app clear decrypted content and active key references. Unlock again to continue.' : 'Verify that your offline recovery secret can unlock your vault without revealing records.'}</p>

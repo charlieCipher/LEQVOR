@@ -1,0 +1,43 @@
+begin;
+do $$
+declare a uuid:=gen_random_uuid();b uuid:=gen_random_uuid();v uuid:=gen_random_uuid();bv uuid:=gen_random_uuid();r uuid:=gen_random_uuid();f uuid:=gen_random_uuid();g uuid:=gen_random_uuid();row_data public.records;grant_data jsonb;amr jsonb;
+ e jsonb:='{"crypto_version":"leqvor-v5","algorithm":"AES-256-GCM","aad_version":1,"nonce":"AAAAAAAAAAAAAAAA","ciphertext":"AAAAAAAAAAAAAAAAAAAAAA=="}';
+ pub jsonb:=jsonb_build_object('kty','EC','crv','P-256','x',repeat('A',43),'y',repeat('B',43));
+ target regprocedure;
+begin
+ foreach target in array array['public.update_v5_record(uuid,bigint,jsonb)'::regprocedure,'public.delete_v5_record(uuid,bigint)'::regprocedure,'public.invite_v5_record(jsonb,bigint,jsonb)'::regprocedure] loop
+  if has_function_privilege('anon',target,'execute') or not has_function_privilege('authenticated',target,'execute') then raise exception 'FAIL writer privileges changed';end if;
+  if position('errcode=''40001''' in pg_get_functiondef(target))>0 or position('errcode=''PT409''' in pg_get_functiondef(target))=0 then raise exception 'FAIL retrying conflict remains';end if;
+ end loop;
+ insert into auth.users(id) values(a),(b);
+ insert into public.vaults(id,owner_id,wrapped_vmk_password,wrapped_vmk_recovery,kdf_salt,kdf_parameters,recovery_salt,crypto_version,recovery_verified_at) values(v,a,e,e,'fixture','{}','fixture','leqvor-v5',now()),(bv,b,e,e,'fixture','{}','fixture','leqvor-v5',now());
+ insert into public.user_sharing_keys(owner_id,vault_id,public_key,encrypted_private_key,crypto_version) values(b,bv,pub,e,'leqvor-v5');
+ insert into public.records(id,owner_id,vault_id,encrypted_metadata,encrypted_payload,wrapped_dek,crypto_version) values(r,a,v,e,e,e,'leqvor-v5');
+ insert into public.record_files(id,record_id,owner_id,vault_id,encrypted_filename,wrapped_file_dek,storage_path,crypto_version) values(f,r,a,v,e,e,a::text||'/'||r::text||'/'||f::text,'leqvor-v5');
+ grant_data:=jsonb_build_object('id',g,'record_id',r,'owner_id',a,'vault_id',v,'recipient_id',b,'permissions','view','grant_version',1,'crypto_version','leqvor-v5','salt',repeat('A',22)||'==','encrypted_record_key',e,'sender_public_material',pub);
+ amr:=jsonb_build_array(jsonb_build_object('method','password','timestamp',extract(epoch from now())::bigint));
+ perform set_config('request.jwt.claim.sub',a::text,true);perform set_config('request.jwt.claims',jsonb_build_object('aal','aal1','amr',amr)::text,true);execute 'set local role authenticated';
+ select * into row_data from public.records where id=r;
+ begin perform public.update_v5_record(r,0,to_jsonb(row_data));raise exception 'FAIL stale update';exception when sqlstate 'PT409' then null;end;
+ row_data:=public.update_v5_record(r,1,to_jsonb(row_data));if row_data.revision<>2 then raise exception 'FAIL current update';end if;
+ begin perform public.delete_v5_record(r,1);raise exception 'FAIL stale delete';exception when sqlstate 'PT409' then null;end;
+ begin perform public.invite_v5_record(grant_data,1,pub);raise exception 'FAIL stale invite';exception when sqlstate 'PT409' then null;end;
+ if not exists(select 1 from public.record_files where id=f) or exists(select 1 from public.record_grants where id=g) then raise exception 'FAIL stale operation mutated data';end if;
+ execute 'reset role';if exists(select 1 from public.ciphertext_cleanup_jobs where owner_id=a) then raise exception 'FAIL stale delete queued cleanup';end if;
+ insert into auth.mfa_factors(id,user_id,status) values(gen_random_uuid(),a,'verified');execute 'set local role authenticated';
+ begin perform public.invite_v5_record(grant_data,2,pub);raise exception 'FAIL MFA bypass';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claims',jsonb_build_object('aal','aal2','amr',amr)::text,true);
+ perform public.invite_v5_record(grant_data,2,pub);
+ if not exists(select 1 from public.record_grants where id=g and status='pending' and record_revision=2) then raise exception 'FAIL current invitation';end if;
+ perform set_config('request.jwt.claim.sub',b::text,true);perform set_config('request.jwt.claims',jsonb_build_object('aal','aal1','amr',amr)::text,true);
+ if exists(select 1 from public.records where id=r) or exists(select 1 from public.record_files where id=f) then raise exception 'FAIL cross-account read';end if;
+ begin perform public.update_v5_record(r,2,to_jsonb(row_data));raise exception 'FAIL foreign update';exception when insufficient_privilege then null;end;
+ begin perform public.delete_v5_record(r,2);raise exception 'FAIL foreign delete';exception when insufficient_privilege then null;end;
+ begin perform public.invite_v5_record(grant_data,2,pub);raise exception 'FAIL foreign invitation';exception when sqlstate 'PT409' then null;end;
+ perform set_config('request.jwt.claims','{"aal":"aal1","amr":[]}',true);
+ begin perform public.invite_v5_record(grant_data,2,pub);raise exception 'FAIL stale authentication';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub',a::text,true);perform public.delete_v5_record(r,2);
+ execute 'reset role';
+ if exists(select 1 from public.records where id=r) or exists(select 1 from public.record_files where id=f) or exists(select 1 from public.record_grants where id=g) or (select count(*) from public.ciphertext_cleanup_jobs where owner_id=a)<>1 then raise exception 'FAIL current atomic deletion';end if;
+end $$;
+rollback;

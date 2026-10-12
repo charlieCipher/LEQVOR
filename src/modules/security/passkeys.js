@@ -5,14 +5,17 @@ export function passkeySupported(runtime=globalThis){
  return runtime.isSecureContext===true&&typeof runtime.PublicKeyCredential==='function'&&typeof runtime.navigator?.credentials?.get==='function'&&typeof runtime.navigator?.credentials?.create==='function';
 }
 export function createPasskeyAdapter(client,enabled,runtime=globalThis){
- const available=()=>enabled===true&&passkeySupported(runtime)&&typeof client?.auth?.signInWithPasskey==='function'&&typeof client?.auth?.registerPasskey==='function';
+ // The user's permanent RP is fixed. Preview/local origins must not enroll
+ // credentials for a different address when a build flag is copied there.
+ const available=()=>enabled===true&&runtime.location?.origin==='https://leqvor.vercel.app'&&passkeySupported(runtime)&&typeof client?.auth?.signInWithPasskey==='function'&&typeof client?.auth?.registerPasskey==='function';
  const guard=()=>{if(!available())throw new AurevaError('PASSKEY_UNAVAILABLE','Passkeys are not enabled here. Use your account password.');};
  async function call(action){
   guard();
   try{const {data,error}=await action();if(error)throw error;return data;}
   catch(error){
    if(error?.code==='passkey_disabled')throw new AurevaError('PASSKEY_DISABLED','Passkeys are not enabled for this account service. Use your password.');
-   if(error?.name==='NotAllowedError')throw new AurevaError('PASSKEY_CANCELLED','Passkey verification was cancelled. Try again or use your password.');
+   const names=[error?.name,error?.cause?.name,error?.originalError?.name];
+   if(names.some(name=>name==='NotAllowedError'||name==='AbortError'))throw new AurevaError('PASSKEY_CANCELLED','Passkey verification did not complete. Try again or use your password.');
    throw new AurevaError('PASSKEY_FAILED','Passkey verification could not complete. Try again or use your password.');
   }
  }

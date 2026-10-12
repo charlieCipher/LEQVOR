@@ -18,10 +18,10 @@ it('does not put a late reveal into a newly mounted record screen',async()=>{
  expect(screen.queryByText('LATE_PRIVATE_CANARY')).toBeNull();
  expect(screen.getByText('Sensitive information hidden')).toBeTruthy();
 });
-it('conceals stale content and offers explicit reload after a version conflict',async()=>{
+it.each(['40001','PT409'])('conceals stale content and offers explicit reload after a %s version conflict',async(code)=>{
  service.reveal.mockResolvedValue({description:'PRIVATE_CANARY'});
  service.files.mockResolvedValue([]);
- service.update.mockRejectedValue({code:'40001',message:'UNTRUSTED_SERVER_DETAIL'});
+ service.update.mockRejectedValue({code,message:'UNTRUSTED_SERVER_DETAIL'});
  const refresh=vi.fn();
  render(<V5RecordDetail record={{id:'r',revision:1,title:'Property',category:'Property'}} onChanged={refresh}/>);
  fireEvent.click(screen.getByRole('button',{name:'Reveal securely'}));

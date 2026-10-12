@@ -1,8 +1,9 @@
 // @vitest-environment node
-import {it,expect,vi} from 'vitest';
+import {it,expect,vi,afterEach} from 'vitest';
 import {Buffer} from 'node:buffer';
 import {securityHistoryEvent} from '../scripts/security-history-event.mjs';
 import {signSecurityEvent} from '../src/modules/security/securityEventSignatures';
+afterEach(()=>vi.unstubAllGlobals());
 async function fixture(){
  const now=Date.parse('2026-10-09T00:00:00Z'),owner=crypto.randomUUID(),keyId=crypto.randomUUID();
  const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
@@ -28,6 +29,9 @@ it('rejects changed signatures, owner, timestamps, signer and plaintext without 
   const f=await fixture();Object.assign(f.input.body,patch);expect((await securityHistoryEvent(f.input)).status).not.toBe(200);expect(f.write).not.toHaveBeenCalled();
  }
 });
+it('does not allow the review endpoint to claim a device action',async()=>{
+ const f=await fixture();Object.assign(f.input.body,{event_type:'DEVICE_ENROLLED',device_id:crypto.randomUUID()});expect((await securityHistoryEvent(f.input)).status).toBe(400);expect(f.factory).not.toHaveBeenCalled();
+});
 it('requires fresh password authentication and rejects invalid account claims',async()=>{
  for(const patch of [{sub:crypto.randomUUID()},{role:'service_role'},{exp:0},{amr:[]}]){
   const f=await fixture();Object.assign(f.claims,patch);f.input.authorization=`Bearer ${f.token()}`;expect((await securityHistoryEvent(f.input)).status).not.toBe(200);expect(f.write).not.toHaveBeenCalled();
@@ -38,4 +42,23 @@ it('sanitizes database failures and reports concurrency conflicts',async()=>{
  const f=await fixture();f.write.mockResolvedValue({error:{code:'40001',message:'PRIVATE'}});expect((await securityHistoryEvent(f.input)).status).toBe(409);
  f.write.mockResolvedValue({error:{code:'PT409',message:'PRIVATE'}});expect((await securityHistoryEvent(f.input)).status).toBe(409);
  f.write.mockResolvedValue({error:{code:'42501',message:'PRIVATE'}});const result=await securityHistoryEvent(f.input);expect(result.status).toBe(404);expect(JSON.stringify(result)).not.toContain('PRIVATE');
+});
+it('uses one deadline for caller and privileged requests without forwarding bearer headers to the writer',async()=>{
+ const f=await fixture(),deadline=new AbortController();vi.spyOn(AbortSignal,'timeout').mockReturnValue(deadline.signal);
+ expect((await securityHistoryEvent(f.input)).status).toBe(200);
+ const caller=f.factory.mock.calls[0][2],writer=f.factory.mock.calls[1][2];expect(caller.global.fetch).toBe(writer.global.fetch);expect(writer.global.headers).toBeUndefined();
+ const network=vi.fn(async(_url,init)=>{if(init.signal.aborted)throw init.signal.reason;return {ok:true};});vi.stubGlobal('fetch',network);
+ const upstream=new AbortController();await caller.global.fetch('https://awdsyhxdnyfilnzamflt.supabase.co/auth/v1/user',{signal:upstream.signal,headers:{Accept:'application/json'}});
+ expect(network.mock.calls[0][1].headers.Accept).toBe('application/json');upstream.abort();expect(network.mock.calls[0][1].signal.aborted).toBe(true);
+ deadline.abort(new DOMException('PRIVATE_TIMEOUT_CANARY','TimeoutError'));
+ await expect(writer.global.fetch('https://awdsyhxdnyfilnzamflt.supabase.co/rest/v1/rpc/append_verified_v5_security_event')).rejects.toHaveProperty('name','TimeoutError');
+});
+it('does not start a privileged write after a timed-out identity read',async()=>{
+ const f=await fixture(),deadline=new AbortController();vi.spyOn(AbortSignal,'timeout').mockReturnValue(deadline.signal);
+ f.read.mockImplementation(async()=>{deadline.abort();return {};});
+ const result=await securityHistoryEvent(f.input);expect(result.status).toBe(503);expect(f.factory).toHaveBeenCalledTimes(1);expect(f.write).not.toHaveBeenCalled();expect(JSON.stringify(result)).not.toContain('PRIVATE');
+});
+it('does not claim success if a write loses its response after the deadline',async()=>{
+ const f=await fixture(),deadline=new AbortController();vi.spyOn(AbortSignal,'timeout').mockReturnValue(deadline.signal);
+ f.write.mockImplementation(async()=>{deadline.abort();return {data:f.input.body.id};});expect((await securityHistoryEvent(f.input)).status).toBe(503);
 });

@@ -1,8 +1,9 @@
 export function getTrustedDeviceSummary() {
   return {
-    activeDevices: 2,
-    trustedDeviceLabel: "This device trusted",
-    method: "Password now, passkeys ready",
+    status: "UNAVAILABLE",
+    trusted: false,
+    activeDevices: null,
+    trustedDeviceLabel: "Verified device enrollment unavailable",
+    method: null,
   };
 }
-

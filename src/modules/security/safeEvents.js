@@ -38,7 +38,7 @@ export class AurevaError extends Error {
   }
 }
 export function safeFailure(error) {
-  if (error?.code === '40001')
+  if (['40001','PT409'].includes(error?.code))
     return 'This record changed in another session. Reload the latest version before making changes.';
   if (error instanceof AurevaError) return error.message;
   if (error?.name === "OperationError")

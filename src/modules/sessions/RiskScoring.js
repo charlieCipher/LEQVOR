@@ -1,5 +1,5 @@
-export function calculateSessionRisk({ activeDevices = 0, recentEvents = 0 }) {
-  if (activeDevices > 4 || recentEvents > 12) return "Needs Attention";
-  return "Safe";
+export function calculateSessionRisk() {
+  // Counts do not prove authenticated device possession or policy enforcement.
+  // This legacy adapter has no verified risk input and must not assert safety.
+  return "Unavailable";
 }
-

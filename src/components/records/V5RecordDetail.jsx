@@ -27,7 +27,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
     epoch = useRef(0);
   function handleFailure(error) {
     if (!active.current) return;
-    if (error?.code === '40001') {
+    if (['40001','PT409'].includes(error?.code)) {
       epoch.current++;
       setPayload(null);
       setFiles([]);
@@ -293,7 +293,7 @@ export default function V5RecordDetail({ record, onChanged, onDeleted, records=[
                 onDeleted?.();
               } catch (error) {
                 handleFailure(error);
-                if (error?.code !== '40001') throw error;
+                if (!['40001','PT409'].includes(error?.code)) throw error;
               }
             }}
           />

@@ -17,8 +17,10 @@ it('rejects accidental plaintext before issuing an RPC',()=>{
  expect(sdk.rpc).not.toHaveBeenCalled();
 });
 it('passes the expected revision and preserves conflict codes',async()=>{
- sdk.rpc.mockResolvedValue({data:null,error:{code:'40001',message:'stale'}});
- await expect(DatabaseProvider.updateRecord('id',row,7)).rejects.toMatchObject({code:'40001'});
+ for(const code of ['40001','PT409']){
+ sdk.rpc.mockResolvedValue({data:null,error:{code,message:'stale'}});
+ await expect(DatabaseProvider.updateRecord('id',row,7)).rejects.toMatchObject({code});
+ }
  expect(sdk.rpc).toHaveBeenCalledWith('update_v5_record',{target_id:'id',expected_revision:7,record_data:row});
 });
 it('sends deletion through the transaction without direct table mutation',async()=>{
@@ -26,6 +28,11 @@ it('sends deletion through the transaction without direct table mutation',async(
  await DatabaseProvider.deleteRecord('id',7);
  expect(sdk.rpc).toHaveBeenCalledWith('delete_v5_record',{target_id:'id',expected_revision:7});
  expect(sdk.from).not.toHaveBeenCalled();
+});
+it('routes password changes through fresh-authenticated optimistic updates and rejects recovery overwrite',async()=>{
+ const update={wrapped_vmk_password:envelope,kdf_salt:'AAAAAAAAAAAAAAAAAAAAAA==',kdf_parameters:{algorithm:'Argon2id',t:3,m:65536,p:1,dkLen:32}};
+ sdk.rpc.mockResolvedValue({data:update});await DatabaseProvider.updateVault('vault',update,'old-nonce');expect(sdk.rpc).toHaveBeenCalledWith('replace_v5_vault_password',{target_vault:'vault',expected_nonce:'old-nonce',password_data:update});expect(sdk.from).not.toHaveBeenCalled();
+ expect(()=>DatabaseProvider.updateVault('vault',{...update,wrapped_vmk_recovery:envelope},'old-nonce')).toThrow();expect(()=>DatabaseProvider.updateVault('vault',update)).toThrow();expect(sdk.rpc).toHaveBeenCalledOnce();
 });
 it('uploads an encrypted JSON object without overwrite permission',async()=>{
  const upload=vi.fn().mockResolvedValue({data:{},error:null});sdk.storage.from.mockReturnValue({upload});

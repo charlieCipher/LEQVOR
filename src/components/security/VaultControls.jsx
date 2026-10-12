@@ -7,6 +7,8 @@ import {
 import { DatabaseProvider } from "../../lib/providers";
 import { safeFailure } from "../../modules/security/safeEvents";
 import { Button, Card } from "../ui/Primitives";
+import SecureAction from './SecureAction';
+import {MIN_PASSWORD_LENGTH} from '../../lib/passwordPolicy';
 export default function VaultControls() {
   const v = useVault(),
     [action, setAction] = useState(null),
@@ -51,14 +53,14 @@ export default function VaultControls() {
         </Button>
         <Button
           onClick={() => {
-            setAction("password");
+            setAction("password-auth");
             setNotice("");
           }}
         >
           Change vault password
         </Button>
       </div>
-      {action && (
+      {action==='password-auth'?<SecureAction title="Verify account before changing vault password" onVerified={async()=>setAction('password')}/>:action && (
         <form
           className="stack-form"
           onSubmit={async (e) => {
@@ -78,15 +80,20 @@ export default function VaultControls() {
                   setNotice("Passwords do not match.");
                   return;
                 }
+                const row = await v.controller.run(async(_key,active)=>{
                 const update = await rewrapVaultPassword(
                   v.vault,
                   f.get("current"),
                   f.get("next"),
                 );
-                const row = await DatabaseProvider.updateVault(
+                active();
+                const updated = await DatabaseProvider.updateVault(
                   v.vault.id,
                   update,
+                  v.vault.wrapped_vmk_password.nonce,
                 );
+                active();return updated;
+                });
                 v.setVault(row);
                 setNotice(
                   "Vault password changed without re-encrypting records.",
@@ -129,7 +136,7 @@ export default function VaultControls() {
                     required
                     type="password"
                     name={name}
-                    minLength={12}
+                    minLength={name==='current'?undefined:MIN_PASSWORD_LENGTH}
                     autoComplete="off"
                   />
                 </label>

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import {it,expect,vi} from 'vitest';
 import {createPasskeyAdapter,passkeySupported} from '../src/modules/security/passkeys';
-const runtime={isSecureContext:true,PublicKeyCredential:function(){},navigator:{credentials:{get(){},create(){}}}};
+const runtime={location:{origin:'https://leqvor.vercel.app'},isSecureContext:true,PublicKeyCredential:function(){},navigator:{credentials:{get(){},create(){}}}};
 const setup=(enabled=true)=>{
  const auth={signInWithPasskey:vi.fn(async()=>({data:{session:{access_token:'test-only'},user:{id:'synthetic'}},error:null})),registerPasskey:vi.fn(async()=>({data:{id:'credential'},error:null})),getUser:vi.fn(async()=>({data:{user:{id:'synthetic',email_confirmed_at:'2026-10-09',is_anonymous:false}},error:null})),passkey:{list:vi.fn(async()=>({data:[],error:null}))}};
  return {auth,adapter:createPasskeyAdapter({auth},enabled,runtime)};
@@ -12,6 +12,22 @@ it('fails closed when pilot is disabled, insecure, unsupported or SDK is absent'
 });
 it('delegates WebAuthn authentication and never handles a vault key or password',async()=>{
  const t=setup();expect((await t.adapter.signIn()).user.id).toBe('synthetic');expect(t.auth.signInWithPasskey).toHaveBeenCalledWith();expect(t.auth.registerPasskey).not.toHaveBeenCalled();
+});
+it('does not start a ceremony on local, preview, old or lookalike origins',async()=>{
+ const t=setup();
+ for(const origin of ['http://127.0.0.1:5175','https://leqvor-preview.vercel.app','https://aureva-wheat.vercel.app','https://leqvor.vercel.app.attacker.test',undefined]){
+  const adapter=createPasskeyAdapter({auth:t.auth},true,{...runtime,location:{origin}});
+  expect(adapter.available).toBe(false);await expect(adapter.register()).rejects.toMatchObject({code:'PASSKEY_UNAVAILABLE'});
+ }
+ expect(t.auth.getUser).not.toHaveBeenCalled();expect(t.auth.registerPasskey).not.toHaveBeenCalled();
+});
+it('handles SDK-wrapped cancellation without exposing authenticator details',async()=>{
+ const t=setup();
+ for(const error of [{name:'AuthUnknownError',originalError:{name:'NotAllowedError',message:'PRIVATE_CANARY'}},{name:'WebAuthnError',cause:{name:'AbortError',message:'PRIVATE_CANARY'}}]){
+  t.auth.signInWithPasskey.mockResolvedValue({data:null,error});
+  await expect(t.adapter.signIn()).rejects.toMatchObject({code:'PASSKEY_CANCELLED'});
+  await expect(t.adapter.signIn()).rejects.not.toThrow('PRIVATE_CANARY');
+ }
 });
 it('requires an authenticated confirmed account for registration',async()=>{
  const t=setup();await t.adapter.register();expect(t.auth.registerPasskey).toHaveBeenCalledOnce();t.auth.getUser.mockResolvedValue({data:{user:{id:'synthetic'}},error:null});await expect(t.adapter.register()).rejects.toMatchObject({code:'PASSKEY_FAILED'});expect(t.auth.registerPasskey).toHaveBeenCalledOnce();

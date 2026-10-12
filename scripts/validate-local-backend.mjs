@@ -59,7 +59,7 @@ try {
   const updated = await value(a.rpc('update_v5_record', { target_id: row.id, expected_revision: 1, record_data: revised }));
   assert.equal(updated.revision, 2);
   assert.equal((await decryptRecordPayload(key, updated)).notes, 'Revised');
-  assert.equal((await a.rpc('update_v5_record', { target_id: row.id, expected_revision: 1, record_data: revised })).error?.code, '40001');
+  assert.equal((await a.rpc('update_v5_record', { target_id: row.id, expected_revision: 1, record_data: revised })).error?.code, 'PT409');
   pass('encrypted edit and stale revision rejection');
   await value(a.rpc('delete_v5_record', { target_id: row.id, expected_revision: 2 }));
   assert.equal((await value(a.from('records').select('*').eq('id', row.id))).length, 0);

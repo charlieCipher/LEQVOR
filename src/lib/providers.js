@@ -67,6 +67,17 @@ export const AuthProvider = {
   },
 };
 export const DatabaseProvider = {
+  devices:vault=>result(requireClient().from('vault_devices').select('*').eq('vault_id',vault).order('created_at').limit(1001)),
+  beginDeviceChallenge:(vault,device,purpose,publicKey)=>result(requireClient().rpc('begin_v5_device_challenge',{target_vault:vault,target_device:device,operation:purpose,key_data:publicKey})),
+  revokeDevice:(device,event)=>DatabaseProvider.deviceOperation({operation:'revoke',device_id:device,event}),
+  completeDeviceChallenge:(challenge,signature,event)=>DatabaseProvider.deviceOperation({challenge_id:challenge,signature,event}),
+  deviceOperation:async(body)=>{
+    securityEventCommitment(body.event);
+    const {session}=await result(requireClient().auth.getSession());if(!session?.access_token)throw new Error('Sign in again.');
+    const response=await fetch('/api/verified-device',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(body),signal:AbortSignal.timeout(30000),cache:'no-store'});
+    if(!response.ok)throw new AurevaError('DEVICE_VERIFICATION_FAILED','Device verification did not finish. Reauthenticate and verify again.');
+    const resultBody=await response.json();if(resultBody.verified!==true)throw new Error('Device verification failed.');return resultBody.device_id;
+  },
   securityEvents:()=>result(requireClient().from('security_events').select('*').order('sequence').limit(10001)),
   appendSecurityEvent:async(event)=>{
     securityEventCommitment(event);
@@ -138,10 +149,10 @@ export const DatabaseProvider = {
     ),
   createVault: (row) =>
     result(requireClient().from("vaults").insert(encryptedWrite("vault", row)).select().single()),
-  updateVault: (id, row) =>
-    result(
-      requireClient().from("vaults").update(encryptedWrite("vault", row)).eq("id", id).select().single(),
-    ),
+  updateVault: (id, row, expectedNonce) => {
+    if(!expectedNonce||Object.keys(row||{}).some(k=>!['kdf_salt','kdf_parameters','wrapped_vmk_password'].includes(k)))throw new Error('Invalid vault password update.');
+    return result(requireClient().rpc('replace_v5_vault_password',{target_vault:id,expected_nonce:expectedNonce,password_data:encryptedWrite('vault',row)})).catch(error=>{if(error?.code==='42501')throw new AurevaError('VAULT_REAUTH_REQUIRED','Sign in again with your account password and MFA, then retry this vault-password change.');throw error;});
+  },
   listRecords: () =>
     result(
       requireClient()

@@ -8,7 +8,9 @@ const hash=value=>typeof value==='string'&&/^[A-Za-z0-9+/]{43}=$/.test(value);
 export function securityEventCommitment(event){
  if(!event||Object.keys(event).some(k=>!['id','owner_id','sequence','event_type','severity','device_id','previous_hash','created_at','signing_key_id','event_hash','signature'].includes(k)))throw new Error('Unsupported security event.');
  opaqueId(event.id);opaqueId(event.owner_id);opaqueId(event.signing_key_id);
- if(!Number.isSafeInteger(event.sequence)||event.sequence<1||event.event_type!=='SECURITY_HISTORY_REVIEWED'||event.severity!=='INFO'||event.device_id!==null||!Number.isFinite(Date.parse(event.created_at))||new Date(event.created_at).toISOString()!==event.created_at||(event.sequence===1?event.previous_hash!==null:!hash(event.previous_hash)))throw new Error('Invalid security event.');
+ const deviceEvent=['DEVICE_ENROLLED','DEVICE_PROOF_VERIFIED','DEVICE_REVOKED'].includes(event.event_type);
+ if(deviceEvent)opaqueId(event.device_id);
+ if(!Number.isSafeInteger(event.sequence)||event.sequence<1||(!deviceEvent&&event.event_type!=='SECURITY_HISTORY_REVIEWED')||event.severity!=='INFO'||(!deviceEvent&&event.device_id!==null)||!Number.isFinite(Date.parse(event.created_at))||new Date(event.created_at).toISOString()!==event.created_at||(event.sequence===1?event.previous_hash!==null:!hash(event.previous_hash)))throw new Error('Invalid security event.');
  const {id,owner_id,sequence,event_type,severity,device_id,previous_hash,created_at,signing_key_id}=event;
  return {domain:'leqvor-security-event-v1',id,owner_id,sequence,event_type,severity,device_id,previous_hash,created_at,signing_key_id};
 }

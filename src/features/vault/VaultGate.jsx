@@ -132,7 +132,7 @@ export default function VaultGate({ session, children }) {
           true,
         );
         if (version !== generation.current) throw new Error("Session changed.");
-        current = await DatabaseProvider.updateVault(current.id, update);
+        current = await DatabaseProvider.updateVault(current.id, update, current.wrapped_vmk_password.nonce);
         setVault(current);
       }
       if (version !== generation.current) {

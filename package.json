@@ -14,6 +14,7 @@
     "check:dependencies": "npm audit --audit-level=low",
     "check:database": "node scripts/check-database.mjs",
     "check:restore": "node scripts/check-restore.mjs",
+    "check:browser-device": "node scripts/check-browser-device.mjs",
     "check:release-config": "node scripts/check-release-config.mjs",
     "build:release": "node scripts/build-release.mjs",
     "check:deployment": "node scripts/check-deployment.mjs",
