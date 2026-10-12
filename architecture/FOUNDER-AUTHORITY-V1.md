@@ -1,6 +1,6 @@
 # LEQVOR Founder Authority Architecture v1
 
-Status: accepted specification; local governance core implementation started, not activated. The user explicitly requested implementation after the customer unlock release. governance/README.md records the tested policy/queue/gateway/transaction/audit/offline-inspection implementation and its boundaries. Device signers, separate admin console and protected infrastructure executors remain unbuilt. Supersedes the single-key founder proposal. Customer release d23e534 is deployed, but outstanding customer acceptance and security/operations work is not thereby complete. Preserve the current customer UI.
+Status: accepted specification; local governance core and native client implementation started, not activated. The user explicitly requested implementation after the customer unlock release. governance/README.md records the tested policy/queue/gateway/transaction/audit implementation and its boundaries. Windows/Android clients compile and pass public-protocol interoperability; physical signing, attestation validation and enrollment are pending. Separate online admin console and protected infrastructure executors remain unbuilt. governance/MANUAL-ACTIVATION.md distinguishes manual requirements from unfinished integration. Supersedes the single-key founder proposal. Customer release d23e534 is deployed, but outstanding customer acceptance and security/operations work is not thereby complete. Preserve the current customer UI.
 
 ## Boundaries
 

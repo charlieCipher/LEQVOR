@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)../../../.local-release/founder-windows/obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

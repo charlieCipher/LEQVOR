@@ -1,0 +1,16 @@
+{
+  "domain": "leqvor-infrastructure-registry-v1",
+  "activated": false,
+  "resources": [
+    {"id":"source","provider":"GitHub","reference":"charlieCipher/LEQVOR","primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"customer-backend","provider":"Supabase","reference":"awdsyhxdnyfilnzamflt","primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"customer-hosting","provider":"Vercel","reference":"kalambeshounak-5837s-projects/leqvor","primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"customer-address","provider":"Vercel","reference":"leqvor.vercel.app","primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"governance-datastore","provider":null,"reference":null,"primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"independent-checkpoints","provider":null,"reference":null,"primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"company-email","provider":null,"reference":null,"primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"secret-manager","provider":null,"reference":null,"primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"billing","provider":null,"reference":null,"primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false},
+    {"id":"native-release-signing","provider":null,"reference":null,"primary_owner":null,"backup_owner":null,"last_verified":null,"authentication_method":null,"recovery_process":null,"founder_approval_required":true,"independent_enforcement_verified":false}
+  ]
+}

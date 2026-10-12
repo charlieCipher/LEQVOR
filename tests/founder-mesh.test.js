@@ -6,6 +6,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {GovernanceEngine,initialGovernance,checkpoint,verifyAudit} from '../governance/engine.mjs';
 import {PostgresGovernanceStore} from '../governance/postgres-store.mjs';
 import {hash,encode,approvalCommitment,validatePolicy} from '../governance/protocol.mjs';
+import {verifyExecutionAuthorization} from '../governance/execution-permit.mjs';
 const databases=[];afterEach(async()=>{for(const db of databases.splice(0))await db.close();});
 async function fixture(){
  const keys=['A','B','C'].map((slot,i)=>{const pair=i===0?generateKeyPairSync('rsa',{modulusLength:2048}):generateKeyPairSync('ec',{namedCurve:'prime256v1'}),der=pair.publicKey.export({type:'spki',format:'der'});return {pair,pin:{slot,algorithm:i===0?'RS256':'ES256',spki:der.toString('base64'),key_id:createHash('sha256').update(der).digest('hex')}};});
@@ -16,7 +17,7 @@ async function fixture(){
  const approve=(request,slot)=>{const k=keys.find(k=>k.pin.slot===slot);return {slot,key_id:k.pin.key_id,signature:sign('sha256',encode(approvalCommitment(request,k.pin.key_id)),{key:k.pair.privateKey,...(k.pin.algorithm==='ES256'?{dsaEncoding:'ieee-p1363'}:{})}).toString('base64')};};
  const run=async operation=>{const r=await operation(anchor);anchor=r.checkpoint;return r.result;};
  const read=async()=>(await db.query('select document from founder_governance.root_state')).rows[0].document;
- return {engine,db,policy,keys,approve,run,read,get anchor(){return anchor;},advance:ms=>{now+=ms;}};
+ return {engine,db,policy,keys,approve,run,read,get anchor(){return anchor;},get now(){return now;},advance:ms=>{now+=ms;}};
 }
 const target=hash({account_id:'exact-target-account'});
 it('requires two independent approvals, 72 hours and two fresh confirmations against actual PostgreSQL state',async()=>{
@@ -32,6 +33,21 @@ it('requires two independent approvals, 72 hours and two fresh confirmations aga
  await expect(f.engine.approve(confirm.request_id,f.approve(confirm,'A'),f.anchor)).rejects.toThrow();
  const state=await f.read();expect(state.version).toBe(2);expect(verifyAudit(state.audit,f.anchor)).toBe(true);expect(state.requests[request.request_id].status).toBe('CONSUMED');
  expect((await f.db.query('select count(*)::int as n from founder_governance.audit_events')).rows[0].n).toBe(state.audit.length);
+});
+it('independently verifies a live execution intent and denies stale, different-target and frozen operations',async()=>{
+ const f=await fixture(),artifact={account_id:'exact-target-account'},request=await f.run(a=>f.engine.request({action:'TRANSFER_PLATFORM_OWNERSHIP',target:hash(artifact)},a));
+ await f.run(a=>f.engine.approve(request.request_id,f.approve(request,'A'),a));await f.run(a=>f.engine.approve(request.request_id,f.approve(request,'B'),a));
+ f.advance(259200000);const confirm=await f.run(a=>f.engine.request({action:request.action,target:request.target,proposal_id:request.request_id},a));
+ await f.run(a=>f.engine.approve(confirm.request_id,f.approve(confirm,'A'),a));await f.run(a=>f.engine.approve(confirm.request_id,f.approve(confirm,'C'),a));
+ const state=await f.read(),input={state,checkpoint:f.anchor,policy:f.policy,request_id:confirm.request_id,target:artifact,now:f.now};
+ const intent=verifyExecutionAuthorization(input);expect(intent.action).toBe(request.action);expect(intent.idempotency_key).toMatch(/^[a-f0-9]{64}$/);expect(verifyExecutionAuthorization(input)).toEqual(intent);
+ expect(()=>verifyExecutionAuthorization({...input,target:{account_id:'different-account'}})).toThrow();
+ expect(()=>verifyExecutionAuthorization({...input,now:f.now+600000})).toThrow();
+ const freeze=await f.run(a=>f.engine.request({action:'GOVERNANCE_FREEZE',target},a));await f.run(a=>f.engine.approve(freeze.request_id,f.approve(freeze,'B'),a));
+ expect(()=>verifyExecutionAuthorization({...input,state:state,checkpoint:f.anchor})).toThrow();
+ expect(()=>verifyExecutionAuthorization({...input,state:undefined})).toThrow();
+ expect(()=>verifyExecutionAuthorization({...input,state:{...state,frozen:true}})).toThrow();
+ const frozenState=await f.read();expect(()=>verifyExecutionAuthorization({...input,state:frozenState,checkpoint:f.anchor})).toThrow(/freeze/);
 });
 it('freezes immediately with one credential, invalidates earlier requests and requires stronger unfreeze',async()=>{
  const f=await fixture(),old=await f.run(a=>f.engine.request({action:'DISABLE_FOUNDER_PROTECTION',target},a)),freeze=await f.run(a=>f.engine.request({action:'GOVERNANCE_FREEZE',target},a));

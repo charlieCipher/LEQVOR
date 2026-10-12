@@ -35,11 +35,12 @@ export function validateRequest(request,policy,version,now){
  return request;
 }
 export function approvalCommitment(request,keyId){return {domain:'leqvor-founder-approval-v1',request,signer_key_id:keyId};}
-export function verifyApproval(request,approval,policy){
+export function verifyCommitment(commitment,approval,policy){
  try{
   exact(approval,['slot','key_id','signature']);const pin=policy.credentials.find(c=>c.slot===approval.slot&&c.key_id===approval.key_id);if(!pin)return false;
   if(typeof approval.signature!=='string'||approval.signature.length>1024)return false;
   const raw=Buffer.from(approval.signature,'base64');if(raw.toString('base64')!==approval.signature||(pin.algorithm==='ES256'&&raw.length!==64))return false;
-  return verify('sha256',encode(approvalCommitment(request,pin.key_id)),{key:publicCredential(pin),...(pin.algorithm==='ES256'?{dsaEncoding:'ieee-p1363'}:{})},raw);
+  return verify('sha256',encode(commitment),{key:publicCredential(pin),...(pin.algorithm==='ES256'?{dsaEncoding:'ieee-p1363'}:{})},raw);
  }catch{return false;}
 }
+export function verifyApproval(request,approval,policy){return verifyCommitment(approvalCommitment(request,approval?.key_id),approval,policy);}

@@ -1,0 +1,37 @@
+import {mkdir,writeFile,readdir} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {generateKeyPairSync,createHash,sign} from 'node:crypto';
+import {encode,hash,approvalCommitment} from './protocol.mjs';
+import {initialGovernance,checkpoint} from './engine.mjs';
+import {checkpointCommitment} from './audit.mjs';
+const root=resolve('.'),output=join(root,'.local-release','founder-native-acceptance');
+const java=process.env.LEQVOR_JAVA_BIN??'C:\\Program Files\\Android\\Android Studio\\jbr\\bin';
+const android=join(process.env.LOCALAPPDATA,'Android','Sdk','platforms','android-36','android.jar');
+const jsonRoot=join(process.env.USERPROFILE,'.gradle','caches','modules-2','files-2.1','org.json','json','20250517');
+let jsonJar;
+for(const entry of await readdir(jsonRoot)){const files=await readdir(join(jsonRoot,entry));if(files.includes('json-20250517.jar'))jsonJar=join(jsonRoot,entry,'json-20250517.jar');}
+if(!jsonJar)throw new Error('Native protocol test requires the pinned org.json 20250517 test runtime.');
+await mkdir(output,{recursive:true});
+const keys=['A','B','C'].map((slot,index)=>{const pair=index===0?generateKeyPairSync('rsa',{modulusLength:2048}):generateKeyPairSync('ec',{namedCurve:'prime256v1'});const der=pair.publicKey.export({type:'spki',format:'der'});return {pair,pin:{slot,algorithm:index===0?'RS256':'ES256',key_id:createHash('sha256').update(der).digest('hex'),spki:der.toString('base64')}};});
+const policy={domain:'leqvor-founder-policy-v1',platform:'leqvor.vercel.app',threshold:2,cooling_ms:259200000,credentials:keys.map(k=>k.pin)};
+const now=Date.parse('2026-10-12T12:00:00.000Z');
+const request={domain:'leqvor-founder-request-v1',platform:policy.platform,action:'TRANSFER_PLATFORM_OWNERSHIP',target:hash({account:'synthetic-only'}),request_id:'a0000000-0000-4000-8000-000000000000',nonce:'a'.repeat(64),created_at:new Date(now).toISOString(),expires_at:new Date(now+600000).toISOString(),governance_version:1,policy_hash:hash(policy),phase:'PROPOSE',proposal_hash:null};
+const commitment=approvalCommitment(request,keys[1].pin.key_id),derSignature=sign('sha256',encode(commitment),keys[1].pair.privateKey);
+// Convert the public DER signature with Node's public verifier-compatible ASN.1 values for a cross-language comparison.
+const {verify}=await import('node:crypto');
+const inputs=[{z:'é 😀 </script>',a:'\n\t\u0001"\\'},[true,false,null,0,-123,9007199254740991],{'10':'ten','2':'two','0':'zero','4294967295':'not-index',a:'last'}, {'😀':1,'\ue000':2}];
+const fixture={policy,request,now,policy_hash:hash(policy),key_id:keys[1].pin.key_id,commitment:encode(commitment).toString('utf8'),canonical:inputs.map(input=>({input,expected:encode(input).toString('utf8')})),der_signature:derSignature.toString('base64')};
+fixture.state=initialGovernance(policy);
+const event={domain:'leqvor-governance-audit-v1',id:'b0000000-0000-4000-8000-000000000000',sequence:1,previous_hash:null,created_at:new Date(now).toISOString(),event_type:'REQUEST_CREATED',details:{request}};
+fixture.state.audit.push({...event,event_hash:hash(event)});
+fixture.state.requests[request.request_id]={request,approvals:[],status:'PENDING',proposal_id:null,cooling_until:null};
+fixture.checkpoint=checkpoint(fixture.state);fixture.checkpoint_commitment=encode(checkpointCommitment(fixture.checkpoint,keys[1].pin.key_id)).toString('utf8');
+// The tested native converter emits raw R/S; obtain the expected raw value from the DER integers without a signing fallback.
+let offset=2;const raw=Buffer.alloc(64);for(let i=0;i<2;i++){if(derSignature[offset++]!==2)throw Error('Unexpected test signature');let length=derSignature[offset++];if(derSignature[offset]===0){offset++;length--;}derSignature.copy(raw,i*32+32-length,offset,offset+length);offset+=length;}
+if(!verify('sha256',encode(commitment),{key:keys[1].pair.publicKey,dsaEncoding:'ieee-p1363'},raw))throw Error('Test signature conversion failed');fixture.raw_signature=raw.toString('base64');
+await writeFile(join(output,'public-vectors.json'),JSON.stringify(fixture));
+const source=join(root,'governance','native','android');
+const run=(program,args)=>{const result=spawnSync(program,args,{encoding:'utf8',windowsHide:true});if(result.status!==0)throw new Error(result.stderr||result.stdout||'Native tool failed');if(result.stdout.trim())process.stdout.write(result.stdout);};
+run(join(java,'javac.exe'),['--release','17','-classpath',`${jsonJar};${android}`,'-d',output,join(source,'src','com','lenvor','leqvor','founder','Protocol.java'),join(source,'src','com','lenvor','leqvor','founder','HardwareSigner.java'),join(source,'test','NativeAcceptance.java')]);
+run(join(java,'java.exe'),['-classpath',`${output};${jsonJar};${android}`,'com.lenvor.leqvor.founder.NativeAcceptance',join(output,'public-vectors.json')]);
