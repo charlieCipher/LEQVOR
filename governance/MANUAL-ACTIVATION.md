@@ -16,7 +16,11 @@ The Windows console rebuilt with zero warnings/errors and its public-protocol ac
 & .local-release/founder-tools/dotnet/dotnet.exe .local-release/founder-windows/bin/net10.0-windows10.0.19041.0/FounderConsole.dll --check-device
 ```
 
-The remaining OS authentication/key approval belongs to the founder. No Windows Hello setup, PIN entry, security setting, device permission or infrastructure owner setting was automated. The user's only identified devices remain the HP laptop and Vivo Y19s; recovery C, separate storage and independent review have not been provided. Do not mark these accepted from successful computer access or this availability result.
+The founder subsequently completed the local “Create / inspect Hello key” ceremony privately and replied “Done.” The native console reported public key and TPM evidence ready. A read-only `--export-existing-public-evidence <new-local-file>` operation then opened the existing A alias, obtained public evidence and wrote a new file under ignored `.local-release`. It does not create/replace keys, sign requests, enroll identities or activate root authority. No actual public-key identity or attestation certificate is committed to Git.
+
+Structural checks passed: RS256, RSA-2048, public SPKI fingerprint matches, 849 attestation bytes and 14,913 certificate-chain bytes. **Independent chain/TPM attestation verification remains false.** Evidence presence and OS success are not proof of independently verified hardware provenance. There is no root policy containing this actual credential yet. The separate export build passed with zero warnings/errors.
+
+No Windows Hello setup, PIN entry, security setting, device permission or infrastructure owner setting was automated. The user's only identified devices remain the HP laptop and Vivo Y19s; recovery C, separate storage and independent review have not been provided. A was created by the founder; B/C and all founder enrollment remain unverified. Do not mark activation accepted from successful computer access or these structural results.
 
 ## Work completed in code
 
@@ -47,7 +51,7 @@ Do not send PINs, passwords, founder private material or recovery packages in ch
 
 These are **not** manual checkboxes and are not complete:
 
-1. Trusted native release signing/packaging, attestation-chain and TPM/Android attestation validation, reviewed enrollment, and the C device adapter. No actual founder key has been created/enrolled in this session. The unsigned Android APK is not an installable production release; no distribution signing key was invented or uploaded.
+1. Trusted native release signing/packaging, attestation-chain and TPM/Android attestation validation, reviewed enrollment, and the C device adapter. The founder has created local Windows credential A and public evidence was structurally checked; no actual founder credential has been enrolled. The unsigned Android APK is not an installable production release; no distribution signing key was invented or uploaded.
 2. Separate authenticated online admin console and its live identity/role adapters. The gateway has a signed-access-token adapter and bounded same-origin HTTPS transport/server assembly, with mandatory live revocation and independently assigned roles. The separate labelled admin view/client now imports independently pinned state, verifies browser signatures, exports public requests and requires a new two-founder signed checkpoint after mutations. It clears on background and never signs, grants roles or executes provider operations. This does not finish the actual provider login, ACR mapping, identity/role/revocation adapters, secure hosting or `admin.leqvor.com` configuration. No listener was started. See [control/README.md](control/README.md). The customer passkey origin remains `leqvor.vercel.app`.
 3. Protected provider integrations. The local one-use execution journal/coordinator now prevents duplicate dispatch, records ambiguous outcomes, rechecks live authorization and performs receipt-only reconciliation. Its tests use simulated providers with a real isolated PostgreSQL journal. Actual ownership transfer, root identity/policy rotation, deployment authorization, provider-enforced freeze, root-secret rotation and external execution-history checkpoints still need independently protected adapters. A Vercel/Supabase/GitHub owner can otherwise change enforcement code or settings. See [EXECUTION-INTEGRATION.md](EXECUTION-INTEGRATION.md).
 4. External checkpoint retention/scheduling and cloud restore acceptance. Local verified retention/restore is implemented; a real separate provider, scheduler and cloud test are not. Policy-rotation continuity and independently signed execution-history checkpoints need further engineering. Never treat a head read from the same database as an independent anchor.
@@ -73,7 +77,7 @@ node governance/check-native.mjs
 & .local-release/founder-tools/dotnet/dotnet.exe .local-release/founder-windows/bin/net10.0-windows10.0.19041.0/FounderConsole.dll --check-protocol .local-release/founder-native-acceptance/public-vectors.json
 ```
 
-Build scripts use Android SDK platform/build tools 36, the existing Android Studio Java runtime, pinned .NET SDK 10.0.401 and a locked restore. `check-native.mjs` uses the cached pinned org.json 20250517 JVM test runtime. Public synthetic fixtures and binaries stay under ignored `.local-release`; disposable software test keys are generated only in memory. No native application was launched, installed, or used to create/sign a real founder credential.
+Build scripts use Android SDK platform/build tools 36, the existing Android Studio Java runtime, pinned .NET SDK 10.0.401 and a locked restore. `check-native.mjs` uses the cached pinned org.json 20250517 JVM test runtime. Public synthetic fixtures and binaries stay under ignored `.local-release`; disposable software test keys are generated only in memory. Subsequently, the local Windows application was opened for the founder's private A key-creation ceremony described above. No Android application was installed; no real root action/checkpoint/possession approval was signed or enrolled.
 
 Native import formats:
 

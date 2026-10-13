@@ -10,6 +10,12 @@ internal static class Program
     {
         if (args.Length == 2 && args[0] == "--check-protocol") { Check(args[1]); return; }
         if (args.Length == 1 && args[0] == "--check-device") { Console.WriteLine(HelloSigner.DeviceReadiness().GetAwaiter().GetResult()); return; }
+        if (args.Length == 2 && args[0] == "--export-existing-public-evidence")
+        {
+            try { byte[] packet = HelloSigner.ExistingPublicEvidence().GetAwaiter().GetResult(); Protocol.Require(packet.Length <= 65536, "Public evidence exceeds reviewed capacity"); using var file = new FileStream(args[1], FileMode.CreateNew, FileAccess.Write, FileShare.None); file.Write(packet); file.Flush(true); Console.WriteLine("Existing public evidence saved locally. No key created, replaced or signed; no founder enrollment or activation."); }
+            catch { Console.Error.WriteLine("Existing public evidence export failed. No key was created or replaced. Check local credential availability, attestation and new output path."); Environment.ExitCode = 1; }
+            return;
+        }
         if (args.Length != 0) throw new InvalidDataException("No background signing arguments are supported");
         ApplicationConfiguration.Initialize(); Application.Run(new FounderForm());
     }

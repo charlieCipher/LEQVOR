@@ -32,7 +32,15 @@ internal static class HelloSigner
     }
     internal static async Task<byte[]> PublicEnrollment()
     {
-        var key = await Open(true); var evidence = await Evidence(key);
+        return await PublicEvidence(true);
+    }
+    internal static async Task<byte[]> ExistingPublicEvidence()
+    {
+        return await PublicEvidence(false);
+    }
+    private static async Task<byte[]> PublicEvidence(bool create)
+    {
+        var key = await Open(create); var evidence = await Evidence(key);
         byte[] publicKey = Bytes(key.RetrievePublicKey(CryptographicPublicKeyBlobType.X509SubjectPublicKeyInfo));
         return JsonSerializer.SerializeToUtf8Bytes(new { domain = "leqvor-founder-device-evidence-v1", credential = new { slot = "A", algorithm = "RS256", spki = Convert.ToBase64String(publicKey), key_id = Protocol.Digest(publicKey) }, attestation = Convert.ToBase64String(Bytes(evidence.AttestationBuffer)), certificate_chain = Convert.ToBase64String(Bytes(evidence.CertificateChainBuffer)), independently_verified = false });
     }
