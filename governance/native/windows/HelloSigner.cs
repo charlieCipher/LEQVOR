@@ -61,4 +61,18 @@ internal static class HelloSigner
         Protocol.Require(verifier.VerifyData(bytes, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1), "Checkpoint signature format failed verification");
         return JsonSerializer.SerializeToUtf8Bytes(new { checkpoint, approval = new { slot = "A", key_id = keyId, signature = Convert.ToBase64String(signature) } });
     }
+    internal static async Task<byte[]> ProveReplacement(JsonElement policy, JsonElement state, JsonElement head, JsonElement packet)
+    {
+        byte[] bytes = Protocol.Replacement(policy, state, head, packet, "A", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        var key = await Open(false); await Evidence(key);
+        byte[] publicKey = Bytes(key.RetrievePublicKey(CryptographicPublicKeyBlobType.X509SubjectPublicKeyInfo)); string id = Protocol.Digest(publicKey);
+        var pin = packet.GetProperty("target").GetProperty("credential");
+        Protocol.Require(Protocol.Text(pin, "algorithm") == "RS256" && Protocol.Text(pin, "key_id") == id, "Replacement target is not this local hardware key");
+        var result = await key.RequestSignAsync(CryptographicBuffer.CreateFromByteArray(bytes));
+        Protocol.Require(result.Status == KeyCredentialStatus.Success, "Replacement possession approval cancelled");
+        Protocol.Replacement(policy, state, head, packet, "A", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        byte[] signature = Bytes(result.Result); using var verifier = RSA.Create(); verifier.ImportSubjectPublicKeyInfo(publicKey, out _);
+        Protocol.Require(verifier.VerifyData(bytes, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1), "Replacement signature format failed verification");
+        return JsonSerializer.SerializeToUtf8Bytes(new { slot = "A", key_id = id, signature = Convert.ToBase64String(signature) });
+    }
 }

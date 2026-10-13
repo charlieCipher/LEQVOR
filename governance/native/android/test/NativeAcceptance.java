@@ -24,6 +24,16 @@ public final class NativeAcceptance {
         boolean denied=false;try{Protocol.validateRequest(request,policy,2,fixture.getLong("now"));}catch(Exception e){denied=true;}Protocol.require(denied,"Wrong independent version accepted");
         denied=false;try{Protocol.validateRequest(request,policy,1,fixture.getLong("now")+600000);}catch(Exception e){denied=true;}Protocol.require(denied,"Expired request accepted");
         Protocol.require(Protocol.display("target\u202ereversed").contains("\\u202e"),"Directional text not escaped");
+        JSONArray replacements=fixture.getJSONArray("replacements");
+        for(int i=0;i<replacements.length();i++){
+            JSONObject f=replacements.getJSONObject(i),packet=f.getJSONObject("packet");String slot=f.getString("slot");
+            byte[] proof=Protocol.replacement(policy,f.getJSONObject("state"),f.getJSONObject("checkpoint"),packet,slot,f.getLong("now"));
+            Protocol.require(new String(proof,java.nio.charset.StandardCharsets.UTF_8).equals(f.getString("commitment")),"Replacement possession bytes differ");
+            JSONObject changed=new JSONObject(packet.toString());changed.getJSONObject("evidence").put("changed",true);
+            denied=false;try{Protocol.replacement(policy,f.getJSONObject("state"),f.getJSONObject("checkpoint"),changed,slot,f.getLong("now"));}catch(Exception e){denied=true;}Protocol.require(denied,"Changed replacement evidence accepted");
+            denied=false;try{Protocol.replacement(policy,f.getJSONObject("state"),f.getJSONObject("checkpoint"),packet,slot.equals("A")?"B":"A",f.getLong("now"));}catch(Exception e){denied=true;}Protocol.require(denied,"Wrong replacement slot accepted");
+            denied=false;try{Protocol.replacement(policy,f.getJSONObject("state"),f.getJSONObject("checkpoint"),packet,slot,f.getLong("now")+600000);}catch(Exception e){denied=true;}Protocol.require(denied,"Expired possession proof accepted");
+        }
         System.out.println("Native public-protocol acceptance passed: canonical bytes, policy pins, mixed keys, signature encoding, version, expiry, display and malformed input. Hardware not enrolled or tested.");
     }
 }

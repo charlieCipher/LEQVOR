@@ -91,6 +91,21 @@ internal static class Protocol
     }
     internal static byte[] Commitment(JsonElement request, string keyId) => Encoding.UTF8.GetBytes("{\"domain\":\"leqvor-founder-approval-v1\",\"request\":" + Canonical(request) + ",\"signer_key_id\":" + Quote(keyId) + "}");
     internal static byte[] CheckpointCommitment(JsonElement checkpoint, string keyId) => Encoding.UTF8.GetBytes("{\"checkpoint\":" + Canonical(checkpoint) + ",\"domain\":\"leqvor-founder-checkpoint-approval-v1\",\"platform\":\"leqvor.vercel.app\",\"signer_key_id\":" + Quote(keyId) + "}");
+    internal static byte[] Replacement(JsonElement policy, JsonElement state, JsonElement head, JsonElement packet, string slot, long now)
+    {
+        Policy(policy); Snapshot(state, head, policy); Exact(packet, "request", "target", "evidence");
+        var request = packet.GetProperty("request"); var target = packet.GetProperty("target"); var pin = target.GetProperty("credential");
+        long version = Integer(request, "governance_version"); Request(request, policy, version, now);
+        Require(Text(request, "action") == "REPLACE_FOUNDER_IDENTITY" && Text(request, "phase") == "CONFIRM" && Integer(state, "version") == version + 1 && state.GetProperty("frozen").ValueKind == JsonValueKind.False, "Unfrozen final replacement authorization required");
+        var record = state.GetProperty("requests").GetProperty(Text(request, "request_id"));
+        Require(Text(record, "status") == "AUTHORIZED" && Hash(record.GetProperty("request")) == Hash(request), "Replacement differs from independently anchored authorization");
+        Exact(target, "domain", "slot", "prior_key_id", "credential", "evidence_hash", "device_instance_hash");
+        Require(Text(target, "domain") == "leqvor-founder-replacement-target-v1" && Text(target, "slot") == slot && Text(pin, "slot") == slot && Text(target, "prior_key_id") == Text(Credential(policy, slot), "key_id") && Hash(target) == Text(request, "target") && Hex(Text(target, "device_instance_hash")) && Hash(packet.GetProperty("evidence")) == Text(target, "evidence_hash"), "Replacement target/evidence mismatch");
+        Require(!policy.GetProperty("credentials").EnumerateArray().Any(p => Text(p, "key_id") == Text(pin, "key_id")), "Replacement key must be new");
+        using var candidate = JsonDocument.Parse("{\"domain\":\"leqvor-founder-policy-v1\",\"platform\":\"leqvor.vercel.app\",\"threshold\":2,\"cooling_ms\":259200000,\"credentials\":[" + string.Join(',', policy.GetProperty("credentials").EnumerateArray().Select(p => Canonical(Text(p, "slot") == slot ? pin : p))) + "]}"); Policy(candidate.RootElement);
+        using var commitment = JsonDocument.Parse(JsonSerializer.Serialize(new { domain = "leqvor-founder-device-possession-v1", request_hash = Hash(request), policy_hash = Hash(policy), key_id = Text(pin, "key_id"), evidence_hash = Text(target, "evidence_hash") }));
+        return Encoding.UTF8.GetBytes(Canonical(commitment.RootElement));
+    }
     internal static void Snapshot(JsonElement state, JsonElement checkpoint, JsonElement policy)
     {
         Exact(state, "policy", "version", "frozen", "requests", "audit");

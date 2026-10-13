@@ -3,7 +3,8 @@ import {join,resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
 import {encode,hash,approvalCommitment} from './protocol.mjs';
-import {initialGovernance,checkpoint} from './engine.mjs';
+import {initialGovernance,checkpoint,GovernanceEngine} from './engine.mjs';
+import {replacementPossessionCommitment} from './replacement-plan.mjs';
 import {checkpointCommitment} from './audit.mjs';
 const root=resolve('.'),output=join(root,'.local-release','founder-native-acceptance');
 const java=process.env.LEQVOR_JAVA_BIN??'C:\\Program Files\\Android\\Android Studio\\jbr\\bin';
@@ -27,6 +28,19 @@ const event={domain:'leqvor-governance-audit-v1',id:'b0000000-0000-4000-8000-000
 fixture.state.audit.push({...event,event_hash:hash(event)});
 fixture.state.requests[request.request_id]={request,approvals:[],status:'PENDING',proposal_id:null,cooling_until:null};
 fixture.checkpoint=checkpoint(fixture.state);fixture.checkpoint_commitment=encode(checkpointCommitment(fixture.checkpoint,keys[1].pin.key_id)).toString('utf8');
+fixture.replacements=[];
+for(const slot of ['A','B']){
+ const pair=slot==='A'?generateKeyPairSync('rsa',{modulusLength:2048}):generateKeyPairSync('ec',{namedCurve:'prime256v1'}),der=pair.publicKey.export({type:'spki',format:'der'});
+ const credential={slot,algorithm:slot==='A'?'RS256':'ES256',spki:der.toString('base64'),key_id:createHash('sha256').update(der).digest('hex')};
+ const evidence={domain:'synthetic-native-test-evidence',slot},target={domain:'leqvor-founder-replacement-target-v1',slot,prior_key_id:keys.find(k=>k.pin.slot===slot).pin.key_id,credential,evidence_hash:hash(evidence),device_instance_hash:hash({fixture:slot})};
+ let state=initialGovernance(policy),head=checkpoint(state),time=now;
+ const engine=new GovernanceEngine({transaction:async op=>{const next=structuredClone(state),result=await op(next);state=next;return result;}},{clock:()=>time,policyPin:async()=>hash(policy)});
+ const run=async op=>{const result=await op(head);head=result.checkpoint;return result.result;};
+ const approve=async request=>{for(const key of keys.filter(k=>k.pin.slot!==slot))await run(anchor=>engine.approve(request.request_id,{slot:key.pin.slot,key_id:key.pin.key_id,signature:sign('sha256',encode(approvalCommitment(request,key.pin.key_id)),key.pin.algorithm==='ES256'?{key:key.pair.privateKey,dsaEncoding:'ieee-p1363'}:key.pair.privateKey).toString('base64')},anchor));};
+ const proposal=await run(anchor=>engine.request({action:'REPLACE_FOUNDER_IDENTITY',target:hash(target)},anchor));await approve(proposal);time+=259200000;
+ const confirmation=await run(anchor=>engine.request({action:proposal.action,target:proposal.target,proposal_id:proposal.request_id},anchor));await approve(confirmation);
+ fixture.replacements.push({slot,now:time,state,checkpoint:head,packet:{request:confirmation,target,evidence},commitment:encode(replacementPossessionCommitment(confirmation,credential,target.evidence_hash)).toString('utf8')});
+}
 // The tested native converter emits raw R/S; obtain the expected raw value from the DER integers without a signing fallback.
 let offset=2;const raw=Buffer.alloc(64);for(let i=0;i<2;i++){if(derSignature[offset++]!==2)throw Error('Unexpected test signature');let length=derSignature[offset++];if(derSignature[offset]===0){offset++;length--;}derSignature.copy(raw,i*32+32-length,offset,offset+length);offset+=length;}
 if(!verify('sha256',encode(commitment),{key:keys[1].pair.publicKey,dsaEncoding:'ieee-p1363'},raw))throw Error('Test signature conversion failed');fixture.raw_signature=raw.toString('base64');

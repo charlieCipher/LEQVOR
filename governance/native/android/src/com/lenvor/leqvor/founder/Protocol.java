@@ -139,6 +139,20 @@ public final class Protocol {
     public static byte[] checkpointCommitment(JSONObject checkpoint,String keyId) throws Exception {
         return canonical(new JSONObject().put("domain","leqvor-founder-checkpoint-approval-v1").put("platform","leqvor.vercel.app").put("checkpoint",checkpoint).put("signer_key_id",keyId)).getBytes(StandardCharsets.UTF_8);
     }
+    public static byte[] replacement(JSONObject policy,JSONObject state,JSONObject head,JSONObject packet,String slot,long now) throws Exception {
+        validatePolicy(policy);snapshot(state,head,policy);exact(packet,"request","target","evidence");
+        JSONObject request=packet.getJSONObject("request"),target=packet.getJSONObject("target"),pin=target.getJSONObject("credential");
+        long version=integer(request,"governance_version");validateRequest(request,policy,version,now);
+        require(string(request,"action").equals("REPLACE_FOUNDER_IDENTITY")&&string(request,"phase").equals("CONFIRM")&&integer(state,"version")==version+1&&!state.getBoolean("frozen"),"Unfrozen final replacement authorization required");
+        JSONObject record=state.getJSONObject("requests").getJSONObject(string(request,"request_id"));
+        require(string(record,"status").equals("AUTHORIZED")&&hash(record.get("request")).equals(hash(request)),"Replacement differs from independently anchored authorization");
+        exact(target,"domain","slot","prior_key_id","credential","evidence_hash","device_instance_hash");
+        require(string(target,"domain").equals("leqvor-founder-replacement-target-v1")&&string(target,"slot").equals(slot)&&string(pin,"slot").equals(slot)&&string(target,"prior_key_id").equals(string(credential(policy,slot),"key_id"))&&hash(target).equals(string(request,"target"))&&hex(string(target,"device_instance_hash"))&&hash(packet.get("evidence")).equals(string(target,"evidence_hash")),"Replacement target/evidence mismatch");
+        JSONArray old=policy.getJSONArray("credentials"),next=new JSONArray();
+        for(int i=0;i<old.length();i++){JSONObject p=old.getJSONObject(i);require(!string(p,"key_id").equals(string(pin,"key_id")),"Replacement key must be new");next.put(string(p,"slot").equals(slot)?pin:p);}
+        JSONObject candidate=new JSONObject(policy.toString()).put("credentials",next);validatePolicy(candidate);
+        return canonical(new JSONObject().put("domain","leqvor-founder-device-possession-v1").put("request_hash",hash(request)).put("policy_hash",hash(policy)).put("key_id",string(pin,"key_id")).put("evidence_hash",string(target,"evidence_hash"))).getBytes(StandardCharsets.UTF_8);
+    }
     public static String display(Object value) throws Exception {
         String text=canonical(value); StringBuilder safe=new StringBuilder();
         for(int i=0;i<text.length();i++){char c=text.charAt(i);if((c>=0x202a&&c<=0x202e)||(c>=0x2066&&c<=0x2069)||c==0x200e||c==0x200f)safe.append(String.format("\\u%04x",(int)c));else safe.append(c);}return safe.toString();
