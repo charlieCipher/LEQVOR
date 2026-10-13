@@ -9,6 +9,11 @@ namespace Leqvor.Founder;
 internal static class HelloSigner
 {
     private const string Alias = "LEQVOR-Founder-Slot-A-v1";
+    internal static async Task<string> DeviceReadiness()
+    {
+        try { bool supported = await KeyCredentialManager.IsSupportedAsync(); return JsonSerializer.Serialize(new { windows_hello_platform_supported = supported, founder_enrollment_verified = false, hardware_attestation_verified = false, note = "Read-only platform check. No key opened, created or signed; no authentication prompt. Platform support does not prove TPM protection or founder enrollment." }); }
+        catch { return JsonSerializer.Serialize(new { windows_hello_platform_supported = (bool?)null, founder_enrollment_verified = false, hardware_attestation_verified = false, note = "Platform availability could not be checked from this application context. No security settings changed." }); }
+    }
     private static byte[] Bytes(Windows.Storage.Streams.IBuffer buffer) { CryptographicBuffer.CopyToByteArray(buffer, out byte[] bytes); return bytes; }
     private static async Task<KeyCredential> Open(bool create)
     {

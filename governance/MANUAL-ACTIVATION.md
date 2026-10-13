@@ -6,6 +6,18 @@ Validation: latest full suite **366 tests across 87 files passed**, plus six sep
 
 Subsequent replacement-possession increment: 19 focused governance tests passed, lint passed, Java/.NET/Node replacement signing-byte and tampering/slot/expiry acceptance passed. Android built an unsigned APK; Windows built with zero warnings/errors. No OS signing ceremony or device enrollment occurred. The full customer suite was not repeated for this native-only increment; its latest result remains 366 passed.
 
+## Actual laptop readiness check — 13 October 2026
+
+Computer access and read-only diagnostics were completed on the user's laptop. It reports Windows 11 Home Single Language, version 10.0.26300. The native `--check-device` call to `KeyCredentialManager.IsSupportedAsync` returned **true**. This establishes Windows Hello platform availability only; it does not establish enrollment, TPM-backed protection or independently validated attestation. The TPM CIM query was unavailable to this process, so TPM presence/readiness remains unverified. Android connection discovery reported no connected device. No device identifiers, private material or credentials were retained.
+
+The Windows console rebuilt with zero warnings/errors and its public-protocol acceptance passed again. The read-only device mode does not open/create keys, sign, invoke authentication, change settings or activate founder authority:
+
+```powershell
+& .local-release/founder-tools/dotnet/dotnet.exe .local-release/founder-windows/bin/net10.0-windows10.0.19041.0/FounderConsole.dll --check-device
+```
+
+The remaining OS authentication/key approval belongs to the founder. No Windows Hello setup, PIN entry, security setting, device permission or infrastructure owner setting was automated. The user's only identified devices remain the HP laptop and Vivo Y19s; recovery C, separate storage and independent review have not been provided. Do not mark these accepted from successful computer access or this availability result.
+
 ## Work completed in code
 
 - Separate Windows Hello desktop console, RSA/SHA-256 verification, exact action/target inspection, policy/checkpoint import, audit verification and public signature export. Key creation requires an explicit local button and Windows Hello; it never replaces an existing key. Signing blocks if the OS cannot provide TPM attestation evidence. Certificate-chain/TPM-blob validation is still an independent enrollment requirement, not established by the OS success status.

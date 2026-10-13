@@ -9,6 +9,7 @@ internal static class Program
     private static void Main(string[] args)
     {
         if (args.Length == 2 && args[0] == "--check-protocol") { Check(args[1]); return; }
+        if (args.Length == 1 && args[0] == "--check-device") { Console.WriteLine(HelloSigner.DeviceReadiness().GetAwaiter().GetResult()); return; }
         if (args.Length != 0) throw new InvalidDataException("No background signing arguments are supported");
         ApplicationConfiguration.Initialize(); Application.Run(new FounderForm());
     }
