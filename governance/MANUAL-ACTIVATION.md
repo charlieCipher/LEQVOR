@@ -22,6 +22,16 @@ Structural checks passed: RS256, RSA-2048, public SPKI fingerprint matches, 849 
 
 No Windows Hello setup, PIN entry, security setting, device permission or infrastructure owner setting was automated. The user's only identified devices remain the HP laptop and Vivo Y19s; recovery C, separate storage and independent review have not been provided. A was created by the founder; B/C and all founder enrollment remain unverified. Do not mark activation accepted from successful computer access or these structural results.
 
+## Phone preview preparation — 13 October 2026
+
+The user reported Android 15 and connected the phone for file transfer. Windows reported a WPD device named **Y19s 5G** with status OK. No Android debugging connection was present and USB debugging was not enabled. The observed device label differs from the earlier generic Y19s description; hardware provenance still requires actual evidence.
+
+`native/android/prepare-preview.ps1 -CreatePreviewPublisher` created an explicitly local-preview package publisher separate from founder credentials. Its RSA-3072 PKCS12 software key stays under ignored `.local-release/founder-preview-publisher`, with restricted directory permissions and its random password protected using Windows current-user DPAPI. The password is not put in command arguments, printed, committed or uploaded; task-scoped environment exposure is cleared after signing. This publisher is **not** an independently reviewed production release identity, founder key or recovery C. Do not delete/replace it if a phone has enrolled an app-scoped key; application reinstallation/key loss requires the reviewed recovery process.
+
+The APK was rebuilt, aligned before signing, signed and verified with Android SDK apksigner; signature scheme v3 verification and signed alignment checks passed. The package remains non-debuggable, with no Internet permission and Android 12 minimum. Each preparation makes a new preview output directory and retains the original unsigned package. Preview package/hash metadata is local, outside Git. The script refuses incomplete existing publisher state rather than replacing it.
+
+The phone has not yet been shown to install/open the APK or create credential B. Computer-use File Explorer captures produced unavailable click geometry and keyboard inputs did not change the observed focus, so no file-transfer completion is claimed. The preview is prepared for a user-controlled transfer and installation. No phone permission, authentication or installation prompt was automated. Actual KeyInfo and attestation acceptance, local proof/signature operation, independent evidence validation and production publisher review remain pending.
+
 ## Work completed in code
 
 - Separate Windows Hello desktop console, RSA/SHA-256 verification, exact action/target inspection, policy/checkpoint import, audit verification and public signature export. Key creation requires an explicit local button and Windows Hello; it never replaces an existing key. Signing blocks if the OS cannot provide TPM attestation evidence. Certificate-chain/TPM-blob validation is still an independent enrollment requirement, not established by the OS success status.
@@ -51,7 +61,7 @@ Do not send PINs, passwords, founder private material or recovery packages in ch
 
 These are **not** manual checkboxes and are not complete:
 
-1. Trusted native release signing/packaging, attestation-chain and TPM/Android attestation validation, reviewed enrollment, and the C device adapter. The founder has created local Windows credential A and public evidence was structurally checked; no actual founder credential has been enrolled. The unsigned Android APK is not an installable production release; no distribution signing key was invented or uploaded.
+1. Trusted production native release signing/packaging, attestation-chain and TPM/Android attestation validation, reviewed enrollment, and the C device adapter. The founder has created local Windows credential A and public evidence was structurally checked; no actual founder credential has been enrolled. A separate local-preview software publisher now signs a verified installable preview APK, but it is not an independently trusted production release identity. No founder private key or publisher secret was uploaded.
 2. Separate authenticated online admin console and its live identity/role adapters. The gateway has a signed-access-token adapter and bounded same-origin HTTPS transport/server assembly, with mandatory live revocation and independently assigned roles. The separate labelled admin view/client now imports independently pinned state, verifies browser signatures, exports public requests and requires a new two-founder signed checkpoint after mutations. It clears on background and never signs, grants roles or executes provider operations. This does not finish the actual provider login, ACR mapping, identity/role/revocation adapters, secure hosting or `admin.leqvor.com` configuration. No listener was started. See [control/README.md](control/README.md). The customer passkey origin remains `leqvor.vercel.app`.
 3. Protected provider integrations. The local one-use execution journal/coordinator now prevents duplicate dispatch, records ambiguous outcomes, rechecks live authorization and performs receipt-only reconciliation. Its tests use simulated providers with a real isolated PostgreSQL journal. Actual ownership transfer, root identity/policy rotation, deployment authorization, provider-enforced freeze, root-secret rotation and external execution-history checkpoints still need independently protected adapters. A Vercel/Supabase/GitHub owner can otherwise change enforcement code or settings. See [EXECUTION-INTEGRATION.md](EXECUTION-INTEGRATION.md).
 4. External checkpoint retention/scheduling and cloud restore acceptance. Local verified retention/restore is implemented; a real separate provider, scheduler and cloud test are not. Policy-rotation continuity and independently signed execution-history checkpoints need further engineering. Never treat a head read from the same database as an independent anchor.
@@ -65,6 +75,17 @@ Activation/deployment waits for these integrations, all three verified devices, 
 - Vercel: integrate protected deployment/promotion authorization. The supplied CI workflow does not by itself stop automatic production deployment or the project owner changing settings. Do not activate Founder Lock until the actual bypass paths have been tested.
 - Supabase/governance hosting: use the separately protected store and executor identity. Do not apply `governance/migrations/001_founder_state.sql` to customer production as a shortcut. A database owner can disable its own append-only trigger.
 - Native distribution: use a trusted release publisher, reviewed artifacts and verified hashes. A native application distribution signing identity is separate from founder root keys; neither publisher credentials nor founder keys belong in browser environment variables.
+
+Local preview preparation, separate from production distribution:
+
+```powershell
+& governance/native/android/build.ps1
+& governance/native/android/prepare-preview.ps1 -CreatePreviewPublisher
+# Subsequent preview rebuilds reuse the existing protected publisher:
+& governance/native/android/prepare-preview.ps1
+```
+
+Do not share the publisher directory, password file or keystore with the phone. Only the signed preview APK is intended for transfer. Package signature verification proves package integrity under this local publisher, not hardware-backed founder enrollment or independent review. Signing reference: [Android apksigner](https://developer.android.com/tools/apksigner).
 
 ## Build and acceptance commands
 
