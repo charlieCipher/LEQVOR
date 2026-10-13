@@ -20,6 +20,7 @@ This is a separate, locally tested subsystem. It is not enrolled, connected to c
 | Native clients | Compiled Windows Hello console A and offline Android Keystore companion B; hardware/authentication checks, full action/target display, independently imported policy/checkpoint/state; no actual device enrollment or release signing |
 | Signed checkpoints | Native checkpoint signing path, two-device public signature assembly, snapshot/audit verification and rollback checks; no external upload or schedule |
 | Execution verification | Re-verifies live anchored state, two phases, quorums, cooling receipts, expiry and exact target; produces an idempotency identifier, performs no provider operation |
+| Execution journal/coordinator | Atomic one-use PostgreSQL reservations, immutable hash-linked outcomes, live recheck, bounded provider calls, no automatic ambiguous retry and receipt-only reconciliation; no real provider adapters or execution-history checkpoints |
 | Release review | Read-only CI workflow, sensitive-path code owners and unverified public infrastructure registry; hosted protection/independent enforcement still pending |
 
 Requests store the target artifact's canonical SHA-256 digest. Transfer the complete target artifact to both local consoles and inspect it; each console checks that it matches this commitment. Never approve an unexplained digest. Private keys are not accepted by any gateway or protocol packet.
@@ -45,6 +46,8 @@ Offline inspection:
 The Node inspector does not sign. Separate native clients now compile and expose OS-authenticated signing paths, but have not been physically tested/enrolled or published as signed releases. They must not receive a .pem/private JWK/software-key fallback. The prior `scripts/founder-inspect.mjs` is the superseded single-key experiment and is not the mesh console. [MANUAL-ACTIVATION.md](MANUAL-ACTIVATION.md) distinguishes manual requirements from unfinished engineering/integration.
 
 ## Remaining activation dependencies
+
+The next increment adds bounded transport-peer admission, a one-connection PostgreSQL pool adapter and the protected execution journal/coordinator. Eight new local tests pass; provider adapters are simulated and no live controls are configured. The full regression suite now passes **360 tests across 85 files**, with six separate control-service acceptance tests also passing; lint and customer build/artifact checks pass. Customer asset hashes remain unchanged. See [EXECUTION-INTEGRATION.md](EXECUTION-INTEGRATION.md) for the remaining independent-fence, provider receipt and execution-checkpoint requirements.
 
 The control-service increment adds six passing acceptance tests for actual signed access tokens and HTTP rejection/logging boundaries; the existing 20 focused governance tests and lint also pass. See [control/README.md](control/README.md) for the exact identity/transport contract and remaining live configuration. No admin identity, listener, hosting change or founder activation was created.
 
