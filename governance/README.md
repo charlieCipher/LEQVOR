@@ -21,6 +21,8 @@ This is a separate, locally tested subsystem. It is not enrolled, connected to c
 | Signed checkpoints | Native checkpoint signing path, two-device public signature assembly, snapshot/audit verification and rollback checks; no external upload or schedule |
 | Execution verification | Re-verifies live anchored state, two phases, quorums, cooling receipts, expiry and exact target; produces an idempotency identifier, performs no provider operation |
 | Execution journal/coordinator | Atomic one-use PostgreSQL reservations, immutable hash-linked outcomes, live recheck, bounded provider calls, no automatic ambiguous retry and receipt-only reconciliation; no real provider adapters or execution-history checkpoints |
+| Root archive / public restore | Two-founder signed advancing snapshots, independent predecessor/digest verification, immutable publication and read-back verification; local adapter/CLI only, no cloud scheduling or customer backup claim |
+| Device-loss replacement plan | Existing root authorization, independent three-device registry/evidence contract and new-key possession verification; non-mutating REVIEW_REQUIRED candidate, no enrollment/reset shortcut |
 | Release review | Read-only CI workflow, sensitive-path code owners and unverified public infrastructure registry; hosted protection/independent enforcement still pending |
 
 Requests store the target artifact's canonical SHA-256 digest. Transfer the complete target artifact to both local consoles and inspect it; each console checks that it matches this commitment. Never approve an unexplained digest. Private keys are not accepted by any gateway or protocol packet.
@@ -46,6 +48,8 @@ Offline inspection:
 The Node inspector does not sign. Separate native clients now compile and expose OS-authenticated signing paths, but have not been physically tested/enrolled or published as signed releases. They must not receive a .pem/private JWK/software-key fallback. The prior `scripts/founder-inspect.mjs` is the superseded single-key experiment and is not the mesh console. [MANUAL-ACTIVATION.md](MANUAL-ACTIVATION.md) distinguishes manual requirements from unfinished engineering/integration.
 
 ## Remaining activation dependencies
+
+The archive/replacement increment adds verified public-file retention/restore and an offline one-device replacement planner. The full regression passed **366 tests across 87 files**, and the separate control-service passed six acceptance tests. Subsequent focused checks cover the real archive CLI, no-overwrite restore and bounded regular-file imports. Lint and customer build/artifact checks pass; customer asset hashes remain unchanged. See [ARCHIVE-AND-RECOVERY.md](ARCHIVE-AND-RECOVERY.md) for limits and remaining native/evidence/provider integration. No production permissions, configuration or deployment have been changed.
 
 The next increment adds bounded transport-peer admission, a one-connection PostgreSQL pool adapter and the protected execution journal/coordinator. Eight new local tests pass; provider adapters are simulated and no live controls are configured. The full regression suite now passes **360 tests across 85 files**, with six separate control-service acceptance tests also passing; lint and customer build/artifact checks pass. Customer asset hashes remain unchanged. See [EXECUTION-INTEGRATION.md](EXECUTION-INTEGRATION.md) for the remaining independent-fence, provider receipt and execution-checkpoint requirements.
 
