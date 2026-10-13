@@ -32,6 +32,8 @@ The APK was rebuilt, aligned before signing, signed and verified with Android SD
 
 The phone has not yet been shown to install/open the APK or create credential B. Computer-use File Explorer captures produced unavailable click geometry and keyboard inputs did not change the observed focus, so no file-transfer completion is claimed. The preview is prepared for a user-controlled transfer and installation. No phone permission, authentication or installation prompt was automated. Actual KeyInfo and attestation acceptance, local proof/signature operation, independent evidence validation and production publisher review remain pending.
 
+The first installation error was reported for **leqvor-founder-aligned.apk**, the unsigned intermediate, rather than the signed installer. Desktop verification of the signed APK passed specifically for Android 15/API 35; its size is 29,079 bytes. A separate install handoff directory now contains only `LEQVOR-Founder-Approval-Preview.apk`, copied with matching SHA-256. The packaging script places future aligned intermediate files under `.intermediate` to reduce accidental selection. This identifies the incorrect-file attempt; a successful phone installation is still required and not claimed.
+
 ## Work completed in code
 
 - Separate Windows Hello desktop console, RSA/SHA-256 verification, exact action/target inspection, policy/checkpoint import, audit verification and public signature export. Key creation requires an explicit local button and Windows Hello; it never replaces an existing key. Signing blocks if the OS cannot provide TPM attestation evidence. Certificate-chain/TPM-blob validation is still an independent enrollment requirement, not established by the OS success status.

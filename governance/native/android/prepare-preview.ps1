@@ -31,7 +31,9 @@ if (!(Test-Path -LiteralPath $keystore) -or !(Test-Path -LiteralPath $protectedP
 }
 $output = Join-Path $workspace ('.local-release/founder-android-preview-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $output | Out-Null
-$aligned = Join-Path $output 'leqvor-founder-aligned.apk'
+$intermediate = Join-Path $output '.intermediate'
+New-Item -ItemType Directory -Path $intermediate | Out-Null
+$aligned = Join-Path $intermediate 'leqvor-founder-aligned.apk'
 $signed = Join-Path $output 'LEQVOR-Founder-Approval-Preview.apk'
 & (Join-Path $buildTools 'zipalign.exe') -p 4 $unsigned $aligned
 if ($LASTEXITCODE -ne 0) { throw 'APK alignment failed.' }
