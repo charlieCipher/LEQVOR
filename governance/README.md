@@ -24,6 +24,7 @@ This is a separate, locally tested subsystem. It is not enrolled, connected to c
 | Root archive / public restore | Two-founder signed advancing snapshots, independent predecessor/digest verification, immutable publication and read-back verification; local adapter/CLI only, no cloud scheduling or customer backup claim |
 | Device-loss replacement plan | Existing root authorization, independent three-device registry/evidence contract and new-key possession verification; non-mutating REVIEW_REQUIRED candidate, no enrollment/reset shortcut |
 | Native replacement proof | Windows A / Android B locally sign possession-only commitments after verifying the anchored final authorization, full replacement target/evidence and new local hardware-key pin; no enrollment or rotation execution |
+| Off-device Android evidence | Pinned official Kotlin verifier, strict app/publisher and hardware/boot constraints, fresh public trust inputs, bounded offline certificate handling and ten local acceptance checks; static review only, never enrollment |
 | Release review | Read-only CI workflow, sensitive-path code owners and unverified public infrastructure registry; hosted protection/independent enforcement still pending |
 
 Requests store the target artifact's canonical SHA-256 digest. Transfer the complete target artifact to both local consoles and inspect it; each console checks that it matches this commitment. Never approve an unexplained digest. Private keys are not accepted by any gateway or protocol packet.
