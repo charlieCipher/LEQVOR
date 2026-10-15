@@ -38,7 +38,7 @@ public final class FounderActivity extends Activity {
         LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);column.setPadding(spacing,spacing,spacing,spacing);
         ScrollView scroll=new ScrollView(this);scroll.addView(column);setContentView(scroll);
         scroll.setOnApplyWindowInsetsListener((view,insets)->{Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());view.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();
-        TextView title=new TextView(this);title.setText("LEQVOR Founder Approval — local device B · preview 0.1.4");title.setTextSize(22);column.addView(title);
+        TextView title=new TextView(this);title.setText("LEQVOR Founder Approval — local device B · preview 0.1.5");title.setTextSize(22);column.addView(title);
         details=new TextView(this);details.setText("Inactive: no root authority is enrolled. This offline companion does not access customer vaults. Import the independently verified public policy separately from each request.");details.setTextSize(17);details.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);column.addView(details);
         button(column,"Create / inspect hardware key",()->{export=null;show("Key inspection selected. Confirm the local operation in the dialog; nothing is enrolled on a server.");new AlertDialog.Builder(this).setTitle("Create local founder key B?").setMessage("A new non-exportable Android Keystore key will be created only if one does not already exist. Its public fingerprint and attestation chain must be checked independently. No server enrollment occurs.").setNegativeButton("Cancel",null).setPositiveButton("Create / inspect",(d,w)->safe(this::inspectHardwareAsync)).show();});
         button(column,"Import independent policy + checkpoint",()->pick(1));
@@ -46,6 +46,7 @@ public final class FounderActivity extends Activity {
         button(column,"Inspect exact action",()->safe(this::inspect));
         button(column,"Prove replacement key possession",()->pick(4));
         button(column,"Run isolated device-key test",()->pick(5));
+        button(column,"Sign execution journal checkpoint",()->pick(6));
         button(column,"Approve shown action locally",()->safe(()->{inspect();new AlertDialog.Builder(this).setTitle("Sign this exact governance action?").setMessage("Review the full target above. This authorizes a founder approval; it does not directly execute the action.").setNegativeButton("Cancel",null).setPositiveButton("Approve with biometric / PIN",(d,w)->safe(()->sign(false))).show();}));
         button(column,"Sign verified audit checkpoint",()->safe(()->{Protocol.require(policy!=null&&checkpoint!=null&&snapshot!=null,"Import independent authority first");Protocol.snapshot(snapshot,checkpoint,policy);show("AUDIT CHECKPOINT ONLY\n"+Protocol.display(checkpoint)+"\nNo root action authorization. Independently verify this head before signing.");new AlertDialog.Builder(this).setTitle("Sign verified audit checkpoint?").setMessage("This signature attests the displayed public history and state. It grants no root action.").setNegativeButton("Cancel",null).setPositiveButton("Sign with biometric / PIN",(d,w)->safe(()->sign(true))).show();}));
         button(column,"Export public key / signed approval",()->{if(busy)return;if(export==null){show("Nothing to export");return;}transferring=true;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.setType("application/json");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_TITLE,"leqvor-founder-public-packet.json");startActivityForResult(i,3);});
@@ -75,6 +76,7 @@ public final class FounderActivity extends Activity {
         else if(code==2){Protocol.exact(parsed,"request","target");bundle=parsed;inspect();}
         else if(code==4){Protocol.replacement(policy,snapshot,checkpoint,parsed,"B",System.currentTimeMillis());show("REPLACEMENT KEY POSSESSION ONLY\n"+Protocol.display(parsed.get("target"))+"\nRequest: "+Protocol.hash(parsed.get("request"))+"\nProves this new key; does not approve or execute replacement. Hardware evidence still needs independent verification.");new AlertDialog.Builder(this).setTitle("Sign this exact possession proof?").setMessage("Review the full replacement target above. This does not enroll the device or change root policy.").setNegativeButton("Cancel",null).setPositiveButton("Sign with biometric / PIN",(d,w)->safe(()->sign(false,parsed))).show();}
         else if(code==5){Protocol.require("PROVE_DEVICE_KEY_ONLY".equals(Protocol.string(parsed,"purpose")),"Device test purpose required");show("ISOLATED DEVICE-KEY TEST ONLY\n"+Protocol.display(parsed)+"\nNo founder approval, enrollment, ownership or vault access. Check the request fingerprint against your laptop.");new AlertDialog.Builder(this).setTitle("Test this existing phone key?").setMessage("Signs only an isolated, expiring test challenge. No root authority is granted. Request fingerprint: "+Protocol.hash(parsed)).setNegativeButton("Cancel",null).setPositiveButton("Test with biometric / PIN",(d,w)->safe(()->testDeviceKey(parsed))).show();}
+        else if(code==6){Protocol.snapshot(snapshot,checkpoint,policy);Protocol.executionJournal(policy,parsed);show("EXECUTION JOURNAL EVIDENCE ONLY\n"+Protocol.display(parsed.getJSONObject("checkpoint"))+"\nJournal fingerprint: "+Protocol.hash(parsed.getJSONObject("snapshot"))+"\nNot provider receipt verification, retry permission or a root action approval.");new AlertDialog.Builder(this).setTitle("Sign this exact journal checkpoint?").setMessage("Attests only the displayed journal. It does not execute an operation or verify provider receipt provenance.").setNegativeButton("Cancel",null).setPositiveButton("Sign with biometric / PIN",(d,w)->safe(()->sign(false,null,parsed))).show();}
     });}
     private void inspect() throws Exception {
         Protocol.require(policy!=null&&checkpoint!=null&&bundle!=null,"Import independent policy/checkpoint and request separately first");
@@ -103,9 +105,13 @@ public final class FounderActivity extends Activity {
         sign(auditOnly,null);
     }
     private void sign(boolean auditOnly,JSONObject possession) throws Exception {
+        sign(auditOnly,possession,null);
+    }
+    private void sign(boolean auditOnly,JSONObject possession,JSONObject execution) throws Exception {
+        final JSONObject executionPacket=execution==null?null:new JSONObject(execution.toString());
         final JSONObject proof=possession==null?null:new JSONObject(possession.toString());
-        if(proof!=null)Protocol.replacement(policy,snapshot,checkpoint,proof,"B",System.currentTimeMillis());else if(auditOnly)Protocol.snapshot(snapshot,checkpoint,policy);else inspect();export=null;
-        final JSONObject request=auditOnly?null:new JSONObject((proof!=null?proof:bundle).getJSONObject("request").toString());
+        if(executionPacket!=null){Protocol.snapshot(snapshot,checkpoint,policy);Protocol.executionJournal(policy,executionPacket);}else if(proof!=null)Protocol.replacement(policy,snapshot,checkpoint,proof,"B",System.currentTimeMillis());else if(auditOnly)Protocol.snapshot(snapshot,checkpoint,policy);else inspect();export=null;
+        final JSONObject request=auditOnly||executionPacket!=null?null:new JSONObject((proof!=null?proof:bundle).getJSONObject("request").toString());
         final JSONObject head=new JSONObject(checkpoint.toString());
         final long version=Protocol.integer(checkpoint,"version");
         final JSONObject pinnedPolicy=new JSONObject(policy.toString());
@@ -113,20 +119,20 @@ public final class FounderActivity extends Activity {
         final JSONObject pin=proof!=null?proof.getJSONObject("target").getJSONObject("credential"):Protocol.credential(policy,"B");
         Protocol.require(Protocol.string(pin,"algorithm").equals("ES256"),"Phone requires P-256 replacement key B");
         final String keyId=Protocol.string(pin,"key_id");
-        final Signature signature=HardwareSigner.prepare(keyId);final byte[] bytes=proof!=null?Protocol.replacement(pinnedPolicy,pinnedState,head,proof,"B",System.currentTimeMillis()):auditOnly?Protocol.checkpointCommitment(head,keyId):Protocol.commitment(request,keyId);
-        cancellation=new CancellationSignal();busy=true;
-        BiometricPrompt prompt=new BiometricPrompt.Builder(this).setTitle("LEQVOR founder approval").setSubtitle(proof!=null?"REPLACEMENT POSSESSION ONLY":auditOnly?"AUDIT CHECKPOINT ONLY":Protocol.string(request,"action")).setDescription("Sign only the exact public content inspected in this app.").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG|BiometricManager.Authenticators.DEVICE_CREDENTIAL).build();
-        prompt.authenticate(new BiometricPrompt.CryptoObject(signature),cancellation,getMainExecutor(),new BiometricPrompt.AuthenticationCallback(){
+        final Signature signature=HardwareSigner.prepare(keyId);final byte[] bytes=executionPacket!=null?Protocol.executionCheckpointCommitment(executionPacket.getJSONObject("checkpoint"),keyId):proof!=null?Protocol.replacement(pinnedPolicy,pinnedState,head,proof,"B",System.currentTimeMillis()):auditOnly?Protocol.checkpointCommitment(head,keyId):Protocol.commitment(request,keyId);
+        cancellation=new CancellationSignal();busy=true;final CancellationSignal signingCancellation=cancellation;final int signingGeneration=sessionGeneration;
+        BiometricPrompt prompt=new BiometricPrompt.Builder(this).setTitle("LEQVOR founder approval").setSubtitle(executionPacket!=null?"EXECUTION JOURNAL EVIDENCE ONLY":proof!=null?"REPLACEMENT POSSESSION ONLY":auditOnly?"AUDIT CHECKPOINT ONLY":Protocol.string(request,"action")).setDescription("Sign only the exact public content inspected in this app.").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG|BiometricManager.Authenticators.DEVICE_CREDENTIAL).build();
+        try{prompt.authenticate(new BiometricPrompt.CryptoObject(signature),signingCancellation,getMainExecutor(),new BiometricPrompt.AuthenticationCallback(){
             @Override public void onAuthenticationError(int code,CharSequence message){busy=false;export=null;show("Authentication cancelled or unavailable. Nothing signed.");}
             @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){busy=false;safe(()->{
-                Protocol.require(foreground&&cancellation!=null&&!cancellation.isCanceled()&&!getSystemService(android.app.KeyguardManager.class).isDeviceLocked(),"App backgrounded or device locked; approval cancelled");
-                if(proof!=null)Protocol.replacement(pinnedPolicy,pinnedState,head,proof,"B",System.currentTimeMillis());else if(!auditOnly)Protocol.validateRequest(request,pinnedPolicy,version,System.currentTimeMillis());
+                Protocol.require(foreground&&signingGeneration==sessionGeneration&&!signingCancellation.isCanceled()&&!getSystemService(android.app.KeyguardManager.class).isDeviceLocked(),"App backgrounded or device locked; approval cancelled");
+                if(executionPacket!=null)Protocol.executionJournal(pinnedPolicy,executionPacket);else if(proof!=null)Protocol.replacement(pinnedPolicy,pinnedState,head,proof,"B",System.currentTimeMillis());else if(!auditOnly)Protocol.validateRequest(request,pinnedPolicy,version,System.currentTimeMillis());
                 Protocol.require(result.getCryptoObject()!=null&&result.getCryptoObject().getSignature()==signature,"Unexpected authentication operation");
                 signature.update(bytes);byte[] signed=HardwareSigner.p1363(signature.sign());
                 JSONObject approval=new JSONObject().put("slot","B").put("key_id",keyId).put("signature",Base64.getEncoder().encodeToString(signed));
-                export=Protocol.canonical(auditOnly?new JSONObject().put("checkpoint",head).put("approval",approval):approval).getBytes(StandardCharsets.UTF_8);show(proof!=null?"Public possession proof ready. No device enrolled or root policy changed.":"Local approval signed. Export the public signature packet. The private key stayed in Android Keystore; no root action was executed.");
+                export=Protocol.canonical(executionPacket!=null?new JSONObject().put("checkpoint",executionPacket.getJSONObject("checkpoint")).put("approval",approval):auditOnly?new JSONObject().put("checkpoint",head).put("approval",approval):approval).getBytes(StandardCharsets.UTF_8);show(executionPacket!=null?"Execution journal checkpoint signature ready. No operation, retry or root action authorized.":proof!=null?"Public possession proof ready. No device enrolled or root policy changed.":"Local approval signed. Export the public signature packet. The private key stayed in Android Keystore; no root action was executed.");
             });}
-        });
+        });}catch(RuntimeException e){busy=false;signingCancellation.cancel();throw e;}
     }
     @Override protected void onStart(){super.onStart();foreground=true;}
     @Override protected void onStop(){super.onStop();foreground=false;sessionGeneration++;if(cancellation!=null)cancellation.cancel();busy=false;if(!transferring){policy=null;checkpoint=null;snapshot=null;bundle=null;export=null;show("Session cleared. Reimport independently verified policy/checkpoint and request. If a local key inspection was interrupted, inspect the existing key again; do not reinstall or clear app data.");}}

@@ -7,6 +7,7 @@ import {initialGovernance,checkpoint,GovernanceEngine} from './engine.mjs';
 import {replacementPossessionCommitment} from './replacement-plan.mjs';
 import {checkpointCommitment} from './audit.mjs';
 import {createDeviceTest,deviceTestCommitment} from './device-test.mjs';
+import {executionCheckpoint,executionCheckpointCommitment} from './execution-archive.mjs';
 const root=resolve('.'),output=join(root,'.local-release','founder-native-acceptance');
 const java=process.env.LEQVOR_JAVA_BIN??'C:\\Program Files\\Android\\Android Studio\\jbr\\bin';
 const android=join(process.env.LOCALAPPDATA,'Android','Sdk','platforms','android-36','android.jar');
@@ -33,6 +34,9 @@ fixture.replacements=[];
 fixture.device_tests=keys.slice(0,2).map(k=>{const evidence={domain:'leqvor-founder-device-evidence-v1',credential:k.pin,synthetic:true},request=createDeviceTest(evidence,now);return {slot:k.pin.slot,key_id:k.pin.key_id,evidence_hash:hash(evidence),request,commitment:encode(deviceTestCommitment(request)).toString('utf8')};});
 const retainedWindows={domain:'leqvor-founder-device-evidence-v1',credential:keys[0].pin,attestation:'AQ==',certificate_chain:'AQID',independently_verified:false};
 fixture.windows_device_test={retained:retainedWindows,current:{...retainedWindows,attestation:'Ag=='},request:createDeviceTest(retainedWindows,now)};
+const executionTarget={operation:'synthetic-journal-only'},executionKey=hash(executionTarget),executionIntent={domain:'leqvor-root-execution-intent-v1',request_id:request.request_id,action:request.action,target_hash:hash(executionTarget),policy_hash:hash(policy),governance_version:2,expires_at:request.expires_at,idempotency_key:executionKey};
+const firstEvent={domain:'leqvor-root-execution-event-v1',execution_key:executionKey,sequence:1,previous_hash:null,event_type:'ATTEMPTED',created_at:request.created_at,receipt:null},executionSnapshot={reservation:{intent:executionIntent,target:executionTarget,created_at:request.created_at},events:[{...firstEvent,event_hash:hash(firstEvent)}],status:'ATTEMPTED',receipt:null};
+fixture.execution_packet={snapshot:executionSnapshot,checkpoint:executionCheckpoint(executionSnapshot,policy)};fixture.execution_commitment=encode(executionCheckpointCommitment(fixture.execution_packet.checkpoint,keys[1].pin.key_id)).toString('utf8');
 for(const slot of ['A','B']){
  const pair=slot==='A'?generateKeyPairSync('rsa',{modulusLength:2048}):generateKeyPairSync('ec',{namedCurve:'prime256v1'}),der=pair.publicKey.export({type:'spki',format:'der'});
  const credential={slot,algorithm:slot==='A'?'RS256':'ES256',spki:der.toString('base64'),key_id:createHash('sha256').update(der).digest('hex')};

@@ -142,6 +142,21 @@ public final class Protocol {
         }
         require(previous==null?checkpoint.isNull("event_hash"):previous.equals(string(checkpoint,"event_hash")),"Independent audit head mismatch");
     }
+    public static void executionJournal(JSONObject policy,JSONObject packet) throws Exception {
+        validatePolicy(policy);exact(packet,"snapshot","checkpoint");JSONObject head=packet.getJSONObject("checkpoint"),state=packet.getJSONObject("snapshot");
+        exact(head,"domain","platform","policy_hash","execution_key","reservation_hash","sequence","event_hash","status");exact(state,"reservation","events","status","receipt");
+        require(string(head,"domain").equals("leqvor-execution-checkpoint-v1")&&string(head,"platform").equals("leqvor.vercel.app")&&string(head,"policy_hash").equals(hash(policy))&&hex(string(head,"execution_key"))&&hex(string(head,"reservation_hash"))&&hex(string(head,"event_hash")),"Execution checkpoint differs from independent policy");
+        JSONObject reservation=state.getJSONObject("reservation");exact(reservation,"intent","target","created_at");JSONObject intent=reservation.getJSONObject("intent");exact(intent,"domain","request_id","action","target_hash","policy_hash","governance_version","expires_at","idempotency_key");
+        require(string(intent,"domain").equals("leqvor-root-execution-intent-v1")&&string(intent,"policy_hash").equals(hash(policy))&&string(intent,"idempotency_key").equals(string(head,"execution_key"))&&hash(reservation).equals(string(head,"reservation_hash"))&&hash(reservation.get("target")).equals(string(intent,"target_hash")),"Execution reservation changed");
+        JSONArray events=state.getJSONArray("events");require(events.length()>=1&&events.length()<=100&&integer(head,"sequence")==events.length(),"Execution history bound differs");String previous=null,status="";Object receipt=JSONObject.NULL;
+        for(int i=0;i<events.length();i++){
+            JSONObject e=events.getJSONObject(i);exact(e,"domain","execution_key","sequence","previous_hash","event_type","created_at","receipt","event_hash");String next=string(e,"event_type");
+            require(!Arrays.asList("APPLIED","NOT_APPLIED","NOT_DISPATCHED").contains(status)&&string(e,"domain").equals("leqvor-root-execution-event-v1")&&string(e,"execution_key").equals(string(head,"execution_key"))&&integer(e,"sequence")==i+1&&(previous==null?e.isNull("previous_hash"):string(e,"previous_hash").equals(previous))&&(i==0?next.equals("ATTEMPTED"):Arrays.asList("OUTCOME_UNKNOWN","NOT_DISPATCHED","APPLIED","NOT_APPLIED").contains(next)),"Invalid execution history transition");
+            JSONObject body=new JSONObject(e.toString());body.remove("event_hash");require(hash(body).equals(string(e,"event_hash")),"Execution event hash differs");receipt=e.get("receipt");require(Arrays.asList("APPLIED","NOT_APPLIED").contains(next)!=e.isNull("receipt"),"Provider outcome receipt shape differs");previous=string(e,"event_hash");status=next;
+        }
+        require(previous.equals(string(head,"event_hash"))&&status.equals(string(head,"status"))&&status.equals(string(state,"status"))&&hash(receipt).equals(hash(state.get("receipt"))),"Execution snapshot differs from checkpoint");
+    }
+    public static byte[] executionCheckpointCommitment(JSONObject head,String keyId) throws Exception {return canonical(new JSONObject().put("domain","leqvor-execution-checkpoint-approval-v1").put("platform","leqvor.vercel.app").put("checkpoint",head).put("signer_key_id",keyId)).getBytes(StandardCharsets.UTF_8);}
     public static byte[] checkpointCommitment(JSONObject checkpoint,String keyId) throws Exception {
         return canonical(new JSONObject().put("domain","leqvor-founder-checkpoint-approval-v1").put("platform","leqvor.vercel.app").put("checkpoint",checkpoint).put("signer_key_id",keyId)).getBytes(StandardCharsets.UTF_8);
     }

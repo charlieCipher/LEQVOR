@@ -116,6 +116,23 @@ internal static class Protocol
         return DeviceTest(request,"A",Text(current.GetProperty("credential"),"key_id"),Hash(retained),now);
     }
     internal static byte[] CheckpointCommitment(JsonElement checkpoint, string keyId) => Encoding.UTF8.GetBytes("{\"checkpoint\":" + Canonical(checkpoint) + ",\"domain\":\"leqvor-founder-checkpoint-approval-v1\",\"platform\":\"leqvor.vercel.app\",\"signer_key_id\":" + Quote(keyId) + "}");
+    internal static void ExecutionJournal(JsonElement policy,JsonElement packet)
+    {
+        Policy(policy);Exact(packet,"snapshot","checkpoint");var head=packet.GetProperty("checkpoint");var state=packet.GetProperty("snapshot");
+        Exact(head,"domain","platform","policy_hash","execution_key","reservation_hash","sequence","event_hash","status");Exact(state,"reservation","events","status","receipt");
+        Require(Text(head,"domain")=="leqvor-execution-checkpoint-v1"&&Text(head,"platform")=="leqvor.vercel.app"&&Text(head,"policy_hash")==Hash(policy)&&Hex(Text(head,"execution_key"))&&Hex(Text(head,"reservation_hash"))&&Hex(Text(head,"event_hash")),"Execution checkpoint differs from independent policy");
+        var reservation=state.GetProperty("reservation");Exact(reservation,"intent","target","created_at");var intent=reservation.GetProperty("intent");Exact(intent,"domain","request_id","action","target_hash","policy_hash","governance_version","expires_at","idempotency_key");
+        Require(Text(intent,"domain")=="leqvor-root-execution-intent-v1"&&Text(intent,"policy_hash")==Hash(policy)&&Text(intent,"idempotency_key")==Text(head,"execution_key")&&Hash(reservation)==Text(head,"reservation_hash")&&Hash(reservation.GetProperty("target"))==Text(intent,"target_hash"),"Execution reservation changed");
+        var events=state.GetProperty("events");Require(events.ValueKind==JsonValueKind.Array&&events.GetArrayLength()>=1&&events.GetArrayLength()<=100&&Integer(head,"sequence")==events.GetArrayLength(),"Execution history bound differs");
+        string? previous=null;string status="";JsonElement receipt=default;int sequence=0;
+        foreach(var e in events.EnumerateArray())
+        {
+            Exact(e,"domain","execution_key","sequence","previous_hash","event_type","created_at","receipt","event_hash");string next=Text(e,"event_type");Require(!new[]{"APPLIED","NOT_APPLIED","NOT_DISPATCHED"}.Contains(status)&&Text(e,"domain")=="leqvor-root-execution-event-v1"&&Text(e,"execution_key")==Text(head,"execution_key")&&Integer(e,"sequence")==++sequence&&(previous==null?e.GetProperty("previous_hash").ValueKind==JsonValueKind.Null:Text(e,"previous_hash")==previous)&&(sequence==1?next=="ATTEMPTED":new[]{"OUTCOME_UNKNOWN","NOT_DISPATCHED","APPLIED","NOT_APPLIED"}.Contains(next)),"Invalid execution history transition");
+            using var body=JsonDocument.Parse("{"+string.Join(',',e.EnumerateObject().Where(p=>p.Name!="event_hash").Select(p=>Quote(p.Name)+":"+Canonical(p.Value)))+"}");Require(Hash(body.RootElement)==Text(e,"event_hash"),"Execution event hash differs");receipt=e.GetProperty("receipt");Require(new[]{"APPLIED","NOT_APPLIED"}.Contains(next)==(receipt.ValueKind!=JsonValueKind.Null),"Provider outcome receipt shape differs");previous=Text(e,"event_hash");status=next;
+        }
+        Require(previous==Text(head,"event_hash")&&status==Text(head,"status")&&status==Text(state,"status")&&Hash(receipt)==Hash(state.GetProperty("receipt")),"Execution snapshot differs from checkpoint");
+    }
+    internal static byte[] ExecutionCheckpointCommitment(JsonElement head,string keyId)=>Encoding.UTF8.GetBytes("{\"checkpoint\":"+Canonical(head)+",\"domain\":\"leqvor-execution-checkpoint-approval-v1\",\"platform\":\"leqvor.vercel.app\",\"signer_key_id\":"+Quote(keyId)+"}");
     internal static byte[] Replacement(JsonElement policy, JsonElement state, JsonElement head, JsonElement packet, string slot, long now)
     {
         Policy(policy); Snapshot(state, head, policy); Exact(packet, "request", "target", "evidence");

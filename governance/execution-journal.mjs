@@ -1,7 +1,7 @@
 import {hash,exact} from './protocol.mjs';
 
 function keyCheck(key){if(typeof key!=='string'||!/^[a-f0-9]{64}$/.test(key))throw new Error('Invalid execution identifier.');}
-function snapshot(reservation,events){
+export function verifyExecutionHistory(reservation,events){
  exact(reservation,['intent','target','created_at']);keyCheck(reservation.intent.idempotency_key);
  if(hash(reservation.target)!==reservation.intent.target_hash||!events.length||events.length>100)throw new Error('Execution reservation/history invalid.');
  let previous=null;
@@ -16,7 +16,7 @@ function snapshot(reservation,events){
 }
 async function read(tx,key){
  const row=await tx.query('select document from founder_governance.execution_reservations where execution_key=$1 for update',[key]);if(!row.rows.length)return null;
- const events=await tx.query('select document from founder_governance.execution_events where execution_key=$1 order by sequence limit 101',[key]);return snapshot(row.rows[0].document,events.rows.map(r=>r.document));
+ const events=await tx.query('select document from founder_governance.execution_events where execution_key=$1 order by sequence limit 101',[key]);return verifyExecutionHistory(row.rows[0].document,events.rows.map(r=>r.document));
 }
 async function append(tx,key,events,type,receipt,now){
  const content={domain:'leqvor-root-execution-event-v1',execution_key:key,sequence:events.length+1,previous_hash:events.at(-1)?.event_hash??null,event_type:type,created_at:new Date(now).toISOString(),receipt};
@@ -48,7 +48,7 @@ export class PostgresExecutionJournal{
    if(current.status===type&&hash(current.receipt)===hash(receipt))return current;
    if(current.events.length>=100)throw new Error('Execution history requires reviewed archival.');
    if((['APPLIED','NOT_APPLIED'].includes(type))!==(receipt!==null))throw new Error('Verified receipt required for provider outcome.');
-   const next=await append(tx,key,current.events,type,receipt,this.clock());return snapshot(current.reservation,[...current.events,next]);
+   const next=await append(tx,key,current.events,type,receipt,this.clock());return verifyExecutionHistory(current.reservation,[...current.events,next]);
   });
  }
 }

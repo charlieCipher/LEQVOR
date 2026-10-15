@@ -1,5 +1,7 @@
 # LEQVOR protected execution: local implementation and remaining work
 
+15 October addition: [EXECUTION-CHECKPOINTS.md](EXECUTION-CHECKPOINTS.md) now implements separate signed per-execution checkpoints, native A/B approval paths and immutable archive/restore. This closes the local journal-export gap; external storage/scheduling, global completeness, policy-rotation continuity and independent provider proof remain unresolved. Existing root-state checkpoints still do not include execution history.
+
 13 October 2026. **Not deployed, configured or activated.** No customer routes/UI/passwords, production permissions or provider ownership changed.
 
 ## Implemented locally

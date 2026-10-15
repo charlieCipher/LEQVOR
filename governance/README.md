@@ -1,5 +1,7 @@
 # LEQVOR founder governance implementation
 
+Current consolidated evidence and blockers: [ACTIVATION-STATUS.md](ACTIVATION-STATUS.md). The 15 October increment passed 381 tests across 90 files plus six control-service tests. Actual Windows evidence binds key A to a valid Microsoft-rooted AIK chain, but its SHA-1 attestation remains blocked under the strict digest policy; this was not an independent-host or human security review.
+
 15 October: both actual A/B isolated signing tests passed off-device verification against their retained public keys and exact issued requests before expiry. See [DEVICE-KEY-TEST.md](DEVICE-KEY-TEST.md) and [MANUAL-ACTIVATION.md](MANUAL-ACTIVATION.md) for evidence and limits. This does not establish independent Windows TPM validation or enrollment. The user has no third device; activation remains blocked and the 2-of-3 requirement is unchanged.
 
 This is a separate, locally tested subsystem. It is not enrolled, connected to customer production, or an active Founder Lock. Do not apply its migration to the customer Supabase project or expose it through the customer Vercel API.
@@ -22,7 +24,8 @@ This is a separate, locally tested subsystem. It is not enrolled, connected to c
 | Native clients | Compiled Windows Hello console A and offline Android Keystore companion B; hardware/authentication checks, full action/target display, independently imported policy/checkpoint/state; no actual device enrollment or release signing |
 | Signed checkpoints | Native checkpoint signing path, two-device public signature assembly, snapshot/audit verification and rollback checks; no external upload or schedule |
 | Execution verification | Re-verifies live anchored state, two phases, quorums, cooling receipts, expiry and exact target; produces an idempotency identifier, performs no provider operation |
-| Execution journal/coordinator | Atomic one-use PostgreSQL reservations, immutable hash-linked outcomes, live recheck, bounded provider calls, no automatic ambiguous retry and receipt-only reconciliation; no real provider adapters or execution-history checkpoints |
+| Execution journal/coordinator | Atomic one-use PostgreSQL reservations, immutable hash-linked outcomes, live recheck, bounded provider calls, no automatic ambiguous retry and receipt-only reconciliation; no real provider adapters |
+| Execution-history checkpoints | Separate domain, native A/B signing of complete bounded journal, two-founder assembly, immutable per-execution retention/read-back and evidence restore; no cloud destination, schedule, provider-proof claim or global completeness guarantee |
 | Root archive / public restore | Two-founder signed advancing snapshots, independent predecessor/digest verification, immutable publication and read-back verification; local adapter/CLI only, no cloud scheduling or customer backup claim |
 | Device-loss replacement plan | Existing root authorization, independent three-device registry/evidence contract and new-key possession verification; non-mutating REVIEW_REQUIRED candidate, no enrollment/reset shortcut |
 | Native replacement proof | Windows A / Android B locally sign possession-only commitments after verifying the anchored final authorization, full replacement target/evidence and new local hardware-key pin; no enrollment or rotation execution |

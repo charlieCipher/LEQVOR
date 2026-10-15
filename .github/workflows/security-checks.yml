@@ -23,6 +23,8 @@ jobs:
           package-manager-cache: false
       - run: npm ci
       - run: npm ci --ignore-scripts --prefix governance/control
+      - run: npm run check:dependencies
+      - run: npm audit --prefix governance/control --audit-level=low
       - run: npm test --prefix governance/control
       - run: npm run lint -- --max-warnings=0
       - run: npm test
