@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -24,4 +24,8 @@ it('rejects accidentally packaged environment files and source maps without prin
   const path=await fixture(); await writeFile(join(path,'.env'), 'PRIVATE_CANARY'); await writeFile(join(path,'bundle.js.map'),'PRIVATE_CANARY');
   const issues=await checkBuild(path);
   expect(issues).toHaveLength(2); expect(issues.join(' ')).not.toContain('PRIVATE_CANARY');
+});
+it('rejects founder-control source, local evidence and publisher material in the customer build',async()=>{
+ const path=await fixture();for(const directory of ['governance','.local-release']){await mkdir(join(path,directory));await writeFile(join(path,directory,'public-packet.json'),'PUBLIC_FIXTURE_NOT_CUSTOMER_ASSET');}await writeFile(join(path,'publisher.p12'),'SYNTHETIC_PUBLISHER_CANARY');
+ const issues=await checkBuild(path);expect(issues.filter(x=>x.startsWith('Forbidden build file:'))).toHaveLength(3);expect(issues.join(' ')).not.toContain('CANARY');
 });

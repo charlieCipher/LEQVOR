@@ -2,6 +2,8 @@
 
 **Inactive. No customer UI, password, vault, production API, database permissions or deployment changed by this increment.** Real A/B isolated key-possession signatures passed earlier. No physical C exists, and no policy using a fabricated C has been provisioned.
 
+Review branch published as draft [PR #1](https://github.com/charlieCipher/LEQVOR/pull/1). Hosted GitHub Actions started and passed setup, dependency audits, control tests and lint; its full test/build run was still pending at this update. The PR is not merged. Main branch protection remains awaiting private GitHub Confirm access and read-back verification.
+
 | Requested work | Evidence completed | Unfinished work / acceptance blocker |
 | --- | --- | --- |
 | Windows TPM validation | Bounded public-key/name binding; strict AIK certificate path to the separately fetched pinned Microsoft TPM root; AIK signature diagnostic; four new negative/positive software tests | Actual saved attestation uses SHA-1, not the strict SHA-256 policy; no verifier-issued enrollment nonce; revocation, hardware/authentication policy and independently controlled review host/reviewer still required. Enrollment remains denied. See `attestation/WINDOWS-REVIEW.md`. |
@@ -17,6 +19,7 @@
 - Full ESLint check passed; root and control dependency audits reported zero advisories at review time.
 - PostgreSQL database isolation/authorization checks and encrypted restore checks passed.
 - Customer production build/artifact checks passed with existing assets `index-CfvBoNr3.js`, `index-58SJVvnB.css`, `crypto-js-B8AJLl07.js`.
+- A subsequent packaging hardening check passed seven focused build/release tests: customer output rejects governance source, local evidence directories and signing/binary artifacts. `governance` is excluded from customer Vercel uploads. This changes packaging validation, not the UI or deployed site.
 - Windows native build: zero warnings/errors. Java/Node and Windows/Node protocol checks include execution-journal tampering and separate signature domains. Android 0.1.5 built and was signed with the existing local preview publisher; it has not been physically accepted for the new checkpoint workflow or promoted to a trusted production release.
 - Actual Windows static report status: `BLOCKED_LEGACY_SHA1_ATTESTATION`; report and original public evidence remain outside Git. Its review ran outside the signer on the same laptop, not on an independently controlled host.
 
