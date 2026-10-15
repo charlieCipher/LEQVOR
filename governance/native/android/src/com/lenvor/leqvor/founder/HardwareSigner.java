@@ -18,7 +18,7 @@ import java.util.Base64;
 final class HardwareSigner {
     private static final String ALIAS="leqvor-founder-slot-B-v1";
     private static KeyStore store() throws Exception {KeyStore s=KeyStore.getInstance("AndroidKeyStore");s.load(null);return s;}
-    static JSONObject createOrInspect(Context context) throws Exception {
+    static synchronized JSONObject createOrInspect(Context context) throws Exception {
         KeyStore s=store();
         if(!s.containsAlias(ALIAS)) {
             byte[] challenge=new byte[32];new SecureRandom().nextBytes(challenge);

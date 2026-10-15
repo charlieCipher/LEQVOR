@@ -8,6 +8,11 @@ import android.hardware.biometrics.BiometricPrompt;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.view.WindowManager;
+import android.view.MotionEvent;
+import android.view.WindowInsets;
+import android.graphics.Insets;
+import android.graphics.Rect;
+import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -25,14 +30,17 @@ public final class FounderActivity extends Activity {
     private JSONObject policy,checkpoint,snapshot,bundle;
     private byte[] export;
     private CancellationSignal cancellation;
-    private boolean busy,transferring,foreground;
+    private boolean busy,transferring,foreground,keyWorkInProgress;
+    private int sessionGeneration;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setHideOverlayWindows(true);
-        LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);column.setPadding(24,24,24,24);
+        int spacing=Math.round(16*getResources().getDisplayMetrics().density);
+        LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);column.setPadding(spacing,spacing,spacing,spacing);
         ScrollView scroll=new ScrollView(this);scroll.addView(column);setContentView(scroll);
-        TextView title=new TextView(this);title.setText("LEQVOR Founder Approval — local device B");title.setTextSize(22);column.addView(title);
-        details=new TextView(this);details.setText("Inactive: no root authority is enrolled. This offline companion does not access customer vaults. Import the independently verified public policy separately from each request.");details.setTextSize(17);column.addView(details);
-        button(column,"Create / inspect hardware key",()->new AlertDialog.Builder(this).setTitle("Create local founder key B?").setMessage("A new non-exportable Android Keystore key will be created only if one does not already exist. Its public fingerprint and attestation chain must be checked independently. No server enrollment occurs.").setNegativeButton("Cancel",null).setPositiveButton("Create / inspect",(d,w)->safe(()->{export=Protocol.canonical(HardwareSigner.createOrInspect(this)).getBytes(StandardCharsets.UTF_8);show("Public phone key and evidence ready for independent verification. No private key exported and no root authority enrolled.");})).show());
+        scroll.setOnApplyWindowInsetsListener((view,insets)->{Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());view.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();
+        TextView title=new TextView(this);title.setText("LEQVOR Founder Approval — local device B · preview 0.1.1");title.setTextSize(22);column.addView(title);
+        details=new TextView(this);details.setText("Inactive: no root authority is enrolled. This offline companion does not access customer vaults. Import the independently verified public policy separately from each request.");details.setTextSize(17);details.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);column.addView(details);
+        button(column,"Create / inspect hardware key",()->{export=null;show("Key inspection selected. Confirm the local operation in the dialog; nothing is enrolled on a server.");new AlertDialog.Builder(this).setTitle("Create local founder key B?").setMessage("A new non-exportable Android Keystore key will be created only if one does not already exist. Its public fingerprint and attestation chain must be checked independently. No server enrollment occurs.").setNegativeButton("Cancel",null).setPositiveButton("Create / inspect",(d,w)->safe(this::inspectHardwareAsync)).show();});
         button(column,"Import independent policy + checkpoint",()->pick(1));
         button(column,"Import request + target",()->pick(2));
         button(column,"Inspect exact action",()->safe(this::inspect));
@@ -43,8 +51,19 @@ public final class FounderActivity extends Activity {
     }
     private interface Work {void run() throws Exception;}
     private void safe(Work work){try{if(busy)throw new IllegalStateException("Authentication in progress");work.run();}catch(Exception e){export=null;show("Blocked: "+e.getMessage());}}
-    private void button(LinearLayout column,String label,Runnable action){Button b=new Button(this);b.setText(label);b.setFilterTouchesWhenObscured(true);b.setOnClickListener(v->action.run());column.addView(b);}
-    private void show(String text){details.setText(text);}
+    private void button(LinearLayout column,String label,Runnable action){Button b=new Button(this){@Override public boolean onFilterTouchEventForSecurity(MotionEvent event){boolean accepted=super.onFilterTouchEventForSecurity(event);if(!accepted&&event.getActionMasked()==MotionEvent.ACTION_DOWN)show("Touch blocked because another window obscures this app. Close floating windows covering it, then try again. No security check was disabled.");return accepted;}};b.setText(label);b.setMinHeight(Math.round(48*getResources().getDisplayMetrics().density));b.setFilterTouchesWhenObscured(true);b.setOnClickListener(v->{if(keyWorkInProgress||busy){show("A local key or authentication operation is still in progress. Please wait; do not keep tapping.");return;}try{action.run();}catch(Exception e){export=null;show("Blocked: "+e.getClass().getSimpleName()+". No approval exported. Try again when the app is in the foreground.");}});column.addView(b);}
+    private void inspectHardwareAsync(){
+        if(keyWorkInProgress)throw new IllegalStateException("Local key inspection already in progress");
+        final int generation=sessionGeneration;keyWorkInProgress=true;export=null;show("Checking Android Keystore hardware… please wait. Existing keys are inspected, not replaced. No server enrollment occurs.");
+        new Thread(()->{
+            byte[] packet=null;String failure=null;
+            try{packet=Protocol.canonical(HardwareSigner.createOrInspect(getApplicationContext())).getBytes(StandardCharsets.UTF_8);if(packet.length>65536)throw new IllegalStateException("Public evidence exceeds size limit");}
+            catch(Exception e){failure="Hardware inspection blocked ("+e.getClass().getSimpleName()+"). "+(e instanceof IllegalArgumentException?e.getMessage():"Device hardware/attestation or secure screen-lock requirements were not satisfied. No software fallback is used.");}
+            final byte[] result=packet;final String error=failure;
+            runOnUiThread(()->{keyWorkInProgress=false;if(!foreground||isFinishing()||isDestroyed()||generation!=sessionGeneration)return;export=error==null?result:null;show(error==null?"Public phone key and evidence ready for independent verification. Tap Export public key / signed approval. No private key exported and no root authority enrolled.":error);});
+        },"FounderHardwareInspection").start();
+    }
+    private void show(String text){details.setText(text);details.post(()->details.requestRectangleOnScreen(new Rect(0,0,details.getWidth(),details.getHeight()),false));}
     private void pick(int code){if(busy)return;transferring=true;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("application/json");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,code);}
     @Override protected void onActivityResult(int code,int result,Intent data){super.onActivityResult(code,result,data);transferring=false;if(result!=RESULT_OK||data==null||data.getData()==null)return;safe(()->{
         if(code==3){try(OutputStream stream=getContentResolver().openOutputStream(data.getData(),"wt")){if(stream==null||export==null)throw new IllegalStateException("Export unavailable");stream.write(export);}show("Public packet exported. Nothing sent to a server.");return;}
@@ -93,5 +112,5 @@ public final class FounderActivity extends Activity {
         });
     }
     @Override protected void onStart(){super.onStart();foreground=true;}
-    @Override protected void onStop(){super.onStop();foreground=false;if(cancellation!=null)cancellation.cancel();busy=false;if(!transferring){policy=null;checkpoint=null;snapshot=null;bundle=null;export=null;show("Session cleared. Reimport independently verified policy/checkpoint and request.");}}
+    @Override protected void onStop(){super.onStop();foreground=false;sessionGeneration++;if(cancellation!=null)cancellation.cancel();busy=false;if(!transferring){policy=null;checkpoint=null;snapshot=null;bundle=null;export=null;show("Session cleared. Reimport independently verified policy/checkpoint and request. If a local key inspection was interrupted, inspect the existing key again; do not reinstall or clear app data.");}}
 }
