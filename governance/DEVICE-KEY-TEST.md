@@ -10,12 +10,14 @@ From the repository root, only once the device operator is ready:
 node governance/device-test.mjs issue <retained-public-device-evidence.json>
 ```
 
-Retain the issued directory and compare the printed request hash with the native console. Transfer only its `request.json` to the matching device. In Android preview 0.1.4 or the updated Windows console choose **Run isolated device-key test**, select the request, inspect it and approve privately with the OS prompt. Export the public result to a new filename, preserving the original evidence. Return that result JSON to the laptop:
+Retain the issued directory and compare the printed request hash with the native console. On Android transfer its `request.json`; on Windows use `windows-test-input.json`, which contains the exact issued request plus the original retained public evidence. Choose **Run isolated device-key test**, select that native input, inspect it and approve privately with the OS prompt. Export the public result to a new filename, preserving the original evidence. Return that result JSON to the laptop:
 
 ```powershell
 node governance/device-test.mjs accept .local-release/founder-device-test-<UUID> <exported-test-result.json>
 ```
 
-Expired/cancelled tests need a new issued request. Do not extend timestamps, bypass evidence mismatch, reset keys or reuse a receipt. If existing evidence changed, stop and independently review a new public export. Automated acceptance uses ephemeral software test keys in memory; passing those checks does not establish physical signing.
+Expired/cancelled tests need a new issued request. Do not extend timestamps, bypass key/chain/retained-evidence mismatch, reset keys or reuse a receipt. Automated acceptance uses ephemeral software test keys in memory; passing those checks does not establish physical signing.
+
+During actual Windows diagnostics the original key and certificate-chain bytes matched exactly, while two OS attestation blobs differed. Therefore Windows checks the fresh OS attestation success, unchanged live public key and unchanged certificate chain against the original evidence, and signs the digest of that original retained artifact. It does not compare regenerated attestation blobs for byte equality or claim their independent TPM validation. An evidence/key/chain substitution remains blocked. The read-only `--inspect-device-test <windows-test-input.json>` option checks this boundary without signing, creating a key or opening authentication prompts. Independent TPM validation remains necessary before founder enrollment.
 
 Install 0.1.4 over the existing phone app without uninstalling or clearing data; retain the same package publisher. Real device approvals, independent Windows TPM validation, production enrollment, physical C and provider controls remain separate requirements.

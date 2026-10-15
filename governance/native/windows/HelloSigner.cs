@@ -60,11 +60,11 @@ internal static class HelloSigner
         Protocol.Require(verifier.VerifyData(bytes, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1), "Windows Hello signature format failed verification");
         return JsonSerializer.SerializeToUtf8Bytes(new { slot = "A", key_id = keyId, signature = Convert.ToBase64String(signature) });
     }
-    internal static async Task<byte[]> TestExistingDevice(JsonElement request)
+    internal static async Task<byte[]> TestExistingDevice(JsonElement request,JsonElement retainedEvidence)
     {
-        using var evidence=JsonDocument.Parse(await ExistingPublicEvidence());var credential=evidence.RootElement.GetProperty("credential");string id=Protocol.Text(credential,"key_id"),evidenceHash=Protocol.Hash(evidence.RootElement);
-        byte[] bytes=Protocol.DeviceTest(request,"A",id,evidenceHash,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var key=await Open(false);await Evidence(key);byte[] publicKey=Bytes(key.RetrievePublicKey(CryptographicPublicKeyBlobType.X509SubjectPublicKeyInfo));Protocol.Require(Protocol.Digest(publicKey)==id,"Device key changed");
-        var result=await key.RequestSignAsync(CryptographicBuffer.CreateFromByteArray(bytes));Protocol.Require(result.Status==KeyCredentialStatus.Success,"Windows Hello test cancelled or unavailable");Protocol.DeviceTest(request,"A",id,evidenceHash,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());byte[] signature=Bytes(result.Result);using var verifier=RSA.Create();verifier.ImportSubjectPublicKeyInfo(publicKey,out _);Protocol.Require(verifier.VerifyData(bytes,signature,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1),"Device-test signature failed verification");
+        using var evidence=JsonDocument.Parse(await ExistingPublicEvidence());var credential=evidence.RootElement.GetProperty("credential");string id=Protocol.Text(credential,"key_id");
+        byte[] bytes=Protocol.WindowsDeviceTest(request,retainedEvidence,evidence.RootElement,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var key=await Open(false);await Evidence(key);byte[] publicKey=Bytes(key.RetrievePublicKey(CryptographicPublicKeyBlobType.X509SubjectPublicKeyInfo));Protocol.Require(Protocol.Digest(publicKey)==id,"Device key changed");
+        var result=await key.RequestSignAsync(CryptographicBuffer.CreateFromByteArray(bytes));Protocol.Require(result.Status==KeyCredentialStatus.Success,"Windows Hello test cancelled or unavailable");Protocol.WindowsDeviceTest(request,retainedEvidence,evidence.RootElement,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());byte[] signature=Bytes(result.Result);using var verifier=RSA.Create();verifier.ImportSubjectPublicKeyInfo(publicKey,out _);Protocol.Require(verifier.VerifyData(bytes,signature,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1),"Device-test signature failed verification");
         return JsonSerializer.SerializeToUtf8Bytes(new{domain="leqvor-founder-device-test-result-v1",request,slot="A",key_id=id,signature=Convert.ToBase64String(signature)});
     }
     internal static async Task<byte[]> ApproveCheckpoint(JsonElement checkpoint, JsonElement policy)

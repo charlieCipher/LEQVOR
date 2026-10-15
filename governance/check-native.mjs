@@ -31,6 +31,8 @@ fixture.state.requests[request.request_id]={request,approvals:[],status:'PENDING
 fixture.checkpoint=checkpoint(fixture.state);fixture.checkpoint_commitment=encode(checkpointCommitment(fixture.checkpoint,keys[1].pin.key_id)).toString('utf8');
 fixture.replacements=[];
 fixture.device_tests=keys.slice(0,2).map(k=>{const evidence={domain:'leqvor-founder-device-evidence-v1',credential:k.pin,synthetic:true},request=createDeviceTest(evidence,now);return {slot:k.pin.slot,key_id:k.pin.key_id,evidence_hash:hash(evidence),request,commitment:encode(deviceTestCommitment(request)).toString('utf8')};});
+const retainedWindows={domain:'leqvor-founder-device-evidence-v1',credential:keys[0].pin,attestation:'AQ==',certificate_chain:'AQID',independently_verified:false};
+fixture.windows_device_test={retained:retainedWindows,current:{...retainedWindows,attestation:'Ag=='},request:createDeviceTest(retainedWindows,now)};
 for(const slot of ['A','B']){
  const pair=slot==='A'?generateKeyPairSync('rsa',{modulusLength:2048}):generateKeyPairSync('ec',{namedCurve:'prime256v1'}),der=pair.publicKey.export({type:'spki',format:'der'});
  const credential={slot,algorithm:slot==='A'?'RS256':'ES256',spki:der.toString('base64'),key_id:createHash('sha256').update(der).digest('hex')};

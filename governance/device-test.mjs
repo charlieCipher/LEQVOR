@@ -35,7 +35,15 @@ export async function acceptDeviceTest(directory,result,now=Date.now()){
 if(process.argv[1]&&resolve(process.argv[1])===resolve('governance/device-test.mjs')){
  try{
   const [operation,...args]=process.argv.slice(2);
-  if(operation==='issue'&&args.length===1){const evidence=JSON.parse((await readBoundedPublicFile(args[0],65536)).toString('utf8')),request=createDeviceTest(evidence),out=resolve('.local-release',`founder-device-test-${request.request_id}`);await mkdir(resolve('.local-release'),{recursive:true});await mkdir(out,{recursive:false});await writeFile(join(out,'issued.json'),JSON.stringify({request,credential:evidence.credential}),{flag:'wx',mode:0o600});await writeFile(join(out,'request.json'),JSON.stringify(request,null,2),{flag:'wx',mode:0o600});console.log(JSON.stringify({request_file:join(out,'request.json'),request_hash:hash(request),expires_at:request.expires_at,purpose:request.purpose,enrollment_allowed:false}));}
+  if(operation==='issue'&&args.length===1){
+   const evidence=JSON.parse((await readBoundedPublicFile(args[0],65536)).toString('utf8')),request=createDeviceTest(evidence),out=resolve('.local-release',`founder-device-test-${request.request_id}`);
+   await mkdir(resolve('.local-release'),{recursive:true});await mkdir(out,{recursive:false});
+   await writeFile(join(out,'issued.json'),JSON.stringify({request,credential:evidence.credential}),{flag:'wx',mode:0o600});
+   await writeFile(join(out,'request.json'),JSON.stringify(request,null,2),{flag:'wx',mode:0o600});
+   const nativeInput=join(out,request.slot==='A'?'windows-test-input.json':'request.json');
+   if(request.slot==='A')await writeFile(nativeInput,JSON.stringify({request,evidence},null,2),{flag:'wx',mode:0o600});
+   console.log(JSON.stringify({request_file:join(out,'request.json'),native_input_file:nativeInput,request_hash:hash(request),expires_at:request.expires_at,purpose:request.purpose,enrollment_allowed:false}));
+  }
   else if(operation==='accept'&&args.length===2){const result=JSON.parse((await readBoundedPublicFile(args[1],65536)).toString('utf8'));console.log(JSON.stringify(await acceptDeviceTest(args[0],result)));}
   else throw new Error('Explicit issue or accept arguments required');
  }catch{console.error('Isolated device test rejected. Check public files, expiry and previous acceptance. No root authorization or enrollment performed.');process.exitCode=1;}

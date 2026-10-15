@@ -98,6 +98,23 @@ internal static class Protocol
         Require(start<=now+30000&&end>now&&end>start&&end-start<=600000,"Isolated device test expired");
         return Encoding.UTF8.GetBytes("{\"domain\":\"leqvor-founder-device-test-proof-v1\",\"request\":"+Canonical(request)+"}");
     }
+    internal static byte[] WindowsDeviceTest(JsonElement request,JsonElement retained,JsonElement current,long now)
+    {
+        foreach(var evidence in new[]{retained,current})
+        {
+            Exact(evidence,"domain","credential","attestation","certificate_chain","independently_verified");
+            Require(Text(evidence,"domain")=="leqvor-founder-device-evidence-v1"&&evidence.GetProperty("independently_verified").ValueKind==JsonValueKind.False,"Expected original public Windows evidence; no independent TPM verdict implied");
+            var pin=evidence.GetProperty("credential");Exact(pin,"slot","algorithm","spki","key_id");string spki=Text(pin,"spki");Require(Text(pin,"slot")=="A"&&Text(pin,"algorithm")=="RS256"&&spki.Length<=2048,"Windows A public key required");
+            byte[] der=Convert.FromBase64String(spki);Require(Convert.ToBase64String(der)==spki&&Digest(der)==Text(pin,"key_id"),"Windows public fingerprint mismatch");using var key=RSA.Create();key.ImportSubjectPublicKeyInfo(der,out int read);Require(read==der.Length&&key.KeySize>=2048,"Invalid Windows RSA public key");
+            foreach(string field in new[]{"attestation","certificate_chain"}){string text=Text(evidence,field);Require(text.Length>0&&text.Length<=65536,"Missing or excessive Windows public evidence");byte[] raw=Convert.FromBase64String(text);Require(raw.Length>0&&Convert.ToBase64String(raw)==text,"Invalid public evidence encoding");}
+        }
+        Require(Hash(retained.GetProperty("credential"))==Hash(current.GetProperty("credential")),"Existing Windows key differs from retained evidence");
+        Require(Text(retained,"certificate_chain")==Text(current,"certificate_chain"),"Windows certificate chain changed; independent review required");
+        // GetAttestationAsync returned different attestation bytes for this same
+        // key/chain during actual diagnostics. Bind the ORIGINAL retained artifact,
+        // not a regenerated blob. This proves key possession, not TPM provenance.
+        return DeviceTest(request,"A",Text(current.GetProperty("credential"),"key_id"),Hash(retained),now);
+    }
     internal static byte[] CheckpointCommitment(JsonElement checkpoint, string keyId) => Encoding.UTF8.GetBytes("{\"checkpoint\":" + Canonical(checkpoint) + ",\"domain\":\"leqvor-founder-checkpoint-approval-v1\",\"platform\":\"leqvor.vercel.app\",\"signer_key_id\":" + Quote(keyId) + "}");
     internal static byte[] Replacement(JsonElement policy, JsonElement state, JsonElement head, JsonElement packet, string slot, long now)
     {

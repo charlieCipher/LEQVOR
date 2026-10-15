@@ -47,6 +47,7 @@ it('issues and consumes only the explicit public-file command boundary',async()=
  const input=join(root,'synthetic-evidence.json');await writeFile(input,JSON.stringify({domain:'leqvor-founder-device-evidence-v1',credential:f.stored.credential,synthetic:true}));
  const run=promisify(execFile),issued=JSON.parse((await run(process.execPath,['governance/device-test.mjs','issue',input])).stdout),directory=resolve(issued.request_file,'..');roots.push(directory);
  const request=JSON.parse(await readFile(issued.request_file,'utf8'));expect(issued.request_hash).toBe(hash(request));expect(issued.enrollment_allowed).toBe(false);
+ const windowsInput=JSON.parse(await readFile(issued.native_input_file,'utf8'));expect(windowsInput.request).toEqual(request);expect(hash(windowsInput.evidence)).toBe(request.evidence_hash);expect(windowsInput.evidence.credential).toEqual(f.stored.credential);
  const result={...f.result,request,signature:f.signature(deviceTestCommitment(request))},output=join(root,'synthetic-result.json');await writeFile(output,JSON.stringify(result));
  const receipt=JSON.parse((await run(process.execPath,['governance/device-test.mjs','accept',directory,output])).stdout);expect(receipt.status).toBe('KEY_POSSESSION_VERIFIED_ONLY');
  await expect(run(process.execPath,['governance/device-test.mjs','accept',directory,output])).rejects.toThrow();
