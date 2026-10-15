@@ -32,6 +32,12 @@ public final class NativeAcceptance {
             for(int representation:new int[]{-1,0}){boolean blocked=false;try{HardwarePolicy.require(failure!=0,failure!=1,failure==2?30:representation,failure!=3,failure==4,failure!=5,"SYNTHETIC",1);}catch(IllegalArgumentException e){blocked=e.getMessage().contains("auth_hardware_enforced=")&&e.getMessage().contains("Signing remains blocked");}Protocol.require(blocked,"Hardware policy accepted failed check "+failure);}
         }
         for(int timeout:new int[]{Integer.MIN_VALUE,-2,1,5,30,Integer.MAX_VALUE}){boolean blocked=false;try{HardwarePolicy.require(true,true,timeout,true,false,true,"TEE",3);}catch(IllegalArgumentException e){blocked=true;}Protocol.require(blocked,"Hardware policy accepted timed/unknown authentication "+timeout);}
+        JSONArray deviceTests=fixture.getJSONArray("device_tests");
+        for(int i=0;i<deviceTests.length();i++){
+            JSONObject f=deviceTests.getJSONObject(i),r=f.getJSONObject("request");String slot=f.getString("slot"),key=f.getString("key_id"),evidence=f.getString("evidence_hash");long time=fixture.getLong("now");
+            Protocol.require(new String(Protocol.deviceTest(r,slot,key,evidence,time),java.nio.charset.StandardCharsets.UTF_8).equals(f.getString("commitment")),"Device test bytes differ");
+            for(int failure=0;failure<4;failure++){boolean blocked=false;JSONObject changed=new JSONObject(r.toString());if(failure==0)changed.put("purpose","REMOVE_FOUNDER_ROOT");try{Protocol.deviceTest(changed,failure==1?"C":slot,key,failure==2?"0".repeat(64):evidence,failure==3?time+600000:time);}catch(Exception e){blocked=true;}Protocol.require(blocked,"Unsafe device test accepted");}
+        }
         JSONArray replacements=fixture.getJSONArray("replacements");
         for(int i=0;i<replacements.length();i++){
             JSONObject f=replacements.getJSONObject(i),packet=f.getJSONObject("packet");String slot=f.getString("slot");

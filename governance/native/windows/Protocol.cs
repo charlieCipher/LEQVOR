@@ -90,6 +90,14 @@ internal static class Protocol
         long start = created.ToUnixTimeMilliseconds(), end = expires.ToUnixTimeMilliseconds(); Require(start <= now + 30000 && end > now && end > start && end - start <= 600000, "Challenge expired or invalid");
     }
     internal static byte[] Commitment(JsonElement request, string keyId) => Encoding.UTF8.GetBytes("{\"domain\":\"leqvor-founder-approval-v1\",\"request\":" + Canonical(request) + ",\"signer_key_id\":" + Quote(keyId) + "}");
+    internal static byte[] DeviceTest(JsonElement request,string slot,string keyId,string evidenceHash,long now)
+    {
+        Exact(request,"domain","platform","purpose","slot","key_id","evidence_hash","request_id","nonce","created_at","expires_at");
+        Require(Text(request,"domain")=="leqvor-founder-device-test-request-v1"&&Text(request,"platform")=="leqvor.vercel.app"&&Text(request,"purpose")=="PROVE_DEVICE_KEY_ONLY"&&new[]{"A","B"}.Contains(slot)&&Text(request,"slot")==slot&&Text(request,"key_id")==keyId&&Hex(keyId)&&Text(request,"evidence_hash")==evidenceHash&&Hex(evidenceHash)&&Hex(Text(request,"nonce"))&&System.Text.RegularExpressions.Regex.IsMatch(Text(request,"request_id"),"\\A[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\\z"),"Isolated device test differs from this key/evidence");
+        long start=DateTimeOffset.ParseExact(Text(request,"created_at"),"yyyy-MM-dd'T'HH:mm:ss.fff'Z'",CultureInfo.InvariantCulture,DateTimeStyles.AssumeUniversal).ToUnixTimeMilliseconds(),end=DateTimeOffset.ParseExact(Text(request,"expires_at"),"yyyy-MM-dd'T'HH:mm:ss.fff'Z'",CultureInfo.InvariantCulture,DateTimeStyles.AssumeUniversal).ToUnixTimeMilliseconds();
+        Require(start<=now+30000&&end>now&&end>start&&end-start<=600000,"Isolated device test expired");
+        return Encoding.UTF8.GetBytes("{\"domain\":\"leqvor-founder-device-test-proof-v1\",\"request\":"+Canonical(request)+"}");
+    }
     internal static byte[] CheckpointCommitment(JsonElement checkpoint, string keyId) => Encoding.UTF8.GetBytes("{\"checkpoint\":" + Canonical(checkpoint) + ",\"domain\":\"leqvor-founder-checkpoint-approval-v1\",\"platform\":\"leqvor.vercel.app\",\"signer_key_id\":" + Quote(keyId) + "}");
     internal static byte[] Replacement(JsonElement policy, JsonElement state, JsonElement head, JsonElement packet, string slot, long now)
     {

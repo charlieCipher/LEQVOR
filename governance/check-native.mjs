@@ -6,6 +6,7 @@ import {encode,hash,approvalCommitment} from './protocol.mjs';
 import {initialGovernance,checkpoint,GovernanceEngine} from './engine.mjs';
 import {replacementPossessionCommitment} from './replacement-plan.mjs';
 import {checkpointCommitment} from './audit.mjs';
+import {createDeviceTest,deviceTestCommitment} from './device-test.mjs';
 const root=resolve('.'),output=join(root,'.local-release','founder-native-acceptance');
 const java=process.env.LEQVOR_JAVA_BIN??'C:\\Program Files\\Android\\Android Studio\\jbr\\bin';
 const android=join(process.env.LOCALAPPDATA,'Android','Sdk','platforms','android-36','android.jar');
@@ -29,6 +30,7 @@ fixture.state.audit.push({...event,event_hash:hash(event)});
 fixture.state.requests[request.request_id]={request,approvals:[],status:'PENDING',proposal_id:null,cooling_until:null};
 fixture.checkpoint=checkpoint(fixture.state);fixture.checkpoint_commitment=encode(checkpointCommitment(fixture.checkpoint,keys[1].pin.key_id)).toString('utf8');
 fixture.replacements=[];
+fixture.device_tests=keys.slice(0,2).map(k=>{const evidence={domain:'leqvor-founder-device-evidence-v1',credential:k.pin,synthetic:true},request=createDeviceTest(evidence,now);return {slot:k.pin.slot,key_id:k.pin.key_id,evidence_hash:hash(evidence),request,commitment:encode(deviceTestCommitment(request)).toString('utf8')};});
 for(const slot of ['A','B']){
  const pair=slot==='A'?generateKeyPairSync('rsa',{modulusLength:2048}):generateKeyPairSync('ec',{namedCurve:'prime256v1'}),der=pair.publicKey.export({type:'spki',format:'der'});
  const credential={slot,algorithm:slot==='A'?'RS256':'ES256',spki:der.toString('base64'),key_id:createHash('sha256').update(der).digest('hex')};

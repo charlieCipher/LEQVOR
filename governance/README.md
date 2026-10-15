@@ -1,5 +1,7 @@
 # LEQVOR founder governance implementation
 
+15 October: isolated existing-key signing tests for A/B are available without fabricating a root policy or recovery C. See [DEVICE-KEY-TEST.md](DEVICE-KEY-TEST.md). The user has no third device; activation remains blocked and the 2-of-3 requirement is unchanged.
+
 This is a separate, locally tested subsystem. It is not enrolled, connected to customer production, or an active Founder Lock. Do not apply its migration to the customer Supabase project or expose it through the customer Vercel API.
 
 ## Implemented

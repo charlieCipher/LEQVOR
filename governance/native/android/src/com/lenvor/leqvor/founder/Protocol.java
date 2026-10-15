@@ -121,6 +121,12 @@ public final class Protocol {
         JSONObject value=new JSONObject();value.put("domain","leqvor-founder-approval-v1");value.put("request",request);value.put("signer_key_id",keyId);
         return canonical(value).getBytes(StandardCharsets.UTF_8);
     }
+    public static byte[] deviceTest(JSONObject request,String slot,String keyId,String evidenceHash,long now) throws Exception {
+        exact(request,"domain","platform","purpose","slot","key_id","evidence_hash","request_id","nonce","created_at","expires_at");
+        require(string(request,"domain").equals("leqvor-founder-device-test-request-v1")&&string(request,"platform").equals("leqvor.vercel.app")&&string(request,"purpose").equals("PROVE_DEVICE_KEY_ONLY")&&Arrays.asList("A","B").contains(slot)&&string(request,"slot").equals(slot)&&string(request,"key_id").equals(keyId)&&hex(keyId)&&string(request,"evidence_hash").equals(evidenceHash)&&hex(evidenceHash)&&hex(string(request,"nonce"))&&string(request,"request_id").matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"),"Isolated device test differs from this key/evidence");
+        String created=string(request,"created_at"),expires=string(request,"expires_at");require(created.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")&&expires.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z"),"Invalid device test timestamp");long start=Instant.parse(created).toEpochMilli(),end=Instant.parse(expires).toEpochMilli();require(start<=now+30000&&end>now&&end>start&&end-start<=600000,"Isolated device test expired");
+        return canonical(new JSONObject().put("domain","leqvor-founder-device-test-proof-v1").put("request",request)).getBytes(StandardCharsets.UTF_8);
+    }
     public static void snapshot(JSONObject state,JSONObject checkpoint,JSONObject policy) throws Exception {
         exact(state,"policy","version","frozen","requests","audit");
         require(hash(state.get("policy")).equals(hash(policy))&&integer(state,"version")==integer(checkpoint,"version")&&state.get("frozen") instanceof Boolean,"Snapshot authority mismatch");
