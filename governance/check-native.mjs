@@ -47,5 +47,5 @@ if(!verify('sha256',encode(commitment),{key:keys[1].pair.publicKey,dsaEncoding:'
 await writeFile(join(output,'public-vectors.json'),JSON.stringify(fixture));
 const source=join(root,'governance','native','android');
 const run=(program,args)=>{const result=spawnSync(program,args,{encoding:'utf8',windowsHide:true});if(result.status!==0)throw new Error(result.stderr||result.stdout||'Native tool failed');if(result.stdout.trim())process.stdout.write(result.stdout);};
-run(join(java,'javac.exe'),['--release','17','-classpath',`${jsonJar};${android}`,'-d',output,join(source,'src','com','lenvor','leqvor','founder','Protocol.java'),join(source,'src','com','lenvor','leqvor','founder','HardwareSigner.java'),join(source,'test','NativeAcceptance.java')]);
+run(join(java,'javac.exe'),['--release','17','-classpath',`${jsonJar};${android}`,'-d',output,join(source,'src','com','lenvor','leqvor','founder','Protocol.java'),join(source,'src','com','lenvor','leqvor','founder','HardwareSigner.java'),join(source,'src','com','lenvor','leqvor','founder','HardwarePolicy.java'),join(source,'test','NativeAcceptance.java')]);
 run(join(java,'java.exe'),['-classpath',`${output};${jsonJar};${android}`,'com.lenvor.leqvor.founder.NativeAcceptance',join(output,'public-vectors.json')]);

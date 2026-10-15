@@ -24,6 +24,11 @@ public final class NativeAcceptance {
         boolean denied=false;try{Protocol.validateRequest(request,policy,2,fixture.getLong("now"));}catch(Exception e){denied=true;}Protocol.require(denied,"Wrong independent version accepted");
         denied=false;try{Protocol.validateRequest(request,policy,1,fixture.getLong("now")+600000);}catch(Exception e){denied=true;}Protocol.require(denied,"Expired request accepted");
         Protocol.require(Protocol.display("target\u202ereversed").contains("\\u202e"),"Directional text not escaped");
+        HardwarePolicy.require(true,true,-1,true,false,true,"TEE",1);
+        HardwarePolicy.require(true,true,-1,true,false,true,"STRONGBOX",1);
+        for(int failure=0;failure<6;failure++){
+            boolean blocked=false;try{HardwarePolicy.require(failure!=0,failure!=1,failure==2?0:-1,failure!=3,failure==4,failure!=5,"SYNTHETIC",1);}catch(IllegalArgumentException e){blocked=e.getMessage().contains("auth_hardware_enforced=")&&e.getMessage().contains("Signing remains blocked");}Protocol.require(blocked,"Hardware policy accepted failed check "+failure);
+        }
         JSONArray replacements=fixture.getJSONArray("replacements");
         for(int i=0;i<replacements.length();i++){
             JSONObject f=replacements.getJSONObject(i),packet=f.getJSONObject("packet");String slot=f.getString("slot");

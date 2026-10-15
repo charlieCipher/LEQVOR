@@ -31,8 +31,7 @@ final class HardwareSigner {
                 .setAttestationChallenge(challenge)
                 .build());
             generator.generateKeyPair();
-            try {assertHardware(s);} catch(Exception e){s.deleteEntry(ALIAS);throw e;}
-            context.getSharedPreferences("public-key-evidence",Context.MODE_PRIVATE).edit().putString("challenge",Base64.getEncoder().encodeToString(challenge)).apply();
+            Protocol.require(context.getSharedPreferences("public-key-evidence",Context.MODE_PRIVATE).edit().putString("challenge",Base64.getEncoder().encodeToString(challenge)).commit(),"Local public challenge metadata could not be saved; existing key retained");
         }
         assertHardware(s);
         byte[] publicKey=s.getCertificate(ALIAS).getPublicKey().getEncoded();
@@ -43,9 +42,9 @@ final class HardwareSigner {
     private static void assertHardware(KeyStore s) throws Exception {
         PrivateKey key=(PrivateKey)s.getKey(ALIAS,null);
         KeyInfo info=KeyFactory.getInstance(key.getAlgorithm(),"AndroidKeyStore").getKeySpec(key,KeyInfo.class);
-        Protocol.require((info.getSecurityLevel()==KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT||info.getSecurityLevel()==KeyProperties.SECURITY_LEVEL_STRONGBOX)
-            && info.isUserAuthenticationRequired() && info.getUserAuthenticationValidityDurationSeconds()==-1
-            && info.isUserAuthenticationRequirementEnforcedBySecureHardware() && key.getEncoded()==null,"Hardware-backed per-operation authentication unavailable; signing blocked");
+        int level=info.getSecurityLevel(),type=info.getUserAuthenticationType(),allowed=KeyProperties.AUTH_BIOMETRIC_STRONG|KeyProperties.AUTH_DEVICE_CREDENTIAL;
+        String name=level==KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT?"TEE":level==KeyProperties.SECURITY_LEVEL_STRONGBOX?"STRONGBOX":"UNVERIFIED("+level+")";
+        HardwarePolicy.require(level==KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT||level==KeyProperties.SECURITY_LEVEL_STRONGBOX,info.isUserAuthenticationRequired(),info.getUserAuthenticationValidityDurationSeconds(),info.isUserAuthenticationRequirementEnforcedBySecureHardware(),key.getEncoded()!=null,(type&allowed)!=0&&(type&~allowed)==0,name,type);
     }
     static Signature prepare(String expectedKeyId) throws Exception {
         KeyStore s=store();Protocol.require(s.containsAlias(ALIAS),"Create and independently enroll the phone key first");assertHardware(s);
