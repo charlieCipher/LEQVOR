@@ -26,9 +26,12 @@ public final class NativeAcceptance {
         Protocol.require(Protocol.display("target\u202ereversed").contains("\\u202e"),"Directional text not escaped");
         HardwarePolicy.require(true,true,-1,true,false,true,"TEE",1);
         HardwarePolicy.require(true,true,-1,true,false,true,"STRONGBOX",1);
+        HardwarePolicy.require(true,true,0,true,false,true,"TEE",3);
+        HardwarePolicy.require(true,true,0,true,false,true,"STRONGBOX",3);
         for(int failure=0;failure<6;failure++){
-            boolean blocked=false;try{HardwarePolicy.require(failure!=0,failure!=1,failure==2?0:-1,failure!=3,failure==4,failure!=5,"SYNTHETIC",1);}catch(IllegalArgumentException e){blocked=e.getMessage().contains("auth_hardware_enforced=")&&e.getMessage().contains("Signing remains blocked");}Protocol.require(blocked,"Hardware policy accepted failed check "+failure);
+            for(int representation:new int[]{-1,0}){boolean blocked=false;try{HardwarePolicy.require(failure!=0,failure!=1,failure==2?30:representation,failure!=3,failure==4,failure!=5,"SYNTHETIC",1);}catch(IllegalArgumentException e){blocked=e.getMessage().contains("auth_hardware_enforced=")&&e.getMessage().contains("Signing remains blocked");}Protocol.require(blocked,"Hardware policy accepted failed check "+failure);}
         }
+        for(int timeout:new int[]{Integer.MIN_VALUE,-2,1,5,30,Integer.MAX_VALUE}){boolean blocked=false;try{HardwarePolicy.require(true,true,timeout,true,false,true,"TEE",3);}catch(IllegalArgumentException e){blocked=true;}Protocol.require(blocked,"Hardware policy accepted timed/unknown authentication "+timeout);}
         JSONArray replacements=fixture.getJSONArray("replacements");
         for(int i=0;i<replacements.length();i++){
             JSONObject f=replacements.getJSONObject(i),packet=f.getJSONObject("packet");String slot=f.getString("slot");
