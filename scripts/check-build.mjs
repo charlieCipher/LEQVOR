@@ -17,7 +17,7 @@ export async function checkBuild(directory) {
   await walk(root);
   for (const path of files) {
     const name = relative(root, path);
-    if (/(^|[/\\])\.env(?:\.|$)|\.(?:map|pem|key)$/i.test(name)) issues.push(`Forbidden build file: ${name}`);
+    if (/(^|[/\\])(?:\.env(?:\.|$)|governance(?:[/\\]|$)|\.local-release(?:[/\\]|$)|\.local-backend-validation(?:[/\\]|$))|\.(?:map|pem|key|p12|pfx|jks|apk|exe|dll)$/i.test(name)) issues.push(`Forbidden build file: ${name}`);
     if (!/\.(?:html|css)$/i.test(path)) continue;
     const source = await readFile(path, 'utf8');
     const references = path.endsWith('.css')

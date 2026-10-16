@@ -29,3 +29,4 @@ dist-ssr
 .vercel
 .local-backend-validation/
 .local-release/
+governance/native/windows/obj/

@@ -1,0 +1,13 @@
+# Requires a repository ruleset with required code-owner approval.
+# The founder cannot independently review their own pull request; add a
+# separate qualified reviewer before relying on this as a production gate.
+/governance/ @charlieCipher
+/src/modules/security/ @charlieCipher
+/api/ @charlieCipher
+/supabase/migrations/ @charlieCipher
+/.github/ @charlieCipher
+/package.json @charlieCipher
+/package-lock.json @charlieCipher
+/vercel.json @charlieCipher
+/vite.config.js @charlieCipher
+/scripts/ @charlieCipher

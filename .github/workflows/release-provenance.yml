@@ -1,0 +1,86 @@
+name: LEQVOR release provenance
+on:
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Exact independently reviewed main commit (40 lowercase hex characters)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-provenance-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.repository == 'charlieCipher/LEQVOR' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Bind the requested source revision
+        env:
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+        run: |
+          [[ "$EXPECTED_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          test "$EXPECTED_COMMIT" = "$GITHUB_SHA"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.23.3
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm ci --ignore-scripts --prefix governance/control
+      - run: npm audit --prefix governance/control --audit-level=low
+      - run: npm test --prefix governance/control
+      - run: npm run verify
+      - name: Validate the explicit public release configuration and build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_ENABLE_PASSKEYS: ${{ vars.VITE_ENABLE_PASSKEYS }}
+        run: npm run build:release
+      - name: Package only the validated customer candidate
+        run: |
+          candidate="$(node scripts/release-provenance.mjs prepare dist .local-release)"
+          mkdir release-proof
+          tar -czf release-proof/leqvor-candidate.tar.gz -C "$candidate" dist manifest.json build-context.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: leqvor-release-candidate
+          path: release-proof/leqvor-candidate.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+  attest:
+    needs: build
+    if: github.repository == 'charlieCipher/LEQVOR' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      # No checkout, package install, customer source execution or cloud credentials.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: leqvor-release-candidate
+          path: release-proof
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release-proof/leqvor-candidate.tar.gz
+      - name: Verify the exact workflow and source identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh attestation verify release-proof/leqvor-candidate.tar.gz
+          --repo charlieCipher/LEQVOR
+          --signer-workflow charlieCipher/LEQVOR/.github/workflows/release-provenance.yml
+          --signer-digest "$GITHUB_SHA"
+          --source-digest "$GITHUB_SHA"
+          --source-ref refs/heads/main
+          --deny-self-hosted-runners
+      # Evidence only: no deployment, provider ownership mutation or root approval.

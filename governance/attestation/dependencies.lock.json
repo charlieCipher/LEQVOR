@@ -1,0 +1,93 @@
+{
+  "upstream_commit": "621149c4ebaeeea844d6f43098687c73c4d370a3",
+  "artifacts": {
+    "co.nstant.in:cbor:0.9": {
+      "url": "https://repo.maven.apache.org/maven2/co/nstant/in/cbor/0.9/cbor-0.9.jar",
+      "sha256": "5ef465c47e34c6b13f93ece2ff49e94b933d69cf9f172cc4997418303884da73"
+    },
+    "androidx.annotation:annotation-jvm:1.9.1": {
+      "url": "https://dl.google.com/dl/android/maven2/androidx/annotation/annotation-jvm/1.9.1/annotation-jvm-1.9.1.jar",
+      "sha256": "1e343917ebf27ba96fe4dc52b1cad7fd32b738fbc6355bb6cd5b3b305d7212d0"
+    },
+    "com.google.errorprone:error_prone_annotations:2.41.0": {
+      "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.41.0/error_prone_annotations-2.41.0.jar",
+      "sha256": "a56e782b5b50811ac204073a355a21d915a2107fce13ec711331ad036f660fcc"
+    },
+    "com.google.code.gson:gson:2.11.0": {
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar",
+      "sha256": "57928d6e5a6edeb2abd3770a8f95ba44dce45f3b23b7a9dc2b309c581552a78b"
+    },
+    "com.google.protobuf:protobuf-kotlin-lite:4.28.3": {
+      "url": "https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-kotlin-lite/4.28.3/protobuf-kotlin-lite-4.28.3.jar",
+      "sha256": "5cfafeb13ebd76fbfdcbb98c95016810d32c37f214570ee3b8731dd45c942ffc"
+    },
+    "org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.10.2": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-guava/1.10.2/kotlinx-coroutines-guava-1.10.2.jar",
+      "sha256": "d54c4c9f9f2d3612afa5801daf70a7b68687f78d8936360341f1a89b535abfee"
+    },
+    "org.jspecify:jspecify:1.0.0": {
+      "url": "https://repo.maven.apache.org/maven2/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar",
+      "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab"
+    },
+    "com.google.guava:failureaccess:1.0.3": {
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.3/failureaccess-1.0.3.jar",
+      "sha256": "cbfc3906b19b8f55dd7cfd6dfe0aa4532e834250d7f080bd8d211a3e246b59cb"
+    },
+    "org.jetbrains:annotations:13.0": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.jar",
+      "sha256": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478"
+    },
+    "org.bouncycastle:bcutil-jdk18on:1.78.1": {
+      "url": "https://repo.maven.apache.org/maven2/org/bouncycastle/bcutil-jdk18on/1.78.1/bcutil-jdk18on-1.78.1.jar",
+      "sha256": "d9fa56f97b0f761ce3bc8d9d74c5d7137a987bf5bd3abfe1003f9bafa45a1d2f"
+    },
+    "org.bouncycastle:bcpkix-jdk18on:1.78.1": {
+      "url": "https://repo.maven.apache.org/maven2/org/bouncycastle/bcpkix-jdk18on/1.78.1/bcpkix-jdk18on-1.78.1.jar",
+      "sha256": "4b48ea084e5232b9d79ebca1887b9de037b124931807cd60710748c2aee08cc9"
+    },
+    "com.google.protobuf:protobuf-javalite:4.28.3": {
+      "url": "https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-javalite/4.28.3/protobuf-javalite-4.28.3.jar",
+      "sha256": "900f12e5c96540cbb5c6bc7bb5d4cbd0d4f0a30fb23d7300244e93943a16f838"
+    },
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.10.2/kotlinx-coroutines-core-jvm-1.10.2.jar",
+      "sha256": "5ca175b38df331fd64155b35cd8cae1251fa9ee369709b36d42e0a288ccce3fd"
+    },
+    "org.jetbrains.kotlin:kotlin-stdlib:2.2.0": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.2.0/kotlin-stdlib-2.2.0.jar",
+      "sha256": "65d12d85a3b865c160db9147851712a64b10dadd68b22eea22a95bf8a8670dca"
+    },
+    "com.google.guava:guava:33.5.0-jre": {
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.5.0-jre/guava-33.5.0-jre.jar",
+      "sha256": "1e301f0c52ac248b0b14fdc3d12283c77252d4d6f48521d572e7d8c4c2cc4ac7"
+    },
+    "org.bouncycastle:bcprov-jdk18on:1.78.1": {
+      "url": "https://repo.maven.apache.org/maven2/org/bouncycastle/bcprov-jdk18on/1.78.1/bcprov-jdk18on-1.78.1.jar",
+      "sha256": "add5915e6acfc6ab5836e1fd8a5e21c6488536a8c1f21f386eeb3bf280b702d7"
+    },
+    "org.jetbrains.kotlin:kotlin-script-runtime:2.2.20": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-script-runtime/2.2.20/kotlin-script-runtime-2.2.20.jar",
+      "sha256": "5c8bd5dd7ae1ea2eeb2778fdbeaa19a562184975f6cab8a0bb6779e4190731ae"
+    },
+    "org.jetbrains.kotlin:kotlin-daemon-embeddable:2.2.20": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.2.20/kotlin-daemon-embeddable-2.2.20.jar",
+      "sha256": "7c5c8cd2f8beadd3283239bb9ca219a0cafa1af02682b407b181e1179718f2f7"
+    },
+    "org.jetbrains.kotlin:kotlin-stdlib:2.2.20": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.2.20/kotlin-stdlib-2.2.20.jar",
+      "sha256": "8836ccffd3585fadda9901244b20d42901d2f3cd581058d8434e2ffabcf3a3e7"
+    },
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.0": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.8.0/kotlinx-coroutines-core-jvm-1.8.0.jar",
+      "sha256": "9860906a1937490bf5f3b06d2f0e10ef451e65b95b269f22daf68a3d1f5065c5"
+    },
+    "org.jetbrains.kotlin:kotlin-reflect:1.6.10": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar",
+      "sha256": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203"
+    },
+    "org.jetbrains.kotlin:kotlin-compiler-embeddable:2.2.20": {
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.2.20/kotlin-compiler-embeddable-2.2.20.jar",
+      "sha256": "1c6c3f810bfe6a41abcbc34b3a2ef639f1e3f4aeed3a953a4b0974eea4f41889"
+    }
+  }
+}

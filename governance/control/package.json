@@ -1,0 +1,8 @@
+{
+  "name": "leqvor-control-boundary",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": { "test": "node --test *.acceptance.mjs" },
+  "dependencies": { "jose": "6.2.12" }
+}
