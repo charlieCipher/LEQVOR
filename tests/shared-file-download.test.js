@@ -13,7 +13,7 @@ function fixture(){
  const caller={auth:{getUser:vi.fn(async()=>({data:{user:{id:recipient}}}))},rpc};
  const storage={storage:{from:vi.fn(()=>({download}))}};
  const factory=vi.fn((_url,key)=>key==='server-private'?storage:caller);
- const input={method:'POST',authorization:'Bearer private-session',body:{grant_id:grantId,file_id:fileId},env:{SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server-private'},clientFactory:factory};
+ const input={method:'POST',authorization:'Bearer private-session',body:{grant_id:grantId,file_id:fileId},env:{VERCEL_ENV:'production',SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server-private'},clientFactory:factory};
  return {input,bundle,rpc,download,factory,caller};
 }
 it('authorizes before privileged storage access and checks revocation again before returning ciphertext',async()=>{
@@ -45,4 +45,10 @@ it('fails closed for malformed authorization, unexpected fields, wrong method an
  expect((await sharedFileDownload({...f.input,method:'GET'})).status).toBe(405);
  expect((await sharedFileDownload({...f.input,body:{...f.input.body,path:'private'}})).status).toBe(400);
  expect((await sharedFileDownload({...f.input,env:{}})).status).toBe(503);expect(f.factory).not.toHaveBeenCalled();
+});
+it('stops before storage when the shared upstream deadline expires',async()=>{
+ const deadline=new AbortController();vi.spyOn(AbortSignal,'timeout').mockReturnValue(deadline.signal);
+ const f=fixture();f.rpc.mockImplementation(async()=>{deadline.abort();return {data:f.bundle};});
+ expect((await sharedFileDownload(f.input)).status).toBe(503);
+ expect(f.download).not.toHaveBeenCalled();expect(f.factory).toHaveBeenCalledTimes(1);
 });

@@ -3,6 +3,15 @@ import { resolve, relative, dirname, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import process from 'node:process';
 
+export function containsServerCredential(source) {
+  if (/sb_secret_[A-Za-z0-9_-]{16,}|-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|\b(?:AKIA|ASIA)[A-Z0-9]{16}\b|postgres(?:ql)?:\/\/[^\s"'`]+:[^\s"'`]+@/i.test(source)) return true;
+  for (const match of source.matchAll(/eyJ[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[A-Za-z0-9_-]+/g)) {
+    try { if (JSON.parse(Buffer.from(match[1], 'base64url').toString()).role === 'service_role') return true; }
+    catch { /* A non-JWT source string is not a decoded credential. */ }
+  }
+  return false;
+}
+
 export async function checkBuild(directory) {
   const root = resolve(directory), issues = [];
   const files = [];
@@ -18,6 +27,8 @@ export async function checkBuild(directory) {
   for (const path of files) {
     const name = relative(root, path);
     if (/(^|[/\\])\.env(?:\.|$)|\.(?:map|pem|key)$/i.test(name)) issues.push(`Forbidden build file: ${name}`);
+    if (/\.(?:js|mjs|json|html|css|txt)$/i.test(path) && containsServerCredential(await readFile(path, 'utf8')))
+      issues.push(`Server credential detected in public artifact: ${name}`);
     if (!/\.(?:html|css)$/i.test(path)) continue;
     const source = await readFile(path, 'utf8');
     const references = path.endsWith('.css')

@@ -4,6 +4,7 @@ import {createPasskeyAdapter} from '../modules/security/passkeys';
 import {securityEventCommitment} from '../modules/security/securityEventSignatures';
 import { validateNewPassword } from './passwordPolicy';
 import {AurevaError} from '../modules/security/safeEvents';
+import {authRedirect} from './backendEnvironment';
 const requireClient = () => {
   if (!supabase) throw new Error("Vault connection unavailable.");
   return supabase;
@@ -22,9 +23,9 @@ export const AuthProvider = {
   registerPasskey:()=>passkeys.register(),
   listPasskeys:()=>passkeys.list(),
   signIn: (email,password) => result(requireClient().auth.signInWithPassword({email,password})),
-  signUp: async (email,password,name,redirectTo) => { validateNewPassword(password); return result(requireClient().auth.signUp({email,password,options:{emailRedirectTo:redirectTo,data:{name}}})); },
-  requestPasswordReset: (email,redirectTo) => result(requireClient().auth.resetPasswordForEmail(email,{redirectTo})),
-  resendConfirmation: (email,redirectTo) => result(requireClient().auth.resend({type:'signup',email,options:{emailRedirectTo:redirectTo}})),
+  signUp: async (email,password,name,redirectTo) => { validateNewPassword(password); return result(requireClient().auth.signUp({email,password,options:{emailRedirectTo:authRedirect(redirectTo),data:{name}}})); },
+  requestPasswordReset: (email,redirectTo) => result(requireClient().auth.resetPasswordForEmail(email,{redirectTo:authRedirect(redirectTo)})),
+  resendConfirmation: (email,redirectTo) => result(requireClient().auth.resend({type:'signup',email,options:{emailRedirectTo:authRedirect(redirectTo)}})),
   assurance: () => result(requireClient().auth.mfa.getAuthenticatorAssuranceLevel()),
   factors: () => result(requireClient().auth.mfa.listFactors()),
   verifyMfa: (factorId,code) => result(requireClient().auth.mfa.challengeAndVerify({factorId,code})),

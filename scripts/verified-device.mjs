@@ -1,7 +1,8 @@
 import {createClient} from '@supabase/supabase-js';
+import {serverBackend} from './deployment-environment.mjs';
+import {backendTransport} from './backend-fetch.mjs';
 import {verifyDeviceChallenge} from '../src/modules/sessions/deviceProof.js';
 import {securityEventCommitment,verifySecurityEvent} from '../src/modules/security/securityEventSignatures.js';
-const project='https://awdsyhxdnyfilnzamflt.supabase.co';
 const uuid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value);
 export async function verifiedDevice({method,authorization,body,env,clientFactory=createClient,now=Date.now()}){
  const unavailable={status:404,body:{error:'Device verification unavailable.'}},timedOut={status:503,body:{error:'Device service unavailable.'}};
@@ -10,11 +11,12 @@ export async function verifiedDevice({method,authorization,body,env,clientFactor
  const revoking=body?.operation==='revoke';
  if(!body||Object.keys(body).some(k=>!(revoking?['operation','device_id','event']:['challenge_id','signature','event']).includes(k))||(!revoking&&(!uuid(body.challenge_id)||typeof body.signature!=='string'||body.signature.length!==88))||(revoking&&!uuid(body.device_id)))return {status:400,body:{error:'Invalid device proof.'}};
  try{securityEventCommitment(body.event);}catch{return {status:400,body:{error:'Invalid device event.'}};}
+ const project=serverBackend(env);
  const publicKey=env.VITE_SUPABASE_PUBLISHABLE_KEY||env.VITE_SUPABASE_ANON_KEY;
- if(env.SUPABASE_URL!==project||!publicKey||!env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SERVICE_ROLE_KEY===publicKey||env.SUPABASE_SERVICE_ROLE_KEY.startsWith('sb_publishable_'))return timedOut;
- const deadline=AbortSignal.timeout(15000);
+ if(!project||env.SUPABASE_URL!==project||!publicKey||!env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SERVICE_ROLE_KEY===publicKey||env.SUPABASE_SERVICE_ROLE_KEY.startsWith('sb_publishable_'))return timedOut;
+ const transport=backendTransport(project),deadline=transport.signal;
  try{
-  const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(url,init={})=>fetch(url,{...init,signal:init.signal?AbortSignal.any([deadline,init.signal]):deadline})}},token=authorization.slice(7);
+  const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:transport.fetch}},token=authorization.slice(7);
   const caller=clientFactory(project,publicKey,{...options,global:{...options.global,headers:{Authorization:authorization}}});
   const authenticated=await caller.auth.getUser(token);if(deadline.aborted)return timedOut;
   if(authenticated.error||!authenticated.data?.user?.id)return {status:401,body:{error:'Authentication required.'}};

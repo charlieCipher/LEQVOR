@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { browserBackendAllowed } from './lib/backendEnvironment';
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = (
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
@@ -6,9 +7,6 @@ const key = (
 )?.trim();
 let configured = false;
 try {
-  const endpoint = url ? new URL(url) : null;
-  const localDevelopment = import.meta.env.DEV && endpoint?.protocol === 'http:' &&
-    ['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname);
   let adminKey = Boolean(key?.startsWith('sb_secret_'));
   if (key?.split('.').length === 3) {
     try { adminKey ||= JSON.parse(atob(key.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).role === 'service_role'; } catch { /* Invalid keys fail authentication. */ }
@@ -16,7 +14,8 @@ try {
   configured = Boolean(
     url &&
     key && !adminKey &&
-    (endpoint?.protocol === "https:" || localDevelopment) &&
+    browserBackendAllowed({url, origin: globalThis.location?.origin, development: import.meta.env.DEV,
+      allowedOrigins: import.meta.env.LEQVOR_ALLOWED_ORIGINS || []}) &&
     !url.includes("your-project-ref"),
   );
 } catch {
@@ -35,6 +34,7 @@ export const supabase = configured
         fetch: (input, init = {}) =>
           fetch(input, {
             ...init,
+            redirect: 'error',
             signal: init.signal
               ? AbortSignal.any([init.signal, AbortSignal.timeout(20000)])
               : AbortSignal.timeout(20000),

@@ -1,3 +1,4 @@
+import {serverBackend} from './deployment-environment.mjs';
 import { timingSafeEqual } from 'node:crypto';
 import { cleanupBatch } from './ciphertext-cleanup.mjs';
 
@@ -10,7 +11,7 @@ export async function scheduledCleanup({method, authorization, env, run=cleanupB
   const expected=Buffer.from(`Bearer ${secret}`);
   const supplied=Buffer.from(typeof authorization === 'string' ? authorization : '');
   if (supplied.length !== expected.length || !timingSafeEqual(supplied,expected)) return {status:401,body:{error:'Unauthorized'}};
-  if (env.SUPABASE_URL !== 'https://awdsyhxdnyfilnzamflt.supabase.co' || !env.SUPABASE_SERVICE_ROLE_KEY)
+  if (!serverBackend(env) || !env.SUPABASE_SERVICE_ROLE_KEY)
     return {status:503,body:{error:'Cleanup not configured'}};
   try {
     // Bound execution to fit the server function deadline. Failed jobs stay queued.

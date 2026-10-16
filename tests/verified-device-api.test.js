@@ -15,7 +15,7 @@ async function fixture(){
  const event=await signSecurityEvent(pair.privateKey,{id:crypto.randomUUID(),owner_id:owner,sequence:1,event_type:'DEVICE_ENROLLED',severity:'INFO',device_id:challenge.device_id,previous_hash:null,created_at:new Date(now).toISOString(),signing_key_id:identity.id});
  const read=vi.fn(async()=>({data:challenge})),query={select:()=>query,eq:()=>query,maybeSingle:read},signerQuery={select:()=>signerQuery,eq:()=>signerQuery,maybeSingle:async()=>({data:identity})},caller={auth:{getUser:vi.fn(async()=>({data:{user:{id:owner}}}))},from:table=>table==='device_challenges'?query:signerQuery};
  const write=vi.fn(async()=>({data:challenge.device_id})),factory=vi.fn((_url,key)=>key==='private'?{rpc:write}:caller);
- const input={method:'POST',authorization:`Bearer ${token()}`,body:{challenge_id:challenge.id,signature:await signDeviceChallenge(pair.privateKey,challenge),event},env:{SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'private'},clientFactory:factory,now};
+ const input={method:'POST',authorization:`Bearer ${token()}`,body:{challenge_id:challenge.id,signature:await signDeviceChallenge(pair.privateKey,challenge),event},env:{VERCEL_ENV:'production',SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'private'},clientFactory:factory,now};
  return {input,challenge,claims,token,caller,read,write,factory,pair};
 }
 it('authenticates the exact token and verifies real possession before privileged consumption',async()=>{
