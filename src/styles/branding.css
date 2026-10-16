@@ -1,6 +1,6 @@
 /* The supplied transparent artwork keeps its colors on every surface. */
 .leqvor-brand {
-  --brand-logo-size: 44px;
+  --brand-logo-size: 60px;
   display: grid;
   grid-template-columns: var(--brand-logo-size) max-content;
   align-items: center;
@@ -21,23 +21,38 @@
 }
 .leqvor-brand > span,
 .leqvor-brand > small { grid-column: 2; }
+.leqvor-brand > span { align-self: end; }
+.leqvor-brand > small { align-self: start; }
 .auth-story .brand { max-width: 100%; }
+.auth-page .auth-story .brand { width: fit-content; }
 .leqvor .sidebar .brand { max-width: none; }
+.leqvor .sidebar .leqvor-brand { --brand-logo-size: 54px; }
 .leqvor .sidebar .leqvor-brand > span {
-  font-size: 24px;
-  letter-spacing: 4px;
+  font-size: 20px;
+  letter-spacing: 3px;
 }
-.trust-page .leqvor-brand > span { font-size: 26px; letter-spacing: 4px; }
-.auth-story .leqvor-brand { --brand-logo-size: 48px; }
-.auth-story .leqvor-brand > span { font-size: 32px; letter-spacing: 6px; }
+.trust-page .leqvor-brand > span { font-size: 24px; letter-spacing: 4px; }
+.auth-story .leqvor-brand {
+  --brand-logo-size: 120px;
+  column-gap: 16px;
+  margin-inline: 0;
+}
+.auth-story .leqvor-brand > span { font-size: 30px; letter-spacing: 5px; }
+.auth-story .leqvor-brand small { font-size: 14px; letter-spacing: 1px; }
+/* Reserve space for the larger identity without obscuring the existing story. */
+.auth-page .auth-story-copy { top: max(210px, 26%); }
+.auth-page .auth-form-wrap .leqvor-brand { --brand-logo-size: 64px; }
+.auth-page .auth-form-wrap h2 .leqvor-brand > span { font-size: 28px; letter-spacing: 5px; }
 .leqvor .workspace-footer .leqvor-brand { --brand-logo-size: 28px; column-gap: 6px; }
 .leqvor .workspace-footer .leqvor-brand > span { font-size: 12px; letter-spacing: 2px; }
 .leqvor .workspace-footer .leqvor-brand small { margin-top: 0; font-size: 10px; }
 @media (max-width: 850px) {
-  .auth-story .leqvor-brand { --brand-logo-size: 40px; column-gap: 8px; }
-  .auth-story .leqvor-brand > span { font-size: 30px; letter-spacing: 5px; }
+  .auth-story .leqvor-brand { --brand-logo-size: 80px; column-gap: 12px; }
+  .auth-story .leqvor-brand > span { font-size: 26px; letter-spacing: 4px; }
+  .auth-page .auth-story .brand::after { font-size: 6px; letter-spacing: 1.8px; }
+  .auth-page .auth-story-copy { top: 156px; }
 }
 @media (max-width: 380px) {
-  .auth-page .auth-form-wrap .leqvor-brand { --brand-logo-size: 36px; column-gap: 8px; }
-  .auth-page .auth-form-wrap h2 .leqvor-brand > span { font-size: 27px; letter-spacing: 5px; }
+  .auth-page .auth-form-wrap .leqvor-brand { --brand-logo-size: 56px; column-gap: 8px; }
+  .auth-page .auth-form-wrap h2 .leqvor-brand > span { font-size: 25px; letter-spacing: 4px; }
 }
