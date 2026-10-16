@@ -1,4 +1,4 @@
-/* The supplied artwork stays intact, including its original dark background. */
+/* The supplied transparent artwork keeps its colors on every surface. */
 .leqvor-brand {
   --brand-logo-size: 44px;
   display: grid;
