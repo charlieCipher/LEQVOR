@@ -434,7 +434,7 @@ export default function Workspace({ session, demo = false }) {
           )}
           <footer className="workspace-footer"><span className="footer-motto">“WHAT ENDURES IS A MORE SECURE TOMORROW.”</span>
             <span>
-              LEQVOR <small>by LENVOR</small>
+              <Brand />
             </span>
             <span>
               Assets <i /> Records <i /> Forever

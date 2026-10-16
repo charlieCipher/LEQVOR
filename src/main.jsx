@@ -11,6 +11,7 @@ import "./styles/preferences.css";
 import "./styles/secure-entry.css";
 import "./styles/devices.css";
 import "./styles/legal.css";
+import "./styles/branding.css";
 
 // Opt-in local acceptance tooling; Vite removes this branch from production.
 if (import.meta.env.DEV && ['127.0.0.1', 'localhost'].includes(location.hostname) &&
