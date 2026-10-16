@@ -4,6 +4,8 @@
 
 Review branch published as draft [PR #1](https://github.com/charlieCipher/LEQVOR/pull/1). Hosted GitHub Actions passed on commit `2679487978148688b4aa316853a818ae07699d16` ([run](https://github.com/charlieCipher/LEQVOR/actions/runs/38727118819)). Subsequent changes require their own checks. The PR is not merged. Main branch protection was saved and read back after private owner verification on 15 October 2026.
 
+16 October: the authorization timing fix (`93feeb8`) passed 385 local tests/90 files, seven control-service checks and [hosted security CI](https://github.com/charlieCipher/LEQVOR/actions/runs/38856874791). The subsequent [build-provenance implementation](BUILD-PROVENANCE.md) adds a main-only manual workflow with separate build/attestation permissions and bounded exact-candidate verification. It is prepared for review, not a hosted signed production build or provider deployment gate. The user confirmed that no separate governance or checkpoint resources exist yet; these live integrations remain pending independently of key C.
+
 | Requested work | Evidence completed | Unfinished work / acceptance blocker |
 | --- | --- | --- |
 | Windows TPM validation | Bounded public-key/name binding; strict AIK certificate path to the separately fetched pinned Microsoft TPM root; AIK signature diagnostic; four new negative/positive software tests | Actual saved attestation uses SHA-1, not the strict SHA-256 policy; no verifier-issued enrollment nonce; revocation, hardware/authentication policy and independently controlled review host/reviewer still required. Enrollment remains denied. See `attestation/WINDOWS-REVIEW.md`. |
