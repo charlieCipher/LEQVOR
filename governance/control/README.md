@@ -14,6 +14,8 @@ Configure a separate control identity provider/client. Do not reuse customer Sup
 
 `isSessionActive({issuer,subject,token_id,expires_at})` is a mandatory **server-side live revocation adapter**, returning exactly true for an active session. Failure/unavailability denies access. Independently protected `lookupRole(subject)` must return an assigned supported role; JWT role claims, user-editable profiles and browser form fields cannot assign one. No default founder role exists. Role checks are performed on every request. Mutations additionally require MFA and actual authentication within five minutes.
 
+Expiry and clock integrity are checked again after the live revocation lookup and after the gateway's role lookup. Mutations use that final time for MFA freshness. The gateway snapshots the submitted packet before asynchronous authentication so a caller cannot swap its action while authentication is pending.
+
 The access-token issuance/login provider, revocation store and role directory are not configured. The package does not invent a provider-specific ACR mapping or expose a public login/bootstrap/reset endpoint. Review those concrete adapters before activation.
 
 ## Transport contract
@@ -50,7 +52,7 @@ npm ci --ignore-scripts --prefix governance/control
 npm test --prefix governance/control
 ```
 
-Six tests cover real signed JWTs, issuer/audience/ID-token substitution, MFA freshness, token forgery, revocation outage, caller roles, HTTP origin/route/body/transport admission and secret-free failures. HTTP tests deliberately bind a disposable **loopback-only HTTP harness** with injected transport approval; the production factory accepts real TLS sockets only. Test signatures are ephemeral software fixtures; no real founder credentials are created.
+Seven tests cover real signed JWTs, issuer/audience/ID-token substitution, MFA freshness, token forgery, revocation outage, expiry during slow authorization lookups, invalid clocks, caller roles, HTTP origin/route/body/transport admission and secret-free failures. HTTP tests deliberately bind a disposable **loopback-only HTTP harness** with injected transport approval; the production factory accepts real TLS sockets only. Test signatures are ephemeral software fixtures; no real founder credentials are created.
 
 CI installs this package separately with scripts disabled and runs these tests. No deployments, user accounts or infrastructure ownership changes occur.
 

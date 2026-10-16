@@ -21,3 +21,24 @@ it('limits governance reads to founder, security administrator and auditor',asyn
  for(const role of ['FOUNDER','SECURITY_ADMIN','AUDITOR'])await expect(fixture(role).gateway.handle('token',{operation:'read',checkpoint:{}})).resolves.toEqual({public_state:true});
  await expect(fixture('SUPPORT_ADMIN').gateway.handle('token',{operation:'read',checkpoint:{}})).rejects.toThrow();
 });
+it('rejects sessions that expire during role lookup for both reads and mutations',async()=>{
+ for(const input of [packet,{operation:'read',checkpoint:{}}]){
+  const f=fixture();let time=now;
+  f.gateway.clock=()=>time;f.gateway.getRole=async()=>{time=context.expires_at;return 'FOUNDER';};
+  await expect(f.gateway.handle('token',input)).rejects.toThrow(/expired/);
+  expect(f.engine.request).not.toHaveBeenCalled();expect(f.engine.snapshot).not.toHaveBeenCalled();
+ }
+});
+it('rechecks MFA freshness and denies invalid or reversed clocks after role lookup',async()=>{
+ for(const end of [now+300001,now-1,NaN,Infinity]){
+  const f=fixture('FOUNDER',{...context,expires_at:now+600000});let time=now;
+  f.gateway.clock=()=>time;f.gateway.getRole=async()=>{time=end;return 'FOUNDER';};
+  await expect(f.gateway.handle('token',packet)).rejects.toThrow();expect(f.engine.request).not.toHaveBeenCalled();
+ }
+});
+it('preserves the submitted packet while asynchronous authentication is pending',async()=>{
+ const f=fixture(),submitted=structuredClone(packet);
+ f.gateway.authenticate=async()=>{submitted.command.action='TRANSFER_PLATFORM_OWNERSHIP';submitted.command.target='b'.repeat(64);return context;};
+ await f.gateway.handle('token',submitted);
+ expect(f.engine.request).toHaveBeenCalledWith(packet.command,packet.checkpoint);
+});

@@ -6,9 +6,14 @@ export class GovernanceGateway{
  constructor({engine,authenticate,getRole,clock=Date.now}){if(!engine||typeof authenticate!=='function'||typeof getRole!=='function'||typeof clock!=='function')throw new Error('Trusted governance adapters required.');this.engine=engine;this.authenticate=authenticate;this.getRole=getRole;this.clock=clock;}
  async handle(token,packet){
   if(typeof token!=='string'||token.length>8192||!token)throw new Error('Control authentication required.');
-  const principal=await this.authenticate(token),now=this.clock();
-  if(!principal||typeof principal.id!=='string'||principal.audience!=='leqvor-control-console'||!Number.isFinite(principal.expires_at)||principal.expires_at<=now)throw new Error('Invalid control session.');
+  packet=structuredClone(packet);
+  const principal=structuredClone(await this.authenticate(token)),authenticatedNow=this.clock();
+  if(!Number.isSafeInteger(authenticatedNow)||!principal||typeof principal.id!=='string'||principal.audience!=='leqvor-control-console'||!Number.isFinite(principal.expires_at)||principal.expires_at<=authenticatedNow)throw new Error('Invalid control session.');
   const role=await this.getRole(principal.id);if(!roles.has(role))throw new Error('No control-console role assigned.');
+  // Identity/role services may be slow. Recheck the session after their last
+  // asynchronous lookup, including read access, before entering the engine.
+  const now=this.clock();
+  if(!Number.isSafeInteger(now)||now<authenticatedNow||principal.expires_at<=now)throw new Error('Control session expired or clock invalid.');
   if(!packet||typeof packet!=='object')throw new Error('Invalid gateway packet.');
   if(packet.operation==='read'){
    exact(packet,['operation','checkpoint']);if(!['FOUNDER','SECURITY_ADMIN','AUDITOR'].includes(role))throw new Error('Governance read denied.');

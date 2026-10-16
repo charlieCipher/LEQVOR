@@ -38,3 +38,14 @@ test('signed role claims do not grant a role or bypass fresh MFA at the real gat
  await assert.rejects(allowed.handle(await token({auth_time:seconds-301}),packet));
  assert.equal(calls,0);await allowed.handle(await token(),packet);assert.equal(calls,1);
 });
+test('rechecks expiry and clock integrity after live revocation lookup',async()=>{
+ const signed=await token();
+ for(const completion of [now+300000,now-1,NaN,Infinity]){
+  let time=now;
+  const authenticate=auth({clock:()=>time,isSessionActive:async()=>{time=completion;return true;}});
+  await assert.rejects(authenticate(signed));
+ }
+ let time=now;
+ const authenticate=auth({clock:()=>time,isSessionActive:async()=>{time=now+299999;return true;}});
+ assert.equal((await authenticate(signed)).id,claims.sub);
+});

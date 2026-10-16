@@ -15,7 +15,7 @@ export function createControlAuthenticator({issuer,jwksUrl,mfaAcr,isSessionActiv
  const resolve=keyResolver??createRemoteJWKSet(endpoint,{timeoutDuration:5000,cooldownDuration:30000});
  return async token=>{
   if(typeof token!=='string'||token.length>8192||!token)throw new Error('Invalid control token.');
-  const now=clock();
+  const now=clock();if(!Number.isSafeInteger(now))throw new Error('Invalid control clock.');
   const {payload,protectedHeader}=await jwtVerify(token,resolve,{
    issuer,audience,algorithms:['RS256','ES256'],typ:'at+jwt',
    requiredClaims:['sub','iat','exp','jti','auth_time'],
@@ -31,6 +31,9 @@ export function createControlAuthenticator({issuer,jwksUrl,mfaAcr,isSessionActiv
   // by GovernanceGateway; a signed token role does not become root authority.
   if(await isSessionActive({issuer,subject:payload.sub,token_id:payload.jti,expires_at:payload.exp*1000})!==true)
    throw new Error('Control session revoked or unavailable.');
+  const completedAt=clock();
+  if(!Number.isSafeInteger(completedAt)||completedAt<now||payload.exp*1000<=completedAt)
+   throw new Error('Control session expired or clock invalid.');
   return {id:payload.sub,audience,expires_at:payload.exp*1000,authenticated_at:payload.auth_time*1000,mfa_verified:payload.acr===mfaAcr};
  };
 }
