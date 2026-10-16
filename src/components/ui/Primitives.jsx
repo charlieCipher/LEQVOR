@@ -2,6 +2,7 @@ import Icon from "../Icon";
 export function Brand() {
   return (
     <span className="leqvor-brand">
+      <img className="leqvor-brand-logo" src="/leqvor-logo.png" alt="" width="256" height="256" decoding="async" />
       <span>LEQVOR</span>
       <small>by LENVOR</small>
     </span>

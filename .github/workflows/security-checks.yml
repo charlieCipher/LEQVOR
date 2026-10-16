@@ -1,0 +1,33 @@
+name: LEQVOR website checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run check:dependencies
+      - run: npm run lint -- --max-warnings=0
+      - run: npm test -- --pool=threads --maxWorkers=1
+      - run: npm run check:database
+      - run: npm run check:restore
+      - run: npm run build
+      - run: npm run check:build
+      # Tests use disposable local databases. No production secrets, OIDC,
+      # database migrations, governance services or deployment permissions.
