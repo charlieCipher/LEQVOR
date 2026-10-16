@@ -1,5 +1,7 @@
 # LEQVOR founder governance implementation
 
+16 October: [C-Ready enrollment preparation](C-READY-ENROLLMENT.md) now explicitly supports real A/B evidence and an empty C slot without changing the three-key root validator. Preparation grants no authority; readiness needs all three independently accepted physical bindings plus infrastructure/review gates. No automatic activation or public bootstrap was added.
+
 Current consolidated evidence and blockers: [ACTIVATION-STATUS.md](ACTIVATION-STATUS.md). The 15 October increment passed 381 tests across 90 files plus six control-service tests. Actual Windows evidence binds key A to a valid Microsoft-rooted AIK chain, but its SHA-1 attestation remains blocked under the strict digest policy; this was not an independent-host or human security review.
 
 15 October: both actual A/B isolated signing tests passed off-device verification against their retained public keys and exact issued requests before expiry. See [DEVICE-KEY-TEST.md](DEVICE-KEY-TEST.md) and [MANUAL-ACTIVATION.md](MANUAL-ACTIVATION.md) for evidence and limits. This does not establish independent Windows TPM validation or enrollment. The user has no third device; activation remains blocked and the 2-of-3 requirement is unchanged.
