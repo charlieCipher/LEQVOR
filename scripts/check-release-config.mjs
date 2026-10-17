@@ -1,9 +1,13 @@
 import { loadEnv } from 'vite';
 import { pathToFileURL } from 'node:url';
 import process from 'node:process';
+import { deploymentEnvironment } from './deployment-environment.mjs';
 
-export function validateReleaseConfig(env) {
+export function validateReleaseConfig(env, hosting = env) {
   const issues = [];
+  let deployment;
+  try { deployment = deploymentEnvironment({...env,...hosting}); }
+  catch { issues.push('Hosting environment requires reviewed, isolated backend and exact origins.'); }
   // Vercel injects these documented public build identifiers for Vite deployments.
   // Keep exact names: accepting every VITE_VERCEL_* could expose credentials.
   const allowed = new Set([
@@ -22,7 +26,7 @@ export function validateReleaseConfig(env) {
     if (url.protocol !== 'https:' || !/^[a-z]{20}\.supabase\.co$/.test(url.hostname) ||
       url.port || url.username || url.password || url.pathname !== '/' || url.search || url.hash)
       issues.push('Production Supabase URL must be a clean HTTPS project origin.');
-    if (url.hostname !== 'awdsyhxdnyfilnzamflt.supabase.co')
+    if (deployment && url.origin !== deployment.backend)
       issues.push('Backend origin does not match the reviewed deployment CSP. Update both deliberately for another environment.');
   } catch { issues.push('Production Supabase URL is missing or invalid.'); }
   const keys = [env.VITE_SUPABASE_ANON_KEY,env.VITE_SUPABASE_PUBLISHABLE_KEY].filter(Boolean);
@@ -33,14 +37,15 @@ export function validateReleaseConfig(env) {
     try {
       if (key.split('.').length !== 3) throw new Error();
       const payload = JSON.parse(Buffer.from(key.split('.')[1],'base64url').toString());
-      if (payload.role !== 'anon' || (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now())) throw new Error();
+      if (payload.role !== 'anon' || !Number.isFinite(payload.exp) || payload.exp * 1000 <= Date.now() ||
+          payload.ref !== new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0]) throw new Error();
     } catch { issues.push('Only a public publishable key or unexpired anon JWT may enter the browser build.'); }
   }
   return issues;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const issues = validateReleaseConfig(loadEnv('production',process.cwd(),'VITE_'));
+  const issues = validateReleaseConfig(loadEnv('production',process.cwd(),'VITE_'),process.env);
   if (issues.length) { console.error(issues.join('\n')); process.exitCode = 1; }
   else console.log('Release configuration passed (values suppressed).');
 }

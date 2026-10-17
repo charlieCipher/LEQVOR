@@ -6,7 +6,7 @@ import { checkBuild } from './check-build.mjs';
 // Vercel injects this even with system-variable exposure disabled. LEQVOR
 // does not use client observability; remove it before Vite reads the build env.
 delete process.env.VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG;
-const issues = validateReleaseConfig(loadEnv('production', process.cwd(), 'VITE_'));
+const issues = validateReleaseConfig(loadEnv('production', process.cwd(), 'VITE_'), process.env);
 if (issues.length) {
   console.error(issues.join('\n'));
   process.exitCode = 1;

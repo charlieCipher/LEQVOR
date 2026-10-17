@@ -1,17 +1,19 @@
 import {createClient} from '@supabase/supabase-js';
+import {serverBackend} from './deployment-environment.mjs';
+import {backendTransport} from './backend-fetch.mjs';
 import {securityEventCommitment,verifySecurityEvent} from '../src/modules/security/securityEventSignatures.js';
-const project='https://awdsyhxdnyfilnzamflt.supabase.co';
 export async function securityHistoryEvent({method,authorization,body,env,clientFactory=createClient,now=Date.now()}){
  const unavailable={status:404,body:{error:'Security history unavailable.'}};
  if(method!=='POST')return {status:405,body:{error:'Method not allowed.'}};
  if(typeof authorization!=='string'||!authorization.startsWith('Bearer ')||authorization.length>8192)return {status:401,body:{error:'Authentication required.'}};
  try{securityEventCommitment(body);}catch{return {status:400,body:{error:'Invalid security event.'}};}
  if(body.event_type!=='SECURITY_HISTORY_REVIEWED')return {status:400,body:{error:'Use the verified operation endpoint for this event.'}};
+ const project=serverBackend(env);
  const publicKey=env.VITE_SUPABASE_PUBLISHABLE_KEY||env.VITE_SUPABASE_ANON_KEY;
- if(env.SUPABASE_URL!==project||!publicKey||!env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SERVICE_ROLE_KEY===publicKey||env.SUPABASE_SERVICE_ROLE_KEY.startsWith('sb_publishable_'))return {status:503,body:{error:'Security history service unavailable.'}};
- const deadline=AbortSignal.timeout(15000),timedOut={status:503,body:{error:'Security history service unavailable.'}};
+ if(!project||env.SUPABASE_URL!==project||!publicKey||!env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SERVICE_ROLE_KEY===publicKey||env.SUPABASE_SERVICE_ROLE_KEY.startsWith('sb_publishable_'))return {status:503,body:{error:'Security history service unavailable.'}};
+ const transport=backendTransport(project),deadline=transport.signal,timedOut={status:503,body:{error:'Security history service unavailable.'}};
  try{
-  const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(url,init={})=>fetch(url,{...init,signal:init.signal?AbortSignal.any([deadline,init.signal]):deadline})}},token=authorization.slice(7);
+  const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:transport.fetch}},token=authorization.slice(7);
   const caller=clientFactory(project,publicKey,{...options,global:{...options.global,headers:{Authorization:authorization}}});
   const authenticated=await caller.auth.getUser(token);
   if(deadline.aborted)return timedOut;

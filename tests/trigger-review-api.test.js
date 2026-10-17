@@ -16,7 +16,7 @@ async function fixture(){
  const caller={auth:{getUser:vi.fn(async()=>({data:{user:{id:signer.owner_id}}}))},from:vi.fn(()=>query)};
  const write=vi.fn(async()=>({data:null})),writer={rpc:write};
  const factory=vi.fn((_url,key)=>key==='server-private'?writer:caller);
- const input={method:'POST',authorization:`Bearer ${token()}`,body:{request_id:request.id,outcome:'APPROVED',signature},env:{SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server-private'},clientFactory:factory,now};
+ const input={method:'POST',authorization:`Bearer ${token()}`,body:{request_id:request.id,outcome:'APPROVED',signature},env:{VERCEL_ENV:'production',SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server-private'},clientFactory:factory,now};
  return {input,claims,token,request,caller,factory,write,read};
 }
 it('verifies real ECDSA before invoking the privileged writer with only verified session claims',async()=>{
@@ -44,4 +44,10 @@ it('rejects failed authentication, token identity/issuer changes, stale reauth a
 it('sanitizes failures when SQL rejects a request revoked or changed during verification',async()=>{
  const f=await fixture();f.write.mockResolvedValue({error:{message:'PRIVATE_DATABASE_CONTEXT'}});
  expect(await triggerReviewDecision(f.input)).toEqual({status:404,body:{error:'Review unavailable.'}});
+});
+it('does not write a decision after the upstream deadline expires',async()=>{
+ const f=await fixture(),deadline=new AbortController();vi.spyOn(AbortSignal,'timeout').mockReturnValue(deadline.signal);
+ f.read.mockImplementation(async()=>{deadline.abort();return {data:f.request};});
+ expect((await triggerReviewDecision(f.input)).status).toBe(503);
+ expect(f.write).not.toHaveBeenCalled();expect(f.factory).toHaveBeenCalledTimes(1);
 });

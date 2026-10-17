@@ -14,7 +14,7 @@ async function fixture(){
  const read=vi.fn(async()=>({data:{owner_id:owner,public_key}})),query={select:()=>query,eq:()=>query,maybeSingle:read};
  const caller={auth:{getUser:vi.fn(async()=>({data:{user:{id:owner}}}))},from:()=>query};
  const write=vi.fn(async()=>({data:body.id})),factory=vi.fn((_url,key)=>key==='private'?{rpc:write}:caller);
- const input={method:'POST',authorization:`Bearer ${token()}`,body,env:{SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'private'},clientFactory:factory,now};
+ const input={method:'POST',authorization:`Bearer ${token()}`,body,env:{VERCEL_ENV:'production',SUPABASE_URL:'https://awdsyhxdnyfilnzamflt.supabase.co',VITE_SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'private'},clientFactory:factory,now};
  return {input,claims,token,read,caller,write,factory};
 }
 it('authenticates the exact token and verifies ECDSA before privileged storage',async()=>{
