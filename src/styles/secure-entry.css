@@ -2,7 +2,18 @@
 .auth-page {
   min-height: 100svh;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 35%);
-  background: var(--bg-primary) url('/leqvor-auth-blue-hour.png') center center / cover fixed no-repeat;
+  /*
+   * A fixed CSS background is rasterized at the current viewport scale by some
+   * browsers. That leaves a photograph visibly soft after browser zoom, even
+   * though text remains vector-sharp. Keep the source art intact, let the
+   * browser select the 2x derivative on high-density/zoomed displays, and
+   * render it in the normal page background layer instead.
+   */
+  background: var(--bg-primary) url('/leqvor-auth-blue-hour.png') center center / cover scroll no-repeat;
+  background-image: image-set(
+    url('/leqvor-auth-blue-hour.png') 1x,
+    url('/leqvor-auth-blue-hour@2x.jpg') 2x
+  );
   color: var(--text-primary);
 }
 .auth-page .auth-story {
