@@ -10,11 +10,11 @@ export function inspectHeaders(headers) {
   const directives = new Map((headers.get('content-security-policy') || '').split(';').map(part=>{
     const [name,...values] = part.trim().split(/\s+/); return [name,values.join(' ')];
   }));
-  for (const [name,value] of [['default-src',"'self'"],['script-src',"'self'"],['object-src',"'none'"],['frame-src',"'none'"],['frame-ancestors',"'none'"],['base-uri',"'none'"],['form-action',"'self'"]]) {
+  for (const [name,value] of [['default-src',"'self'"],['script-src',"'self' https://scripts.simpleanalyticscdn.com"],['object-src',"'none'"],['frame-src',"'none'"],['frame-ancestors',"'none'"],['base-uri',"'none'"],['form-action',"'self'"]]) {
     if (directives.get(name) !== value) issues.push(`Missing or incorrect CSP ${name}`);
   }
   const hsts = headers.get('strict-transport-security') || '';
-  if (directives.get('connect-src') !== "'self' https://awdsyhxdnyfilnzamflt.supabase.co wss://awdsyhxdnyfilnzamflt.supabase.co") issues.push('CSP connect-src does not match the reviewed backend');
+  if (directives.get('connect-src') !== "'self' https://awdsyhxdnyfilnzamflt.supabase.co wss://awdsyhxdnyfilnzamflt.supabase.co https://queue.simpleanalyticscdn.com") issues.push('CSP connect-src does not match the reviewed backend and analytics queue');
   if (Number(hsts.match(/(?:^|;)\s*max-age=(\d+)/i)?.[1] || 0) < 31536000) issues.push('HSTS must cover at least one year');
   const policy = headers.get('permissions-policy') || '';
   for (const name of ['camera','microphone','geolocation']) if (!new RegExp(`(?:^|,)\\s*${name}=\\(\\)`).test(policy)) issues.push(`Missing denied ${name} permission`);

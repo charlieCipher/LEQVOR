@@ -25,6 +25,7 @@ export async function checkBuild(directory) {
       : [...source.matchAll(/<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["']/g)].map(match => match[1]);
     for (const reference of references) {
       if (/^(?:data:|blob:|#)/.test(reference)) continue;
+      if (reference === 'https://scripts.simpleanalyticscdn.com/latest.js') continue;
       if (/^(?:[a-z]+:|\/\/)/i.test(reference)) {
         issues.push(`External resource reference in ${name}`);
         continue;
@@ -39,7 +40,7 @@ export async function checkBuild(directory) {
   const html = await readFile(resolve(root, 'index.html'), 'utf8').catch(() => '');
   if (!/<title>LEQVOR<\/title>/.test(html)) issues.push('Missing LEQVOR page title');
   const headers = await readFile(resolve(root, '_headers'), 'utf8').catch(() => '');
-  if (!headers.includes("script-src 'self';") || !headers.includes("frame-ancestors 'none'")) issues.push('Missing expected CSP directives');
+  if (!/script-src 'self'(?: https:\/\/scripts\.simpleanalyticscdn\.com)?;/.test(headers) || !headers.includes("frame-ancestors 'none'")) issues.push('Missing expected CSP directives');
   return issues;
 }
 
