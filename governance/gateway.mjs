@@ -9,7 +9,7 @@ export class GovernanceGateway{
   packet=structuredClone(packet);
   const principal=structuredClone(await this.authenticate(token)),authenticatedNow=this.clock();
   if(!Number.isSafeInteger(authenticatedNow)||!principal||typeof principal.id!=='string'||principal.audience!=='leqvor-control-console'||!Number.isFinite(principal.expires_at)||principal.expires_at<=authenticatedNow)throw new Error('Invalid control session.');
-  const role=await this.getRole(principal.id);if(!roles.has(role))throw new Error('No control-console role assigned.');
+  const role=await this.getRole(principal.id,principal);if(!roles.has(role))throw new Error('No control-console role assigned.');
   // Identity/role services may be slow. Recheck the session after their last
   // asynchronous lookup, including read access, before entering the engine.
   const now=this.clock();

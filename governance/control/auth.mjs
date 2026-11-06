@@ -9,7 +9,7 @@ function httpsUrl(value){
 
 // Configure from an independently protected identity provider, never a packet,
 // customer profile or JWT header. This verifies ACCESS tokens, not ID tokens.
-export function createControlAuthenticator({issuer,jwksUrl,mfaAcr,isSessionActive,clock=Date.now,keyResolver}){
+export function createControlAuthenticator({issuer,jwksUrl,mfaAcr,isSessionActive,clock=Date.now,keyResolver,providerClaims,includeSession=false}){
  httpsUrl(issuer);const endpoint=httpsUrl(jwksUrl);
  if(typeof mfaAcr!=='string'||!mfaAcr.trim()||typeof isSessionActive!=='function')throw new Error('Provider MFA mapping and live session revocation adapter required.');
  const resolve=keyResolver??createRemoteJWKSet(endpoint,{timeoutDuration:5000,cooldownDuration:30000});
@@ -18,14 +18,16 @@ export function createControlAuthenticator({issuer,jwksUrl,mfaAcr,isSessionActiv
   const now=clock();if(!Number.isSafeInteger(now))throw new Error('Invalid control clock.');
   const {payload,protectedHeader}=await jwtVerify(token,resolve,{
    issuer,audience,algorithms:['RS256','ES256'],typ:'at+jwt',
-   requiredClaims:['sub','iat','exp','jti','auth_time'],
+   requiredClaims:['sub','iat','exp','jti',...(providerClaims?[]:['auth_time'])],
    currentDate:new Date(now),clockTolerance:0,maxTokenAge:300,
   });
   if(protectedHeader.jku||protectedHeader.jwk||protectedHeader.x5u)throw new Error('Caller-selected signing keys denied.');
+  const proof=providerClaims?providerClaims(payload):{authenticated_at:payload.auth_time,mfa_verified:payload.acr===mfaAcr};
+  const authTime=proof?.authenticated_at;
   if(payload.aud!==audience||typeof payload.sub!=='string'||!payload.sub||payload.sub.length>256||
      typeof payload.jti!=='string'||!payload.jti||payload.jti.length>256||
-     !Number.isSafeInteger(payload.exp)||!Number.isSafeInteger(payload.iat)||!Number.isSafeInteger(payload.auth_time)||
-     payload.iat*1000>now||payload.auth_time>payload.iat||payload.auth_time<0||payload.exp<=payload.iat||payload.exp-payload.iat>300)
+     !Number.isSafeInteger(payload.exp)||!Number.isSafeInteger(payload.iat)||!Number.isSafeInteger(authTime)||
+     payload.iat*1000>now||authTime>payload.iat||authTime<0||payload.exp<=payload.iat||payload.exp-payload.iat>300)
    throw new Error('Invalid control token claims.');
   // Live revocation is mandatory and fails closed. Roles are fetched separately
   // by GovernanceGateway; a signed token role does not become root authority.
@@ -34,6 +36,7 @@ export function createControlAuthenticator({issuer,jwksUrl,mfaAcr,isSessionActiv
   const completedAt=clock();
   if(!Number.isSafeInteger(completedAt)||completedAt<now||payload.exp*1000<=completedAt)
    throw new Error('Control session expired or clock invalid.');
-  return {id:payload.sub,audience,expires_at:payload.exp*1000,authenticated_at:payload.auth_time*1000,mfa_verified:payload.acr===mfaAcr};
+  return {id:payload.sub,audience,expires_at:payload.exp*1000,authenticated_at:authTime*1000,mfa_verified:proof.mfa_verified===true,
+   ...(includeSession?{session:{issuer,subject:payload.sub,token_id:payload.jti,expires_at:payload.exp*1000}}:{})};
  };
 }

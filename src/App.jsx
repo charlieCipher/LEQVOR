@@ -1,20 +1,22 @@
+
 import Trust from "./app/Trust";
+import About from "./About";
 import { publicTrustPaths } from "./app/trustContent";
 import MfaGate from "./features/auth/MfaGate";
 import { useEffect, useState } from "react";
 import { AuthProvider } from "./lib/providers";
 import Auth from "./Auth";
 import Icon from "./components/Icon";
-import ScreenBoundary from './components/ui/ScreenBoundary';
-// Load the secure-entry and workspace code before users start recovery setup.
-// A late chunk request after a deployment must not interrupt a saved vault.
-import Workspace from './app/Workspace';
-import VaultGate from './features/vault/VaultGate';
+import ScreenBoundary from "./components/ui/ScreenBoundary";
+import Workspace from "./app/Workspace";
+import VaultGate from "./features/vault/VaultGate";
 import { errorMessage } from "./shared/utils/errors";
-import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from './lib/passwordPolicy';
+import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "./lib/passwordPolicy";
+
 export default function App() {
   return <ScreenBoundary><Application /></ScreenBoundary>;
 }
+
 function Application() {
   const [auth, setAuth] = useState({
     session: null,
@@ -22,15 +24,18 @@ function Application() {
     recovery: false,
     error: "",
   });
+
   useEffect(() => {
     if (
       !AuthProvider.configured ||
       new URLSearchParams(window.location.search).get("preview") === "1" ||
-      publicTrustPaths.includes(window.location.pathname)
-    )
-      return undefined;
+      publicTrustPaths.includes(window.location.pathname) ||
+      window.location.pathname === "/about"
+    ) return undefined;
+
     let alive = true;
     let authEventReceived = false;
+
     AuthProvider.session()
       .then((data) => {
         if (alive && !authEventReceived)
@@ -50,6 +55,7 @@ function Application() {
             error: errorMessage(error),
           });
       });
+
     const unsubscribe = AuthProvider.subscribe((event, session) => {
       authEventReceived = true;
       if (alive)
@@ -62,14 +68,19 @@ function Application() {
           error: "",
         }));
     });
+
     return () => {
       alive = false;
       unsubscribe();
     };
   }, []);
+
+  if (window.location.pathname === "/about") return <About />;
   if (publicTrustPaths.includes(window.location.pathname)) return <Trust />;
+
   if (new URLSearchParams(window.location.search).get("preview") === "1")
     return <Workspace demo />;
+
   if (auth.loading)
     return (
       <main className="loading-page">
@@ -77,12 +88,14 @@ function Application() {
         <p>Opening your vault…</p>
       </main>
     );
+
   if (auth.recovery && auth.session)
     return (
       <ResetPassword
         onDone={() => setAuth((value) => ({ ...value, recovery: false }))}
       />
     );
+
   if (!auth.session)
     return (
       <>
@@ -94,6 +107,7 @@ function Application() {
         <Auth />
       </>
     );
+
   return (
     <MfaGate key={auth.session.user.id}>
       <VaultGate session={auth.session}>
@@ -106,12 +120,16 @@ function Application() {
 function ResetPassword({ onDone }) {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+
   async function submit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+
     if (form.get("password") !== form.get("confirm"))
       return setNotice("Passwords don’t match.");
+
     setBusy(true);
+
     try {
       await AuthProvider.updatePassword(form.get("password"));
       onDone();
@@ -121,6 +139,7 @@ function ResetPassword({ onDone }) {
       setBusy(false);
     }
   }
+
   return (
     <main className="loading-page">
       <form className="panel stack-form reset-form" onSubmit={submit}>
@@ -128,6 +147,7 @@ function ResetPassword({ onDone }) {
         <p className="muted">
           This changes your account password. Your vault secrets stay the same.
         </p>
+
         <label>
           New password
           <input
@@ -139,6 +159,7 @@ function ResetPassword({ onDone }) {
           />
           <small className="field-hint">{PASSWORD_HINT}</small>
         </label>
+
         <label>
           Confirm password
           <input
@@ -149,11 +170,9 @@ function ResetPassword({ onDone }) {
             autoComplete="new-password"
           />
         </label>
-        {notice && (
-          <p className="notice" role="alert">
-            {notice}
-          </p>
-        )}
+
+        {notice && <p className="notice" role="alert">{notice}</p>}
+
         <button disabled={busy} className="primary">
           {busy ? "Saving…" : "Save password"}
         </button>

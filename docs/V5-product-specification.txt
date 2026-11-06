@@ -1,0 +1,2160 @@
+Aureva V5 — Confirmed Product & Security Architecture
+1. Final product definition
+
+Aureva is a private family continuity platform that protects and connects important assets, records, trusted people, instructions and access rules, so the right information remains understandable and accessible when circumstances change.
+
+Aureva is not primarily:
+
+cloud storage,
+a password manager,
+a will replacement,
+an AI adviser,
+an investment manager,
+an inheritance-transfer service.
+
+The central idea remains the one already present in your original design: the real problem is continuity of information, because documents, assets, contacts and instructions are usually scattered across multiple places.
+
+Aureva's five questions
+
+Every important record should answer:
+
+WHAT exists?
+
+WHY does it matter?
+
+WHERE is it / where is the original?
+
+WHO needs to know?
+
+WHAT should happen next?
+
+That is the actual product.
+
+2. Confirmed core principles
+
+Your original architecture already established zero-knowledge, recovery-first, family continuity and simplicity. Those stay.
+
+We now freeze six principles:
+
+Principle	Confirmed rule
+Zero Knowledge	Aureva servers must not require plaintext vault contents
+Recovery First	A secure vault that cannot be recovered is a failed vault
+Continuity First	Information must remain understandable, not merely stored
+Least Privilege	Every person/device/integration gets only required access
+Independence	Users must eventually be able to recover/export without relying forever on Aureva
+Simplicity	Complexity is allowed only when it materially improves protection, recovery or continuity
+
+And one additional permanent product rule:
+
+Aureva will not use AI to analyse private vault contents.
+
+No AI assistant. No AI summaries. No “chat with your legacy.” The original V4 architecture already deferred AI because of the zero-knowledge conflict.
+
+We are making that decision permanent.
+
+3. Final application structure
+
+Primary navigation:
+
+HOME
+
+VAULT
+
+PEOPLE
+
+CONTINUITY
+
+SECURITY
+
+Do not put Legacy as a primary navigation item.
+
+Legacy functionality belongs under Continuity because Aureva is useful during:
+
+travel
+illness
+incapacity
+emergencies
+family administration
+aging
+death
+
+Not merely after death.
+
+4. Final product architecture
+                              AUREVA
+                                 │
+                    PRIVATE CONTINUITY SYSTEM
+                                 │
+             ┌───────────────────┼───────────────────┐
+             ▼                   ▼                   ▼
+          RECORDS              PEOPLE              INTENT
+             │                   │                   │
+             │                   │                   │
+         Assets              Family              Instructions
+         Property            Lawyer              Preferences
+         Insurance           CA                  Next actions
+         Legal               Adviser             Context
+         Personal            Others
+             │                   │                   │
+             └───────────────────┼───────────────────┘
+                                 ▼
+                         CONTINUITY GRAPH
+                                 │
+            ┌────────────────────┼────────────────────┐
+            ▼                    ▼                    ▼
+          ACCESS              RECOVERY              HISTORY
+            │                    │                    │
+            └────────────────────┼────────────────────┘
+                                 ▼
+                       ZERO-KNOWLEDGE VAULT
+                                 │
+                                 ▼
+                         ENCRYPTED STORAGE
+5. Continuity Graph
+
+This is one of the biggest confirmed changes.
+
+Aureva does not merely store folders.
+
+It connects information.
+
+Example:
+
+Nagpur Apartment
+│
+├── Registered deed
+│
+├── Home loan
+│      └── HDFC
+│
+├── Property insurance
+│
+├── Physical original
+│      └── Bank locker
+│
+├── Lawyer
+│
+├── CA
+│
+├── Trusted person
+│      └── Spouse
+│
+├── Related records
+│      ├── Tax receipt
+│      └── Insurance
+│
+└── Owner instructions
+       └── Contact lawyer before taking action
+
+That is what makes Aureva harder to replace with Google Drive.
+
+6. Continuity Record becomes the core data object
+
+Each record should support:
+
+CONTINUITY RECORD
+
+Overview
+Documents
+People
+Instructions
+Related Records
+Access
+History
+
+Its conceptual structure:
+
+Information	Purpose
+Record type	Property, insurance, legal, etc.
+Title	What is it?
+Context	Why does it matter?
+Institution	Bank, insurer, registrar, etc.
+Physical location	Where is the original?
+Documents	Encrypted attachments
+Professionals	Lawyer, CA, adviser
+Trusted people	Who needs to know?
+Instructions	What should happen next?
+Related records	Connected information
+History	Previous versions/changes
+
+Your original concept already explains why this matters: merely uploading a document does not explain why it matters, who should receive it, who created it, which other documents relate to it, or what should happen next.
+
+7. Confirmed categories
+
+For V1:
+
+Personal
+
+Financial
+
+Property
+
+Insurance
+
+Legal
+
+Other
+
+I would leave Medical out of MVP.
+
+It can return later when we have a clearly defined continuity use case and appropriate handling expectations.
+
+8. First-time user flow
+
+Final onboarding:
+
+Landing Page
+      ↓
+Create Account
+      ↓
+Verify Email
+      ↓
+Create Vault
+      ↓
+Configure Recovery
+      ↓
+Verify Recovery Secret
+      ↓
+Add First Important Record
+      ↓
+Dashboard
+      ↓
+Improve Protection
+      ↓
+MFA / Passkey / Trusted Device
+
+Do not force users through ten security settings before showing them why Aureva matters.
+
+Recovery stays mandatory.
+
+Additional security hardening is progressive.
+
+9. First screen
+
+Instead of:
+
+Welcome to Aureva.
+
+Use:
+
+Protect your first important record.
+
+Then:
+
+What are you adding?
+
+Property
+Insurance
+Financial account
+Legal document
+Identity/personal document
+Other
+
+Each launches an appropriate Continuity Template.
+
+Example for insurance:
+
+Provider
+
+Policy/reference number
+
+Nominee
+
+Agent/contact
+
+Document
+
+Where is original?
+
+Who should know?
+
+What should they do if needed?
+10. Final Home dashboard
+
+The dashboard should stop looking like somebody emptied a cybersecurity SOC onto the user's laptop.
+
+Use:
+
+Good morning, Shounak
+
+
+CONTINUITY READINESS                         78%
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2 items need attention
+
+
+Important Records          18
+
+Trusted People              4
+
+Continuity Gaps             3
+
+Protection Status        STRONG
+
+
+NEXT ACTION
+
+Complete Property Record
+
+Missing:
+○ Lawyer/contact details
+○ Next-step instructions
+
+[Continue]
+
+
+RECENT ACTIVITY
+
+Property record reviewed
+Trusted-person access updated
+Recovery verified
+11. Security Health is removed
+
+Confirmed.
+
+Delete:
+
+Security Health
+90 / 90
+
+Replace with:
+
+Protection Status
+STRONG
+
+✓ Recovery configured
+✓ MFA enabled
+✓ Trusted device
+✓ Cold Lock enabled
+✓ Secure Reveal enabled
+○ Recovery drill due
+
+There is no fake mathematical cybersecurity score.
+
+12. Continuity Readiness
+
+Separate from security.
+
+Example:
+
+CONTINUITY READINESS
+
+78%
+
+Property        Complete
+Financial       Complete
+Insurance       Needs attention
+Legal           Needs attention
+
+Possible scoring inputs:
+
+important records documented
+documents attached
+trusted people assigned
+instructions completed
+professional contacts
+record freshness
+recovery readiness
+access reviews
+
+The scoring formula must eventually be documented and deterministic.
+
+13. Continuity Gaps
+
+Confirmed core feature.
+
+Example:
+
+TERM INSURANCE
+
+✓ Provider
+✓ Policy document
+✓ Nominee
+✓ Trusted person
+
+Needs attention:
+
+○ Agent/contact missing
+○ Claim instructions missing
+○ Original location missing
+
+Dashboard:
+
+3 continuity gaps need attention.
+
+This is much more valuable than random analytics.
+
+14. Record Freshness
+
+Confirmed.
+
+Every important record gets:
+
+Last reviewed:
+12 months ago
+
+Status:
+Review recommended
+
+User can:
+
+Confirm still current
+
+Update
+
+Archive
+
+This should apply to:
+
+records
+trusted people
+lawyers
+CAs
+insurance
+instructions
+recovery
+access permissions
+
+Continuity information rots. Aureva should actively fight that.
+
+15. Continuity Drill
+
+Confirmed, but P1 rather than initial crypto work.
+
+User starts:
+
+Run Continuity Drill
+
+Aureva evaluates:
+
+Recovery                       PASS
+
+Trusted Circle                 PASS
+
+Property                       PASS
+
+Insurance                      WARNING
+
+Financial                      PASS
+
+Professional contacts          WARNING
+
+No sensitive values need to appear.
+
+The test answers:
+
+Would my continuity plan actually work today?
+
+16. Authentication and vault encryption are permanently separate
+
+This becomes a non-negotiable architecture rule.
+
+ACCOUNT AUTHENTICATION
+
+"Are you the account owner?"
+
+                  ≠
+
+VAULT UNLOCK
+
+"Do you possess the cryptographic secret
+needed to decrypt this vault?"
+
+Backend authentication does not automatically equal decryption authorization.
+
+17. Final key hierarchy
+
+Confirmed:
+
+                           USER
+
+                             │
+                      Authentication
+                             │
+                             ▼
+                        Vault Unlock
+                             │
+                             ▼
+
+                    VAULT MASTER KEY
+                       Random 256-bit
+                             │
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+
+      Password KEK      Recovery KEK      Device KEK
+
+            │                │                │
+            └──────────── wraps VMK ─────────┘
+
+                             │
+                             ▼
+
+                     Random Record DEK
+                             │
+                       AES-256-GCM
+                             │
+                             ▼
+                         Ciphertext
+
+Passwords never directly become the permanent master key.
+
+18. Password flow
+Password
+   ↓
+Argon2id
+   ↓
+Password KEK
+   ↓
+Decrypt wrapped VMK
+   ↓
+Vault available
+
+Password change:
+
+Old password
+   ↓
+Unlock VMK
+   ↓
+New password
+   ↓
+New KEK
+   ↓
+Re-wrap VMK
+
+No need to re-encrypt every record.
+
+19. Record encryption
+
+Every record receives its own random DEK.
+
+Random Record DEK
+       │
+       ├── Encrypt record payload
+       │
+       └── Wrap DEK with VMK
+
+Backend stores:
+
+ciphertext
+
+nonce
+
+wrapped_dek
+
+crypto_version
+
+Not plaintext.
+
+20. File encryption
+
+Documents are encrypted locally before upload.
+
+File
+ ↓
+Generate random File DEK
+ ↓
+AES-256-GCM
+ ↓
+Encrypted file
+ ↓
+Object storage
+
+Object storage should only see ciphertext.
+
+21. Metadata encryption
+
+Confirmed.
+
+Encrypt sensitive metadata including:
+
+record title
+description
+instructions
+account information
+document filename
+professional notes
+legacy messages
+sensitive relationships
+
+Leave operational metadata plaintext only where necessary:
+
+opaque record ID
+owner ID
+timestamps
+crypto version
+storage references
+22. Local search
+
+Because encrypted titles cannot be searched normally by the server:
+
+Unlock
+ ↓
+Fetch encrypted metadata
+ ↓
+Decrypt locally
+ ↓
+Create in-memory/local search index
+ ↓
+Search
+
+Index disappears during Cold Lock.
+
+23. Crypto versioning
+
+Mandatory from V1.
+
+Each encrypted object carries something conceptually similar to:
+
+crypto_version
+algorithm
+nonce
+wrapped_key
+ciphertext
+aad_version
+
+This allows future cryptographic migrations.
+
+Aureva is intended to live for years. Pretending today's crypto format will never change would be spectacularly shortsighted.
+
+24. Secure Reveal
+
+Keep your existing concept.
+
+The V4 design already distinguishes reveal-required information from destructive/high-security operations.
+
+Final levels:
+
+Level	Behaviour
+L1	Non-sensitive metadata displayed
+L2	Explicit Reveal required
+L3	Fresh authentication
+L4	Fresh authentication + Shield where configured
+
+Example:
+
+L1
+18 records
+
+L2
+Bank account number
+
+L3
+Delete record
+
+L4
+Export entire vault
+25. Tab concealment
+
+Confirmed.
+
+When Aureva loses focus:
+
+Sensitive content
+      ↓
+immediately concealed
+
+But don't pretend a browser can provide OS-level screenshot protection.
+
+Marketing wording:
+
+Sensitive content automatically conceals when Aureva loses focus.
+
+Defensible.
+
+26. Cold Lock
+
+P0.
+
+After configurable inactivity:
+
+Sensitive UI hidden
+        ↓
+VMK released/destroyed from application state
+        ↓
+DEKs released
+        ↓
+decrypted metadata removed
+        ↓
+local search removed
+        ↓
+temporary decrypted data removed
+        ↓
+VAULT LOCKED
+
+Authentication can technically remain active while the vault itself becomes locked.
+
+27. Lock & Purge
+
+Confirmed.
+
+Security Center contains:
+
+Lock Vault
+
+Cryptographically locks the vault.
+
+Lock & Purge
+Conceal content
+ ↓
+Destroy unlocked-key state
+ ↓
+Clear decrypted state
+ ↓
+Clear local temporary data
+ ↓
+Destroy local search
+ ↓
+Invalidate vault session
+ ↓
+End backend authentication session
+ ↓
+Login
+28. Recovery architecture
+
+Recovery remains one of Aureva's highest priorities. Your original architecture correctly describes recovery failure as catastrophic.
+
+Use a client-generated recovery secret.
+
+Conceptually:
+
+24-word Recovery Secret
+          ↓
+Recovery Key
+          ↓
+Recovery KEK
+          ↓
+Decrypt recovery-wrapped VMK
+          ↓
+Vault recovered
+
+The recovery phrase must never be stored by Aureva in plaintext.
+
+Your existing design already says the recovery phrase is generated and verified client-side.
+
+29. Identity recovery ≠ vault recovery
+
+Permanent distinction:
+
+IDENTITY RECOVERY
+
+Recover account authentication
+
+versus:
+
+VAULT RECOVERY
+
+Recover encrypted VMK
+
+Support staff may assist with identity recovery.
+
+Support staff must not possess a master key capable of decrypting vault contents.
+
+30. Recovery Practice
+
+Confirmed.
+
+Practice Recovery
+      ↓
+Verify recovery secret
+      ↓
+Simulate key recovery
+      ↓
+No production records modified
+
+The existing V4 architecture already contains this concept.
+
+31. Independent Recovery Package
+
+Confirmed future trust feature.
+
+Export:
+
+AUREVA RECOVERY PACKAGE
+
+encrypted-vault.aureva
+
+recovery metadata
+
+crypto-format version
+
+integrity manifest
+
+offline instructions
+
+Long-term goal:
+
+A user's data should remain recoverable even if Aureva itself eventually disappears.
+
+That is exactly the kind of promise a continuity company should be able to support.
+
+32. People becomes Trusted Circle
+
+Final terminology:
+
+TRUSTED CIRCLE
+
+Family
+├── Spouse
+├── Son
+└── Daughter
+
+Professionals
+├── Lawyer
+├── CA
+├── Wealth Adviser
+└── Estate Planner
+
+The V4 architecture already sensibly treats trusted professionals as roles rather than requiring a completely separate subsystem.
+
+Keep that.
+
+33. Continuity Grants
+
+Replace simplistic “assignments.”
+
+Each access relationship becomes a Continuity Grant.
+
+Recipient:
+Spouse
+
+Records:
+Property A
+Insurance B
+
+Permission:
+View
+
+Status:
+Active
+
+Authentication:
+Fresh authentication required
+
+Later:
+
+current access
+future continuity access
+professional access
+emergency access
+
+But advanced conditional release is postponed.
+
+34. Cryptographic sharing
+
+Confirmed architecture.
+
+Every recipient gets a sharing key pair.
+
+Sharing Public Key
+→ stored server-side
+
+Sharing Private Key
+→ encrypted under recipient's VMK
+
+Sharing:
+
+Owner obtains Record DEK locally
+          ↓
+Recipient public key
+          ↓
+Shared wrapping secret
+          ↓
+Encrypt/wrap Record DEK
+          ↓
+Store encrypted grant
+
+Recipient:
+
+Encrypted grant
+      ↓
+Recipient private key
+      ↓
+Recover Record DEK
+      ↓
+Decrypt record
+
+Server never needs the plaintext DEK.
+
+35. Multiple-device sharing
+
+Confirmed solution:
+
+Recipient private sharing key
+          ↓
+encrypted using recipient VMK
+          ↓
+stored as ciphertext
+
+New device:
+
+Recover/unlock VMK
+ ↓
+Decrypt sharing key
+ ↓
+Existing grants remain usable
+
+This supports device migration without destroying every previous share.
+
+36. Revocation
+
+Confirmed behaviour:
+
+Revoke grant
+ ↓
+Generate new record DEK
+ ↓
+Encrypt current record version
+ ↓
+Wrap new DEK only for remaining authorized people
+
+Aureva promises:
+
+Revocation prevents future access through Aureva.
+
+Aureva cannot force someone to forget information they already copied.
+
+Do not claim otherwise.
+
+37. Duress Access
+
+Confirmed optional feature.
+
+Settings:
+
+Security
+ ↓
+Advanced Protection
+ ↓
+Duress Access
+OFF / ON
+
+Not forced during onboarding.
+
+Architecture:
+
+             VAULT UNLOCK
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+ Normal credential     Duress credential
+        │                   │
+        ▼                   ▼
+     REAL VMK            SAFE VMK
+        │                   │
+        ▼                   ▼
+    Real Vault          Safe Vault
+
+The real VMK must never be decrypted by the duress credential.
+
+38. Duress Safe Vault
+
+User configures it beforehand.
+
+Possible contents:
+
+selected identity documents
+basic property information
+ordinary insurance
+harmless personal records
+user-created safe records
+
+No:
+
+"DURESS MODE ACTIVE"
+
+No suspicious UI changes.
+
+No automatic emergency alert by default.
+
+39. Indistinguishable Vault Slots
+
+NOT CONFIRMED FOR V1.
+
+Reason:
+
+Genuine plausible-deniability slots require hiding more than just encryption keys:
+
+storage size
+timestamps
+network patterns
+object counts
+update behaviour
+client behaviour
+
+That is difficult to guarantee in a browser application.
+
+Decision:
+
+Separate Safe Vault now. Plausible-deniability slots only after independent cryptographic review.
+
+This is one place where refusing to add a fancy feature makes the product stronger.
+
+40. PIN scrambling
+
+Confirmed optional advanced feature.
+
+Security
+ ↓
+PIN Protection
+ ↓
+Randomize PIN keypad
+ON / OFF
+
+It helps against shoulder surfing.
+
+It does not become a headline security claim.
+
+41. Shield is simplified
+
+Shield stays, but we are no longer building some enormous workflow engine.
+
+Shield protects only L4 actions.
+
+Request dangerous action
+          ↓
+Generate action hash
+          ↓
+Select approver
+          ↓
+Set expiration
+          ↓
+Approver authenticates
+          ↓
+Approves exact action
+          ↓
+Execute once
+
+States:
+
+PENDING
+
+APPROVED
+
+DENIED
+
+EXPIRED
+
+CANCELLED
+
+EXECUTED
+42. Shield-protected operations
+
+Initially:
+
+Export entire vault
+
+Replace critical recovery configuration
+
+Disable Duress Access
+
+Release emergency lock
+
+Mass-share sensitive records
+
+Not everyday actions.
+
+Shield should protect high-risk operations rather than constantly annoying users.
+
+43. Verified Security History
+
+Replace the ordinary Security Timeline with something stronger.
+
+Event structure:
+
+event_id
+sequence
+event_type
+timestamp
+device_id
+encrypted_details
+previous_hash
+signature
+
+Hash chain:
+
+EVENT 1
+ hash1
+
+EVENT 2
+ previous_hash = hash1
+ hash2
+
+EVENT 3
+ previous_hash = hash2
+ hash3
+
+Trusted devices can sign eligible client events.
+
+Aureva can then identify:
+
+modified event
+
+deleted event
+
+incorrect ordering
+
+broken history chain
+
+invalid device signature
+
+That earns the feature more than “recent login from Chrome.”
+
+44. Security event categories
+
+Use:
+
+INFO
+WARNING
+CRITICAL
+
+Rules-based detection only.
+
+No AI.
+
+Important events:
+
+new device
+failed authentication burst
+recovery attempt
+recovery configuration change
+new sharing key
+mass export
+mass sharing
+MFA disabled
+Duress configuration change
+Shield request
+Lock & Purge
+45. Tamper-evident record history
+
+Confirmed P1 feature.
+
+Each important record version commits to the previous version.
+
+Version 1
+
+ciphertext_hash
+version_hash
+client_signature
+
+Then:
+
+Version 2
+
+previous_hash = V1 hash
+ciphertext_hash
+version_hash
+client_signature
+
+Hash should cover:
+
+record ID
+version number
+previous hash
+ciphertext hash
+timestamp
+crypto format
+
+Periodically create an integrity checkpoint stored independently from the main record history.
+
+Only after this passes tests may Aureva publicly use:
+
+Tamper-evident history
+
+Never:
+
+Tamper-proof.
+
+46. Error architecture
+
+Keep your existing centralized system.
+
+Your current document already defines a common AurevaError family and safe user-facing messages separated from secure internal diagnostics.
+
+Final structure:
+
+AurevaError
+│
+├── AuthError
+├── CryptoError
+├── RecoveryError
+├── VaultError
+├── SessionError
+├── StorageError
+├── PermissionError
+├── ValidationError
+├── SharingError
+└── IntegrityError
+47. Sanitized logging
+
+Mandatory.
+
+Logging must use an allow-list.
+
+Allowed:
+
+event code
+request ID
+opaque record ID
+device ID
+timestamp
+severity
+operation
+
+Forbidden:
+
+password
+recovery phrase
+VMK
+DEK
+JWT
+authorization header
+plaintext title
+plaintext notes
+document contents
+private keys
+
+Your original exception architecture already says internal cryptographic details should not be exposed through user-facing errors.
+
+48. Automated secret-leak tests
+
+Confirmed.
+
+Tests insert a known canary:
+
+AUREVA_SECRET_CANARY_83D2AE
+
+Then scan:
+
+logs
+telemetry
+network requests
+database
+object storage
+browser persistent storage
+error reports
+
+The canary must not appear where plaintext is prohibited.
+
+If it does:
+
+BUILD FAIL
+49. Backend architecture
+
+Do not rewrite everything yet.
+
+Confirmed initial architecture:
+
+                         AUREVA CLIENT
+                              │
+                        Local Crypto
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+      AUTH + METADATA                ENCRYPTED FILES
+               │                             │
+               ▼                             ▼
+     Supabase Auth/Postgres            Object Storage
+               │
+              RLS
+
+For early development:
+
+Supabase Auth
+Supabase PostgreSQL
+RLS
+encrypted blob/object storage
+a narrow backend/Worker/API for object authorization where required.
+
+Your V4 architecture already used Supabase Auth, Postgres, Storage and RLS.
+
+50. Provider independence
+
+Very important.
+
+Frontend components must not be littered with:
+
+supabase.from(...)
+
+Create service/repository interfaces:
+
+AuthProvider
+
+DatabaseProvider
+
+ObjectStorageProvider
+
+AuditStore
+
+Architecture:
+
+React UI
+   ↓
+Application Services
+   ↓
+Repositories
+   ↓
+Provider Adapters
+   ↓
+Supabase / Future Provider
+
+This lets Aureva migrate later without rewriting the whole application.
+
+51. Core database model
+
+Confirmed foundation:
+
+profiles
+
+vaults
+
+records
+
+record_files
+
+trusted_people
+
+user_sharing_keys
+
+record_grants
+
+trusted_devices
+
+security_events
+
+record_versions
+
+integrity_checkpoints
+
+recovery_config
+
+shield_requests
+
+Subscriptions are separate:
+
+plans
+
+subscriptions
+
+usage
+52. vaults
+
+Conceptual fields:
+
+id
+
+owner_id
+
+wrapped_vmk_password
+
+wrapped_vmk_recovery
+
+kdf_salt
+
+kdf_parameters
+
+crypto_version
+
+created_at
+
+updated_at
+
+Never store plaintext VMK.
+
+53. records
+id
+
+owner_id
+
+encrypted_metadata
+
+encrypted_payload
+
+wrapped_dek
+
+nonce
+
+crypto_version
+
+created_at
+
+updated_at
+54. record_files
+id
+
+record_id
+
+owner_id
+
+encrypted_filename
+
+storage_path
+
+wrapped_file_dek
+
+nonce
+
+crypto_version
+
+created_at
+
+Storage filenames should be opaque IDs.
+
+55. trusted_people
+id
+
+owner_id
+
+linked_user_id
+
+relationship_or_role
+
+status
+
+created_at
+
+Sensitive descriptive metadata can remain encrypted where appropriate.
+
+56. record_grants
+id
+
+record_id
+
+owner_id
+
+recipient_id
+
+encrypted_record_key
+
+sender_public_material
+
+permissions
+
+grant_version
+
+status
+
+created_at
+
+revoked_at
+57. security_events
+id
+
+owner_id
+
+sequence
+
+event_type
+
+severity
+
+device_id
+
+encrypted_details
+
+previous_hash
+
+event_hash
+
+signature
+
+created_at
+58. RLS becomes mandatory
+
+Every exposed table gets RLS.
+
+Tests must verify:
+
+User A reads own record            ALLOW
+
+User B reads A's record            DENY
+
+Anonymous reads A's record         DENY
+
+User B guesses record UUID         DENY
+
+User B edits A's record            DENY
+
+User B deletes A's record          DENY
+
+User B changes owner_id            DENY
+
+React filtering does not count as authorization.
+
+59. Browser must never contain server-admin credentials
+
+Permanent rule:
+
+NO SERVICE-ROLE / ADMIN KEY
+IN FRONTEND CODE
+
+Anything capable of bypassing RLS stays server-side.
+
+60. Storage paths
+
+Use:
+
+/{owner_uuid}/{record_uuid}/{opaque_file_uuid}
+
+Not:
+
+/Shounak/HDFC/BankStatement.pdf
+
+Because the second one helpfully leaks sensitive metadata to anyone inspecting storage.
+
+61. Browser attack-surface architecture
+
+Separate:
+
+www.aureva...
+
+marketing site
+
+from:
+
+vault.aureva...
+
+secure application.
+
+The secure vault application gets:
+
+No advertising scripts
+
+No Meta Pixel
+
+No Google Tag Manager
+
+No random chat widgets
+
+No unnecessary third-party JavaScript
+
+Strict Content Security Policy
+
+Restricted framing
+
+Strong security headers
+
+Minimal browser permissions
+
+Dependency pinning
+
+Secret scanning
+
+This is P0.
+
+62. Browser capabilities
+
+Deny unnecessary capabilities through policy:
+
+Microphone       DENY
+
+Geolocation      DENY
+
+Bluetooth        DENY
+
+USB              DENY
+
+Sensors          DENY
+
+Camera           DENY unless an actual feature needs it
+
+Keep the vault's browser environment extremely boring.
+
+Boring is desirable when property deeds are involved.
+
+63. Document previews
+
+Never execute uploaded documents as trusted page content.
+
+Flow:
+
+Encrypted attachment
+      ↓
+Decrypt locally
+      ↓
+Validate expected type
+      ↓
+Sandboxed / restricted preview
+
+Do not directly render arbitrary HTML or SVG.
+
+64. Backup architecture
+
+Confirmed P0.
+
+POSTGRES DATA
+     ↓
+Encrypted backup / export
+     ↓
+Secondary backup location
+
+
+ENCRYPTED FILE OBJECTS
+     ↓
+Secondary encrypted copy
+
+Because files are ciphertext, backup providers do not need plaintext.
+
+65. Restore tests
+
+A backup does not count until restore works.
+
+Periodic test:
+
+restore metadata
+
+restore ciphertext
+
+restore key-wrapping metadata
+
+verify integrity
+
+decrypt using legitimate recovery credentials
+
+Aureva should measure successful restores, not merely successful backup jobs.
+
+66. Public Trust Center
+
+Before serious launch:
+
+/security
+
+/privacy
+
+/trust
+
+/status
+
+/security-updates
+
+/responsible-disclosure
+
+Explain:
+
+what Aureva can see
+
+what Aureva cannot see
+
+how encryption works
+
+how recovery works
+
+how sharing works
+
+how deletion works
+
+what happens if Aureva closes
+
+known limitations
+
+audit status
+
+Transparency becomes part of the product.
+
+67. Threat model
+
+Aureva is designed to mitigate:
+
+database breach
+
+storage breach
+
+stolen credentials
+
+stolen device
+
+malicious insider
+
+unauthorized family access
+
+session theft
+
+accidental over-sharing
+
+data corruption
+
+company failure
+
+Explicitly acknowledge limitations:
+
+malware on an unlocked device
+
+malicious browser extension
+
+screenshots
+
+recipient copying revealed information
+
+user intentionally sharing secrets
+
+loss of every recovery mechanism
+
+Do not claim invincibility.
+
+That is generally a sign nobody serious has reviewed the product.
+
+68. Pricing is now subscription-only
+
+Lifetime pricing is removed.
+
+Confirmed pricing direction:
+
+Plan	Monthly	Annual
+Starter	Free	Free
+Individual	₹499	₹4,999
+Family	₹999	₹9,999
+Private	₹2,499	₹24,999
+Private+	₹4,999	₹49,999
+Starter
+3 Continuity Records
+250 MB
+1 Trusted Person
+
+Core encryption
+Recovery fundamentals
+Secure Reveal
+Auto-lock
+Basic Continuity Readiness
+Export
+Individual
+100 records
+5 GB
+2 Trusted People
+
+Continuity Graph
+Continuity Gaps
+Record Freshness
+Cold Lock
+Recovery Practice
+Security History
+Independent export
+Family
+
+Likely Most Popular.
+
+Unlimited records
+25 GB
+6 Trusted People
+
+Cryptographic sharing
+Granular permissions
+Continuity Grants
+Continuity Drill
+Access Reviews
+Version History
+Advanced Recovery
+Private
+100 GB
+15 Trusted People
+
+Professional access
+Duress Access
+Safe Vault
+PIN scrambling
+Shield
+Advanced integrity history
+Advanced recovery
+Long audit retention
+Priority support
+Private+
+250 GB+
+Larger / effectively unrestricted Trusted Circle
+
+Everything in Private
+
+Dedicated onboarding
+Quarterly continuity review
+Recovery-readiness review
+Professional coordination
+Migration assistance
+Priority human support
+
+Private+ must include service, not merely more gigabytes.
+
+69. Security is never paywalled
+
+Every customer receives:
+
+strong encryption
+
+basic secure authentication
+
+account isolation
+
+recovery fundamentals
+
+secure storage
+
+safe deletion
+
+Paid plans add:
+
+capacity
+
+trusted people
+
+continuity capabilities
+
+advanced workflows
+
+Duress
+
+Shield
+
+professional collaboration
+
+human support
+
+We never deliberately make Starter “less encrypted.”
+
+That would be idiotic.
+
+70. Revenue strategy
+
+Confirmed:
+
+                  AUREVA
+                     │
+       ┌─────────────┼─────────────┐
+       ▼             ▼             ▼
+      B2C          B2B2C         PRIVATE
+ subscriptions   professionals    service
+                     │
+                     ▼
+              affluent clients
+
+Direct consumer remains available.
+
+But the strongest trust/distribution route should eventually be:
+
+Lawyer
+CA
+Wealth adviser
+Estate planner
+Family office
+       ↓
+     Aureva
+       ↓
+     Client
+
+Aureva does not need to convince every high-net-worth customer from zero.
+
+Their existing trusted professional can introduce it.
+
+71. Professional Mode
+
+Later P2/P3:
+
+AUREVA PROFESSIONAL
+
+Invite client
+
+Provide continuity template
+
+Request missing information
+
+Review continuity gaps
+
+Access explicitly granted records
+
+Perform continuity review
+
+Professional account does not automatically grant access to the client's vault.
+
+72. What is permanently removed
+
+Not part of Aureva:
+
+AI assistant
+
+AI summaries
+
+AI security adviser
+
+AI estate advice
+
+AI analysis of private records
+
+advertising
+
+selling customer information
+
+sponsored recommendations based on vault contents
+
+Revenue comes from customers paying Aureva.
+
+Very boring.
+
+Very good.
+
+73. Features deferred until later
+
+Do not let these delay the real product:
+
+plausible-deniability vault slots
+
+automatic death verification
+
+automatic inheritance transfer
+
+bank aggregation
+
+crypto-wallet management
+
+blockchain
+
+Tor/.onion
+
+full password manager
+
+video legacy
+
+wealth analytics
+
+complex enterprise dashboards
+74. Confirmed build order
+
+This is now the engineering order.
+
+Phase 1 — Code audit
+Inspect source
+
+Inspect authentication
+
+Inspect crypto
+
+Inspect Supabase schema
+
+Inspect RLS
+
+Inspect storage
+
+Inspect dependencies
+
+Inspect secrets
+Phase 2 — Cryptographic foundation
+VMK
+
+Password KEK
+
+Recovery KEK
+
+Record DEKs
+
+File DEKs
+
+AES-GCM
+
+Crypto versioning
+
+Metadata encryption
+Phase 3 — Reliable Vault
+Create
+
+Retrieve
+
+Reveal
+
+Edit
+
+Delete
+
+Encrypted upload
+
+Encrypted download
+
+Local search
+
+Cold Lock
+
+Lock & Purge
+Phase 4 — Backend isolation
+RLS
+
+Storage policies
+
+Session controls
+
+Safe error handling
+
+Sanitized logging
+
+Canary leak tests
+
+Browser hardening
+Phase 5 — Recovery
+Recovery secret
+
+Verification
+
+Clean-device recovery
+
+Password replacement
+
+Recovery Practice
+Phase 6 — Continuity
+Continuity Records
+
+Templates
+
+Relationships
+
+Continuity Gaps
+
+Record Freshness
+
+Readiness
+Phase 7 — Trusted Circle
+Trusted people
+
+Professional roles
+
+Sharing key pairs
+
+Continuity Grants
+
+Cryptographic record sharing
+
+Revocation
+Phase 8 — Integrity
+Verified Security History
+
+Hash-chained versions
+
+Device signatures
+
+Integrity checkpoints
+
+Continuity Drill
+Phase 9 — Advanced protection
+Duress Access
+
+Safe Vault
+
+PIN scrambling
+
+Simplified Shield
+Phase 10 — Trust and commercial release
+Independent Recovery Package
+
+Backup restore testing
+
+Public threat model
+
+Trust Center
+
+Responsible disclosure
+
+External security review
+
+Penetration test
+75. Hard release gates
+
+Aureva is not production-ready until these pass.
+
+Test	Required
+Account creation	PASS
+Vault creation	PASS
+Local encryption	PASS
+Browser refresh	PASS
+Retrieve/decrypt	PASS
+Encrypted edit	PASS
+Secure delete	PASS
+File upload encryption	PASS
+File download/decryption	PASS
+Metadata ciphertext verification	PASS
+Password change	No data loss
+Clean-device recovery	PASS
+Wrong recovery secret	DENIED
+User B reads User A	DENIED
+UUID guessing	DENIED
+Unauthorized update	DENIED
+Unauthorized delete	DENIED
+Cold Lock	Keys/state cleared
+Tab concealment	PASS
+Corrupted ciphertext	Safe failure
+Interrupted upload	Safe recovery
+Secret canary in logs	NONE
+Secret canary in DB	NONE where prohibited
+Secret canary in storage	NONE in plaintext
+Backup restoration	PASS
+Cryptographic family share	PASS
+Grant revocation	Future access denied
+History modification	Detected
+
+That table matters more than every visual feature combined.
+
+76. Final security architecture
+                              AUREVA
+
+                                 │
+                       ACCOUNT AUTHENTICATION
+                                 │
+                   Password / MFA / Passkey
+                                 │
+                                 ▼
+                           VAULT UNLOCK
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          ▼                      ▼                      ▼
+     Normal Secret          Recovery Secret        Duress Secret
+          │                      │                      │
+          ▼                      ▼                      ▼
+       REAL VMK            Recover REAL VMK          SAFE VMK
+          │                                             │
+          ▼                                             ▼
+  REAL CONTINUITY GRAPH                            SAFE VAULT
+          │
+          ├── Records
+          ├── People
+          ├── Instructions
+          ├── Relationships
+          ├── Grants
+          └── History
+          │
+          ▼
+    PER-RECORD / FILE DEKs
+          │
+          ▼
+      AES-256-GCM
+          │
+          ▼
+       CIPHERTEXT
+          │
+          ▼
+
+   ┌────────────┬───────────────┬──────────────┬──────────────┐
+   ▼            ▼               ▼              ▼
+ AUTH        POSTGRES        OBJECT STORE    EVENT STORE
+                 │               │              │
+                RLS         ciphertext       integrity
+                 │               │              chain
+                 └───────────────┼──────────────┘
+                                 │
+                         NO VAULT PLAINTEXT
+77. Final Aureva North Star
+
+Every product decision now gets tested against this:
+
+If the owner becomes unavailable tomorrow, can the correct trusted person understand what exists, why it matters, where it is, and what should happen next, while Aureva itself learns as little private information as reasonably possible?
+
+Then ask only three engineering questions:
+
+Does this improve SECURITY?
+
+Does this improve RECOVERY?
+
+Does this improve CONTINUITY?
+
+If all three answers are no, the feature waits.
+
+Final status
+
+The product direction is now frozen.
+
+The confirmed Aureva consists of:
+
+Continuity Graph + Continuity Records + Zero-Knowledge Vault + Recovery + Trusted Circle + Cryptographic Grants + Continuity Readiness + Gaps + Freshness + Drill + Verified History + Cold Lock + optional Duress + simplified Shield + independent recovery + subscription pricing + professional distribution.
+
+No AI. No lifetime pricing. No fake security scores. No unnecessary complexity.

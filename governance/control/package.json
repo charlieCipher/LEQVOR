@@ -3,6 +3,26 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "scripts": { "test": "node --test *.acceptance.mjs" },
-  "dependencies": { "jose": "6.2.12" }
+  "scripts": {
+    "test": "node --test *.acceptance.mjs",
+    "build": "node build.mjs",
+    "start": "node start.mjs",
+    "start:authorization": "node authorization-start.mjs",
+    "test:auth0-browser": "node auth0-browser-acceptance.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-kms": "3.1152.0",
+    "@aws-sdk/client-s3": "3.1152.0",
+    "@aws-sdk/client-sts": "3.1152.0",
+    "@aws-sdk/credential-providers": "3.1152.0",
+    "jose": "6.2.12",
+    "pg": "8.23.1"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "devDependencies": {
+    "@neon/config": "1.9.2",
+    "@neon/env": "1.6.3"
+  }
 }

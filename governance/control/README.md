@@ -1,6 +1,8 @@
 # Separate LEQVOR control-service boundary
 
-Status: implemented and locally tested; **not listening, deployed or activated**. No customer UI or customer authentication setting changes. The separate admin view/client is implemented as an injected module; its live login/provider/hosting entry remains unfinished.
+Status, 16 October 2026: the separate Render entry, Auth0 verification/ordered MFA Action sources, signed live role/revocation client, verified Neon pool, independently configured policy pin and least-privilege SQL are now **prepared locally**. Nothing is deployed or activated; customer UI/authentication is unchanged. See [RENDER-READINESS.md](RENDER-READINESS.md) for exact commands, environment names, security boundaries and live acceptance blockers. The older assembly contracts below remain supported; the Render path uses the explicitly documented Auth0 proof mapping instead of assuming Auth0 emits the generic ACR/auth_time format.
+
+Production entry: `npm start` in this package. Build: `npm run build`. Render Root Directory is **governance**, Build Command `npm ci --ignore-scripts --include=dev --prefix control && npm run build --prefix control && npm test --prefix control`, Start Command `npm start --prefix control`. Do not run the start command against production before the documented approval/configuration gates. It performs no migrations or enrollment and refuses owner credentials/incomplete configuration. The separate same-origin console/login deployment remains unfinished.
 
 This package is deliberately separate from the customer Vite application and its dependency graph. `jose` 6.2.12 verifies access-token signatures using an independently configured HTTPS JWKS endpoint. It never decodes an unverified token into an administrator. See the [library's verification documentation](https://github.com/panva/jose).
 

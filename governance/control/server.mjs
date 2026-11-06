@@ -3,7 +3,8 @@ import {GovernanceGateway} from '../gateway.mjs';
 import {createControlAuthenticator} from './auth.mjs';
 import {createControlHandler} from './http.mjs';
 
-// Assembly only. There is deliberately no executable entry point, automatic
+// Direct TLS assembly only. The separate reviewed Render entry is start.mjs.
+// There is deliberately no automatic
 // listener, environment-secret discovery, first-user enrollment or role grant.
 // The operator must supply a reviewed separate datastore/engine, identity
 // service, revocation and role adapters, admission policy and TLS identity.
