@@ -1,5 +1,27 @@
 import { legalPages } from './legalContent';
 export const pages = {
+  "/about": [
+    "About LEQVOR",
+    "A digital legacy and asset continuity platform in development",
+    [
+      [
+        "Our purpose",
+        "LEQVOR is being developed to help people organize important financial, property, insurance, and personal records so essential information is easier to review and prepare for continuity.",
+      ],
+      [
+        "How it is designed",
+        "The product brings records, trusted-person planning, and continuity preparation into one workspace. Its design emphasizes privacy, explicit access decisions, and encrypted handling of sensitive records.",
+      ],
+      [
+        "What LEQVOR is not",
+        "LEQVOR does not replace a will, legal advice, financial advice, an insurance provider, or an institution's official records. Listing a trusted person does not create legal authority or automatically grant access.",
+      ],
+      [
+        "Current stage",
+        "LEQVOR remains under development. Independent security review, full recovery validation, backup-restore testing, and some sharing and revocation requirements remain incomplete. Keep independent copies of essential records and do not rely on LEQVOR as their only storage location.",
+      ],
+    ],
+  ],
   "/trust": [
     "Trust Center",
     "Our commitments and current limitations",
