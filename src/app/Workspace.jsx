@@ -440,7 +440,7 @@ export default function Workspace({ session, demo = false }) {
               Assets <i /> Records <i /> Forever
             </span>
           </footer>
-          <nav className="legal-links" aria-label="Legal information"><a href="/privacy">Privacy Notice</a><a href="/terms">Terms of Use</a><a href="/trust">Trust Center</a></nav>
+          <nav className="legal-links" aria-label="Legal information"><a href="/about" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>About</a><a href="/privacy">Privacy Notice</a><a href="/terms">Terms of Use</a><a href="/trust">Trust Center</a></nav>
         </main>
       </div>
       <nav className="mobile-nav" aria-label="Mobile navigation">
