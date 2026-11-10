@@ -1,4 +1,4 @@
-import { legalPages } from './legalContent';
+import { legalPages } from "./legalContent";
 export const pages = {
   "/about": [
     "About LEQVOR",
@@ -63,6 +63,18 @@ export const pages = {
     ],
   ],
   ...legalPages,
+
+  "/about": [
+    "About LEQVOR",
+    "A More Secure Tomorrow",
+    [
+      [
+        "Our Mission",
+        "Protect what you’ve built. Preserve what matters. Give tomorrow more possibilities.",
+      ],
+    ],
+  ],
+
   "/status": [
     "Service status",
     "Development status",
