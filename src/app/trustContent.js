@@ -1,4 +1,5 @@
 import { legalPages } from "./legalContent";
+
 export const pages = {
   "/trust": [
     "Trust Center",
@@ -41,7 +42,6 @@ export const pages = {
     ],
   ],
   ...legalPages,
-
   "/about": [
     "About LEQVOR",
     "A More Secure Tomorrow",
@@ -52,7 +52,6 @@ export const pages = {
       ],
     ],
   ],
-
   "/status": [
     "Service status",
     "Development status",
@@ -96,4 +95,5 @@ export const pages = {
     ],
   ],
 };
+
 export const publicTrustPaths = Object.keys(pages);
