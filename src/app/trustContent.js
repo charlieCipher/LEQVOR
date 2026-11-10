@@ -1,4 +1,4 @@
-import { legalPages } from "./legalContent";
+import { legalPages } from './legalContent';
 
 export const pages = {
   "/trust": [
