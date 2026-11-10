@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "aLBTE2Z1L9o=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\VICTUS\\continuum\\governance\\native\\windows\\FounderConsole.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\VICTUS\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+  ],
+  "logs": []
+}
