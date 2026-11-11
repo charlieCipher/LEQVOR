@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.jsx";
 import "./index.css";
@@ -13,6 +14,16 @@ import "./styles/secure-entry.css";
 import "./styles/devices.css";
 import "./styles/legal.css";
 import "./styles/branding.css";
+
+// Initialize Sentry for production error tracking (Sentry v8 syntax)
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  integrations: [Sentry.browserTracingIntegration()],
+  // Performance Monitoring - capture 100% of transactions
+  tracesSampleRate: 1.0,
+  // Set environment based on whether we are in dev or prod
+  environment: import.meta.env.DEV ? "development" : "production",
+});
 
 // Opt-in local acceptance tooling; Vite removes this branch from production.
 if (
