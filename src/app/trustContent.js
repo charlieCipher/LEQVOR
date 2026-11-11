@@ -1,4 +1,4 @@
-import { legalPages } from './legalContent';
+import { legalPages } from "./legalContent";
 
 export const pages = {
   "/trust": [
@@ -49,6 +49,24 @@ export const pages = {
       [
         "Our Mission",
         "Protect what you’ve built. Preserve what matters. Give tomorrow more possibilities.",
+      ],
+    ],
+  ],
+  "/faq": [
+    "Frequently Asked Questions",
+    "Answers to common questions about digital legacy and asset continuity",
+    [
+      [
+        "What happens to my digital assets when I pass away?",
+        "Without a plan, digital accounts, crypto wallets, and important documents can become permanently inaccessible. LEQVOR allows you to securely designate trusted beneficiaries and provide them with encrypted access instructions, ensuring your digital legacy is preserved exactly as you intend.",
+      ],
+      [
+        "Is it safe to store sensitive financial and legal documents online?",
+        "Yes, when built correctly. LEQVOR uses a zero-knowledge inspired architecture. Your sensitive data is encrypted locally on your device before it ever reaches our servers. We cannot read your files, and neither can unauthorized third parties.",
+      ],
+      [
+        "How is LEQVOR different from a standard password manager?",
+        "Password managers are designed for daily convenience. LEQVOR is designed for continuity and legacy. We focus on long-term secure storage, structured asset mapping (properties, insurance, legal docs), and controlled, verified access for your family in the event of an emergency.",
       ],
     ],
   ],
