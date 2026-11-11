@@ -121,7 +121,7 @@ function Application() {
       alive = false;
       unsubscribe();
     };
-  }, []);
+  }, [pathname]);
 
   // 2. Assign the correct component to 'content' based on your existing logic
   let content;
