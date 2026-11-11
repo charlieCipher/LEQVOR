@@ -5,7 +5,6 @@ import MfaGate from "./features/auth/MfaGate";
 import { useEffect, useState } from "react";
 import { AuthProvider } from "./lib/providers";
 import Auth from "./Auth";
-import Icon from "./components/Icon";
 import ScreenBoundary from "./components/ui/ScreenBoundary";
 // Load the secure-entry and workspace code before users start recovery setup.
 // A late chunk request after a deployment must not interrupt a saved vault.
@@ -125,6 +124,7 @@ function Application() {
 
   // 2. Assign the correct component to 'content' based on your existing logic
   let content;
+
   if (publicTrustPaths.includes(pathname)) {
     content = <Trust />;
   } else if (
@@ -190,7 +190,7 @@ function ResetPassword({ onDone }) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     if (form.get("password") !== form.get("confirm"))
-      return setNotice("Passwords don’t match.");
+      return setNotice("Passwords don't match.");
 
     setBusy(true);
     try {
