@@ -23,6 +23,7 @@
   "dependencies": {
     "@noble/hashes": "2.0.1",
     "@scure/bip39": "2.0.1",
+    "@sentry/react": "11.12.0",
     "@supabase/supabase-js": "2.105.0",
     "crypto-js": "4.2.0",
     "jspdf": "4.2.1",
