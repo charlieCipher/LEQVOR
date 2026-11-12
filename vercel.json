@@ -26,7 +26,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' https://awdsyhxdnyfilnzamflt.supabase.co wss://awdsyhxdnyfilnzamflt.supabase.co; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; worker-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' https://scripts.simpleanalyticscdn.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' https://awdsyhxdnyfilnzamflt.supabase.co wss://awdsyhxdnyfilnzamflt.supabase.co https://queue.simpleanalyticscdn.com; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; worker-src 'self'; upgrade-insecure-requests"
         },
         {
           "key": "Cross-Origin-Opener-Policy",
